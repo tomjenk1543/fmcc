@@ -13096,13 +13096,19 @@
       // ---- Areas for improvement: finishing (Attacking) ----
       if (categoryKey === 'attacking' && underperformers.length) {
         const names = underperformers.map(p => `${p.name} (${p.goals} goals from ${p.xG.toFixed(1)} xG)`).join(', ');
-        improvements.push(`Finishing looks like a coaching priority for: <strong>${names}</strong> — each is scoring meaningfully below the chances they're getting.`);
+        improvements.push({
+          text: `Finishing looks like a coaching priority for: <strong>${names}</strong> — each is scoring meaningfully below the chances they're getting.`,
+          players: underperformers.map(p => p.name),
+        });
       }
 
       // ---- Areas for improvement: shot-stopping + depth gap (Goalkeeping) ----
       if (categoryKey === 'goalkeeping' && gkUnder.length) {
         const names = gkUnder.map(p => `${p.name} (${p.diff.toFixed(1)}pts below expected)`).join(', ');
-        improvements.push(`Shot-stopping is underperforming the model for: <strong>${names}</strong> — worth a look at goalkeeping coaching or confidence.`);
+        improvements.push({
+          text: `Shot-stopping is underperforming the model for: <strong>${names}</strong> — worth a look at goalkeeping coaching or confidence.`,
+          players: gkUnder.map(p => p.name),
+        });
       }
       const keepersWithApps = players.filter(p => isGoalkeeperRecord(p) && parseAppsTotal(p.apps) >= 1)
         .sort((a, b) => parseAppsTotal(b.apps) - parseAppsTotal(a.apps));
@@ -13110,7 +13116,10 @@
         const starter = keepersWithApps[0];
         const backup = keepersWithApps[1];
         if (typeof backup.svPct === 'number' && typeof starter.svPct === 'number' && (starter.svPct - backup.svPct) >= 8) {
-          improvements.push(`There's a meaningful save-percentage gap between ${starter.name} (${starter.svPct}%) and backup ${backup.name} (${backup.svPct}%) — goalkeeping depth looks like a squad-building priority if ${starter.name} picks up an injury or suspension.`);
+          improvements.push({
+            text: `There's a meaningful save-percentage gap between ${starter.name} (${starter.svPct}%) and backup ${backup.name} (${backup.svPct}%) — goalkeeping depth looks like a squad-building priority if ${starter.name} picks up an injury or suspension.`,
+            players: [starter.name, backup.name],
+          });
         }
       }
 
@@ -13119,35 +13128,50 @@
         .sort((a, b) => (b.foulsMade - b.tacklesWon) - (a.foulsMade - a.tacklesWon));
       if (categoryKey === 'discipline' && dirtyTacklers.length) {
         const worst = dirtyTacklers[0];
-        improvements.push(`<strong>${worst.name}</strong> commits more fouls (${worst.foulsMade}) than successful tackles (${worst.tacklesWon}) — their tackle timing/discipline looks like a training focus.`);
+        improvements.push({
+          text: `<strong>${worst.name}</strong> commits more fouls (${worst.foulsMade}) than successful tackles (${worst.tacklesWon}) — their tackle timing/discipline looks like a training focus.`,
+          players: [worst.name],
+        });
       }
 
       // ---- Areas for improvement: worst passer (General Play) ----
       if (categoryKey === 'generalplay' && passers.length) {
         const worstPasser = passers.filter(p => p.passesAttempted >= 100).sort((a, b) => a.passPct - b.passPct)[0];
         if (worstPasser && worstPasser.passPct < 85) {
-          improvements.push(`<strong>${worstPasser.name}</strong>'s pass completion (${worstPasser.passPct.toFixed(0)}%) is the weakest among regular passers — distribution under pressure may be worth targeting in training.`);
+          improvements.push({
+            text: `<strong>${worstPasser.name}</strong>'s pass completion (${worstPasser.passPct.toFixed(0)}%) is the weakest among regular passers — distribution under pressure may be worth targeting in training.`,
+            players: [worstPasser.name],
+          });
         }
       }
 
       // ---- Areas for improvement: conversion, penalties, goal drought (Goal Attempts) ----
       if (categoryKey === 'goalattempts' && conversionUnder.length) {
         const names = conversionUnder.map(p => `${p.name} (${p.conversion.toFixed(0)}% from ${p.shots} shots)`).join(', ');
-        improvements.push(`Conversion rate looks like a concern for: <strong>${names}</strong> — well below the squad's own average of ${squadConversion.toFixed(1)}%.`);
+        improvements.push({
+          text: `Conversion rate looks like a concern for: <strong>${names}</strong> — well below the squad's own average of ${squadConversion.toFixed(1)}%.`,
+          players: conversionUnder.map(p => p.name),
+        });
       }
       const penTakers = players.filter(p => typeof p.pensScored === 'number' && typeof p.pensTaken === 'number' && p.pensTaken >= 3);
       if (categoryKey === 'goalattempts' && penTakers.length) {
         const worstPenTaker = penTakers.slice().sort((a, b) => (a.pensScored / a.pensTaken) - (b.pensScored / b.pensTaken))[0];
         const rate = (worstPenTaker.pensScored / worstPenTaker.pensTaken) * 100;
         if (rate < 70) {
-          improvements.push(`<strong>${worstPenTaker.name}</strong> has scored ${worstPenTaker.pensScored} of ${worstPenTaker.pensTaken} penalties (${rate.toFixed(0)}%) — penalty-taking reliability looks worth addressing.`);
+          improvements.push({
+            text: `<strong>${worstPenTaker.name}</strong> has scored ${worstPenTaker.pensScored} of ${worstPenTaker.pensTaken} penalties (${rate.toFixed(0)}%) — penalty-taking reliability looks worth addressing.`,
+            players: [worstPenTaker.name],
+          });
         }
       }
       const droughts = players.filter(p => typeof p.minsSinceLastGoal === 'number' && p.minsSinceLastGoal >= 500 && (p.shots || 0) >= 5)
         .sort((a, b) => b.minsSinceLastGoal - a.minsSinceLastGoal);
       if (categoryKey === 'goalattempts' && droughts.length) {
         const worstDrought = droughts[0];
-        improvements.push(`<strong>${worstDrought.name}</strong> hasn't scored in ${worstDrought.minsSinceLastGoal} minutes despite regular shot volume — a finishing drought worth monitoring.`);
+        improvements.push({
+          text: `<strong>${worstDrought.name}</strong> hasn't scored in ${worstDrought.minsSinceLastGoal} minutes despite regular shot volume — a finishing drought worth monitoring.`,
+          players: [worstDrought.name],
+        });
       }
 
       if (!improvements.length) {
@@ -13158,7 +13182,7 @@
           generalplay: 'No clear passing concerns stood out from this snapshot — add more snapshots over time to spot developing trends.',
           goalattempts: 'No clear conversion, penalty, or drought concerns stood out from this snapshot — add more snapshots over time to spot developing trends.',
         };
-        improvements.push(fallbacks[categoryKey] || 'No clear improvement areas stood out from this snapshot.');
+        improvements.push({ text: fallbacks[categoryKey] || 'No clear improvement areas stood out from this snapshot.', players: [] });
       }
 
       // ---- Over/underperforming players: which pairing (if any) applies to this category ----
@@ -13193,6 +13217,35 @@
       };
     }
 
+    // Turns the flagged player name(s) behind an Areas for Improvement entry into the
+    // distinct Squad Breakdown position groups (see POSITION_GROUPS) a scouting suggestion
+    // should be offered for. Performance snapshots don't carry a position field themselves
+    // (see findSquadPosition's own comment), so this looks each name up against the live
+    // squad and classifies via the same classifyPositions() the Scouting page uses — "who'd
+    // address this" always agrees with how that player's position is grouped everywhere else
+    // in the app. A name with no squad match, or a position that doesn't classify into any
+    // group, is silently skipped rather than guessed at.
+    function findImprovementScoutGroups(playerNames) {
+      const groups = new Set();
+      (playerNames || []).forEach(name => {
+        const position = findSquadPosition(name);
+        if (!position) return;
+        classifyPositions(position).forEach(g => groups.add(g));
+      });
+      return Array.from(groups);
+    }
+
+    // One "Scouted option" line per distinct position group an improvement's flagged
+    // player(s) belong to (almost always just one) — reuses the exact same
+    // buildScoutSuggestionLineHtml()/findScoutSuggestionForGroup() the Squad Breakdown Focus
+    // list already uses, so a suggested player here is scored and labelled identically to
+    // everywhere else scouting suggestions appear in the app. Returns '' (no line at all)
+    // when the improvement names no one, or no one resolves to a real position group, rather
+    // than showing a suggestion that isn't actually targeted at the concern.
+    function buildImprovementScoutSuggestionsHtml(improvement) {
+      return findImprovementScoutGroups(improvement.players).map(buildScoutSuggestionLineHtml).join('');
+    }
+
     function buildPerformanceOverUnderRow(name, label, diff, isOver) {
       const cls = isOver ? 'perf-diff-positive' : 'perf-diff-negative';
       const sign = isOver ? '+' : '';
@@ -13224,7 +13277,7 @@
         </div>
         <div class="perf-insight-section">
           <div class="perf-insight-heading">Areas for Improvement</div>
-          ${insights.improvements.map(i => `<p>${i}</p>`).join('')}
+          ${insights.improvements.map(imp => `<p>${imp.text}</p>${buildImprovementScoutSuggestionsHtml(imp)}`).join('')}
         </div>
         <div class="perf-insight-section">
           <div class="perf-insight-heading">Over / Underperforming Players</div>
@@ -13255,14 +13308,16 @@
           </div>
           <div class="perf-insight-section">
             <div class="perf-insight-heading">Areas for Improvement</div>
-            ${insights.improvements.map(i => `<p>${i}</p>`).join('')}
+            ${insights.improvements.map(imp => `<p>${imp.text}</p>${buildImprovementScoutSuggestionsHtml(imp)}`).join('')}
           </div>
           <button type="button" class="view-all-gaps-btn" id="performance-insights-view-all-btn">View full breakdown (Over/Underperforming Players)</button>
         `;
+        attachScoutSuggestionHandlers(container);
         return;
       }
 
       container.innerHTML = buildPerformanceInsightsHtml(insights);
+      attachScoutSuggestionHandlers(container);
     }
 
     // Opens the shared gaps-modal with the full Assumptions/Improvement/Over-Underperformers
@@ -13275,6 +13330,7 @@
       const cat = PERFORMANCE_CATEGORIES[performanceCategory];
       const insights = computePerformanceInsights(performanceLatestSnapshot, performanceCategory);
       openGapsModal(`Analysis — ${cat.label}`, buildPerformanceInsightsHtml(insights));
+      attachScoutSuggestionHandlers(document.getElementById('gaps-modal-body'));
     }
 
     function renderPerformanceHistory(snapshots) {

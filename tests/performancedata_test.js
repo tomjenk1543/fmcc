@@ -32,6 +32,19 @@ function check(name, cond) {
 // bundled Metalul Buzau save explicitly, same as leaguetable_test.js/snapshot_test.js do.
 loadSaveData_MetaluBuzau();
 
+// ---- Scouting suggestions on Areas for Improvement (reuses the exact same
+// buildScoutSuggestionLineHtml()/findScoutSuggestionForGroup() the Squad Breakdown Focus
+// list already uses — see findImprovementScoutGroups()/buildImprovementScoutSuggestionsHtml()).
+// A shortlisted Striker and Goalkeeper give a real "Scouted option" line for the finishing
+// and goalkeeping-depth improvements below; no shortlisted Winger/Full Back means those
+// same improvements' OTHER position group (Arthur Ndo is also a Winger) still falls back
+// to the "No shortlisted player" message rather than silently omitting the line.
+scoutShortlist.length = 0;
+addScoutedPlayers([
+  { name: 'Scouted Striker', position: 'ST (C)', age: 21, nation: 'BRA', club: 'Test FC', ability: '4', potential: '4' },
+  { name: 'Scouted Keeper', position: 'GK', age: 20, nation: 'ENG', club: 'Test FC', ability: '3.5', potential: '4' },
+]);
+
 // ---- Start from a clean slate ----
 performanceSnapshots.length = 0;
 savePerformanceSnapshots(performanceSnapshots);
@@ -223,6 +236,8 @@ check('inline Analysis tile has no Over/Under section (that stays behind the cli
 check('inline Analysis tile includes the goalkeeping depth-gap improvement naming both keepers', /Pol/.test(gkInlineHtml) && /goalkeeping depth/.test(gkInlineHtml));
 check('inline Analysis tile does NOT show the Discipline dirty-tackler improvement', !/Michael Botha/.test(gkInlineHtml));
 check('inline Analysis tile has a "View full breakdown" button', /View full breakdown/.test(gkInlineHtml));
+check('goalkeeping depth-gap improvement suggests the shortlisted Scouted Keeper', /Scouted option/.test(gkInlineHtml) && /Scouted Keeper/.test(gkInlineHtml));
+check('the scouted suggestion line is a clickable element wired to its shortlist index', document.querySelector('#performance-insights-content .scout-suggestion-line[data-scout-index]') !== null);
 
 document.getElementById('performance-insights-panel').fire('click');
 check('clicking the Analysis tile opens the shared gaps-modal', document.getElementById('gaps-modal-backdrop').classList.contains('open'));
@@ -232,6 +247,7 @@ check('goalkeeping full breakdown flags Sergio Acosta as underperforming xSv%', 
 check('goalkeeping full breakdown includes the depth-gap improvement naming both keepers', /Pol/.test(gkModalHtml) && /goalkeeping depth/.test(gkModalHtml));
 check('goalkeeping full breakdown does NOT show the Attacking category\'s over/underperformer labels', !/overperforming xG/.test(gkModalHtml) && !/underperforming xG/.test(gkModalHtml));
 check('goalkeeping full breakdown does NOT show the Discipline dirty-tackler improvement', !/Michael Botha/.test(gkModalHtml));
+check('goalkeeping full breakdown also carries the scouted-keeper suggestion', /Scouted Keeper/.test(gkModalHtml));
 closeGapsModal();
 
 // ---- Switch to discipline category (single-metric chart, no actual/expected pair) ----
@@ -245,6 +261,10 @@ check('discipline chart renders bars without an actual/expected marker requireme
 const discInlineHtml = document.getElementById('performance-insights-content').innerHTML;
 check('inline Analysis tile flags Michael Botha as a dirty tackler for Discipline', /Michael Botha/.test(discInlineHtml));
 check('inline Analysis tile does NOT show goalkeeping or attacking content for Discipline', !/Sergio Acosta/.test(discInlineHtml) && !/overperforming xG/.test(discInlineHtml));
+// Michael Botha (D/WB (R)) classifies into BOTH Centre Back and Full Back / Wing Back —
+// neither has a shortlisted player, so the improvement falls back to the "No shortlisted
+// player" message rather than silently showing nothing, confirming the empty path works too.
+check('discipline improvement with no matching shortlist player falls back to the empty-suggestion message', /No shortlisted player for this position yet/.test(discInlineHtml));
 
 document.getElementById('performance-insights-panel').fire('click');
 const discModalHtml = document.getElementById('gaps-modal-body').innerHTML;
@@ -312,6 +332,9 @@ check('inline Analysis tile has an Areas for Improvement section here too', /Are
 check('inline Analysis tile has no Over/Under section here either', !/Over \/ Underperforming/.test(insightsHtml));
 check('inline Analysis tile names Ndo in the finishing improvement text (underperformer)', /Arthur Ndo/.test(insightsHtml));
 check('Analysis title reflects the Attacking category', /Attacking/.test(document.getElementById('performance-insights-title').innerHTML));
+// Arthur Ndo (AM (RL)/ST (C)) classifies into both Winger and Striker — the shortlisted
+// Scouted Striker matches the Striker group, so the finishing improvement should suggest him.
+check('finishing improvement suggests the shortlisted Scouted Striker (Arthur Ndo\'s Striker group)', /Scouted Striker/.test(insightsHtml));
 
 document.getElementById('performance-insights-panel').fire('click');
 const attackingModalHtml = document.getElementById('gaps-modal-body').innerHTML;
