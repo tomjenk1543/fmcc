@@ -12622,28 +12622,67 @@
       select.value = performanceCategory;
       select.addEventListener('change', () => {
         performanceCategory = select.value;
+        // A new category means an entirely different set of columns — whatever the user had
+        // sorted by (if anything) may not even exist any more, so drop back to that category's
+        // own natural ranking rather than carrying a stale/meaningless sort over.
+        performanceSortKey = null;
+        performanceSortDir = -1;
         renderPerformanceCategoryView();
       });
       performanceCategorySelectReady = true;
     }
 
+    // Resolves whatever value a given sort key means for one player — 'name'/'position' are
+    // special-cased (neither is one of cat.columns), everything else is whatever
+    // getColumnValue() already knows how to read off a column config (raw fields, __-prefixed
+    // derived stats alike), falling back through parseAppsTotal() for FM's "12 (3)"-style
+    // appearance strings the same way the old hardcoded cat.sortKey lookup did.
+    function getPerformanceSortValue(key, p, derived, position) {
+      if (key === 'name') return (p.name || '').toLowerCase();
+      if (key === 'position') return (position || '').toLowerCase();
+      const raw = getColumnValue({ key }, p, derived);
+      return typeof raw === 'number' ? raw : parseAppsTotal(raw);
+    }
+
     // Builds the table's <thead>/<tbody> HTML for a category against a player list — shared
     // by the inline (capped) view and the Full Overview modal's own uncapped copy, so the two
-    // can never drift out of sync on column definitions or trend logic.
+    // can never drift out of sync on column definitions or trend logic. Every column (Player,
+    // Position, and each of the category's own stat columns) is sortable — clicking a header
+    // re-sorts by it (see wirePerformanceTableSortHeaders, called by both render functions
+    // right after this HTML is set) — falling back to the category's own natural ranking
+    // (cat.sortKey, highest first) until the user picks a column themselves.
     function buildPerformanceTableHtml(cat, players, prevByName) {
-      const headCells = ['<th>Player</th>', '<th>Position</th>']
-        .concat(cat.columns.map(c => `<th>${c.label}</th>`));
+      const sortKey = performanceSortKey || cat.sortKey;
+      const sortDir = performanceSortDir;
+
+      const sortHeaderCell = (key, label) => {
+        const activeClass = key === sortKey ? (sortDir === 1 ? ' class="sort-asc"' : ' class="sort-desc"') : '';
+        return `<th data-sort-key="${key}"${activeClass}>${label}</th>`;
+      };
+
+      const headCells = [sortHeaderCell('name', 'Player'), sortHeaderCell('position', 'Position')]
+        .concat(cat.columns.map(c => sortHeaderCell(c.key, c.label)));
+      // Trend has no independent baseline value of its own to rank by (it's a comparison
+      // against the previous snapshot) — left out of the sortable set, same reasoning as
+      // Position not being one of cat.columns.
       if (prevByName) headCells.push('<th>Trend</th>');
 
-      const sortedPlayers = players.slice().sort((a, b) => {
-        const av = typeof a[cat.sortKey] === 'number' ? a[cat.sortKey] : parseAppsTotal(a[cat.sortKey]);
-        const bv = typeof b[cat.sortKey] === 'number' ? b[cat.sortKey] : parseAppsTotal(b[cat.sortKey]);
-        return bv - av;
+      const enriched = players.map(p => ({
+        p,
+        derived: computeDerivedStats(p),
+        position: findSquadPosition(p.name) || '—',
+      }));
+
+      enriched.sort((a, b) => {
+        const av = getPerformanceSortValue(sortKey, a.p, a.derived, a.position);
+        const bv = getPerformanceSortValue(sortKey, b.p, b.derived, b.position);
+        if (typeof av === 'string' || typeof bv === 'string') {
+          return String(av).localeCompare(String(bv)) * sortDir;
+        }
+        return (av - bv) * sortDir;
       });
 
-      const bodyHtml = sortedPlayers.map(p => {
-        const derived = computeDerivedStats(p);
-        const position = findSquadPosition(p.name) || '—';
+      const bodyHtml = enriched.map(({ p, derived, position }) => {
         const cells = cat.columns.map(c => `<td>${formatColumnCell(c, p, derived)}</td>`).join('');
         let trendCell = '';
         if (prevByName) {
@@ -12654,6 +12693,28 @@
       }).join('');
 
       return { headHtml: headCells.join(''), bodyHtml };
+    }
+
+    // Attaches click-to-sort behaviour to a just-rendered table head — needed on every render
+    // (rather than once at boot, like the Squad List/Scouting tables) because this table's
+    // <thead> itself is rebuilt from scratch each time (its columns depend on which category
+    // is picked), so any previously-attached listeners are gone along with the old header
+    // nodes. Clicking the already-active column flips direction; clicking a different one
+    // starts that column fresh at ascending — same convention as the Squad List table.
+    function wirePerformanceTableSortHeaders(theadRowEl, categoryKey, rerender) {
+      theadRowEl.querySelectorAll('th[data-sort-key]').forEach(th => {
+        th.addEventListener('click', () => {
+          const key = th.dataset.sortKey;
+          const currentKey = performanceSortKey || PERFORMANCE_CATEGORIES[categoryKey].sortKey;
+          if (currentKey === key) {
+            performanceSortDir *= -1;
+          } else {
+            performanceSortKey = key;
+            performanceSortDir = 1;
+          }
+          rerender();
+        });
+      });
     }
 
     // Plain-language explanation of what the chart is actually showing — the bar/marker
@@ -12689,6 +12750,7 @@
       const { headHtml, bodyHtml } = buildPerformanceTableHtml(cat, players, prevByName);
       document.getElementById('performance-table-head').innerHTML = headHtml;
       document.getElementById('performance-table-body').innerHTML = bodyHtml;
+      wirePerformanceTableSortHeaders(document.getElementById('performance-table-head'), performanceCategory, renderPerformanceCategoryView);
 
       document.getElementById('performance-chart-title').innerHTML = `Chart <span class="scout-tile-subtitle">- ${cat.label}</span>`;
       const chartRows = computePerformanceChartRows(cat, players);
@@ -12723,6 +12785,7 @@
       const { headHtml, bodyHtml } = buildPerformanceTableHtml(cat, players, prevByName);
       document.getElementById('performance-overview-table-head').innerHTML = headHtml;
       document.getElementById('performance-overview-table-body').innerHTML = bodyHtml;
+      wirePerformanceTableSortHeaders(document.getElementById('performance-overview-table-head'), performanceCategory, renderPerformanceOverviewModal);
 
       const chartRows = computePerformanceChartRows(cat, players, players.length);
       renderPerformanceBarChart(document.getElementById('performance-overview-chart-container'), chartRows);
@@ -13158,6 +13221,14 @@
     let performanceCategory = 'attacking';
     let performanceLatestSnapshot = null;
     let performancePreviousSnapshot = null;
+
+    // Column sort state for the Squad Performance table — null means "not overridden by a
+    // click yet", so buildPerformanceTableHtml falls back to the category's own cat.sortKey
+    // (its natural default ranking) at the default direction (-1, i.e. highest first). Reset
+    // whenever the category dropdown changes (see ensurePerformanceCategorySelect) since a
+    // new category's columns mean the previous sortKey may no longer even exist.
+    let performanceSortKey = null;
+    let performanceSortDir = -1;
 
     function renderPerformanceData() {
       const snapshots = sortedPerformanceSnapshots();

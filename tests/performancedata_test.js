@@ -132,8 +132,47 @@ const chartHtmlAttacking = document.getElementById('performance-chart-container'
 check('attacking chart renders at least one bar row', /perf-chart-row/.test(chartHtmlAttacking));
 check('attacking chart marks the clear overperformer\'s bar as over', /is-over/.test(chartHtmlAttacking));
 
+// ---- Column sorting: every header (Player, Position, each stat column) is clickable ----
+check('every header cell carries a data-sort-key (Player/Position + each stat column)',
+  (headHtml.match(/data-sort-key="/g) || []).length === 2 + PERFORMANCE_CATEGORIES.attacking.columns.length);
+const trendHeaderMatch = headHtml.match(/<th[^>]*>Trend<\/th>/);
+check('the Trend header specifically has no data-sort-key', !!trendHeaderMatch && !/data-sort-key/.test(trendHeaderMatch[0]));
+
+// Default (unclicked) state ranks by the category's own sortKey (goals, highest first) —
+// Musolino (26 goals) should sort above Ndo (3 goals).
+check('default table order ranks Musolino above Ndo (unsorted = cat.sortKey, goals, descending)',
+  document.getElementById('performance-table-body').innerHTML.indexOf('Samuel Musolino')
+    < document.getElementById('performance-table-body').innerHTML.indexOf('Arthur Ndo'));
+check('the Goals header shows the descending-sort arrow by default', document.querySelector('#performance-table-head th[data-sort-key="goals"]').classList.contains('sort-desc'));
+
+// Clicking a fresh column (Player) sorts ascending (alphabetical) — same convention as the
+// Squad List table's own sort headers.
+document.querySelector('#performance-table-head th[data-sort-key="name"]').fire('click');
+const nameAscBody = document.getElementById('performance-table-body').innerHTML;
+check('clicking Player sorts alphabetically ascending', nameAscBody.indexOf('Arthur Ndo') < nameAscBody.indexOf('Samuel Musolino'));
+check('the Player header now shows the ascending-sort arrow', document.querySelector('#performance-table-head th[data-sort-key="name"]').classList.contains('sort-asc'));
+check('the Goals header no longer shows a sort arrow', !document.querySelector('#performance-table-head th[data-sort-key="goals"]').classList.contains('sort-desc'));
+
+// Clicking the SAME column again flips direction.
+document.querySelector('#performance-table-head th[data-sort-key="name"]').fire('click');
+const nameDescBody = document.getElementById('performance-table-body').innerHTML;
+check('clicking Player again flips to descending', nameDescBody.indexOf('Samuel Musolino') < nameDescBody.indexOf('Arthur Ndo'));
+check('the Player header now shows the descending-sort arrow', document.querySelector('#performance-table-head th[data-sort-key="name"]').classList.contains('sort-desc'));
+
+// Clicking a stat column (Shots) sorts ascending fresh, independent of the Player sort above.
+document.querySelector('#performance-table-head th[data-sort-key="shots"]').fire('click');
+check('the Shots header shows the ascending-sort arrow after its first click', document.querySelector('#performance-table-head th[data-sort-key="shots"]').classList.contains('sort-asc'));
+check('the Player header no longer shows a sort arrow once Shots takes over', !document.querySelector('#performance-table-head th[data-sort-key="name"]').classList.contains('sort-desc') && !document.querySelector('#performance-table-head th[data-sort-key="name"]').classList.contains('sort-asc'));
+
 // ---- Switch to goalkeeping category ----
+// (Mirrors what the category <select>'s own change listener does — reset the sort state
+// before re-rendering, since these tests drive performanceCategory/renderPerformanceCategoryView
+// directly rather than through the <select> itself. Also doubles as coverage that a fresh
+// category starts back at its own natural ranking rather than carrying over 'shots' from
+// the block above.)
 performanceCategory = 'goalkeeping';
+performanceSortKey = null;
+performanceSortDir = -1;
 renderPerformanceCategoryView();
 const gkHeadHtml = document.getElementById('performance-table-head').innerHTML;
 check('goalkeeping table header includes Sv% and xSv% columns', /Sv%/.test(gkHeadHtml) && /xSv%/.test(gkHeadHtml));
@@ -219,6 +258,18 @@ check('Full Overview chart caption reflects the full eligible-player count, not 
 
 const overviewInsightsHtml = document.getElementById('performance-overview-insights-content').innerHTML;
 check('Full Overview modal includes the same Assumptions/Improvement analysis', /Assumptions/.test(overviewInsightsHtml) && /Areas for Improvement/.test(overviewInsightsHtml));
+
+// ---- The Full Overview modal's own (uncapped) table is independently sortable too — same
+// buildPerformanceTableHtml()/wirePerformanceTableSortHeaders() plumbing as the inline tile,
+// just against its own element IDs and re-rendered via renderPerformanceOverviewModal(). Sort
+// state is shared with the inline tile (same category, same underlying ranking), so reset it
+// afterwards to keep this check from leaking into the ones below. ----
+check('Full Overview table headers are sortable too', document.getElementById('performance-overview-table-head').innerHTML.includes('data-sort-key="name"'));
+document.querySelector('#performance-overview-table-head th[data-sort-key="name"]').fire('click');
+const overviewNameAscBody = document.getElementById('performance-overview-table-body').innerHTML;
+check('clicking Player in the Full Overview table sorts it ascending too', overviewNameAscBody.indexOf('Arthur Ndo') < overviewNameAscBody.indexOf('Samuel Musolino'));
+performanceSortKey = null;
+performanceSortDir = -1;
 
 closePerformanceOverviewModal();
 check('Full Overview modal closes', !document.getElementById('performance-overview-modal-backdrop').classList.contains('open'));
