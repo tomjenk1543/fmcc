@@ -1,7 +1,7 @@
 // Regression test for Task #129 — club.fmClubId/fmCompetitionId auto-load.
 // An imported save can now optionally carry its own FM unique IDs (captured from the Club
 // Site / Competition Overview screens with "Show Unique IDs" on — see Section 6 of the
-// guide). Covers: validateImportedSaveData's light type-check on these fields,
+// guide). Covers: validateClubImportData's light type-check on these fields,
 // applyFullSaveData prefilling the Settings ID inputs from them, and activateDirHandle
 // picking up whatever's in those inputs to auto-load the crest/kits/league logo the moment
 // a folder becomes usable — without requiring the two events (import, folder connect) to
@@ -13,23 +13,23 @@ function check(name, cond) {
   else { fail++; console.error('FAIL:', name); }
 }
 
-// --- validateImportedSaveData: fmClubId/fmCompetitionId type-checking ---------------------
+// --- validateClubImportData: fmClubId/fmCompetitionId type-checking ---------------------
 {
   const validString = { club: { name: 'Test FC', fmClubId: '57050239', fmCompetitionId: '7540024' }, squad: [{ name: 'P1' }] };
-  check('valid string IDs produce no errors', validateImportedSaveData(validString).length === 0);
+  check('valid string IDs produce no errors', validateClubImportData(validString).length === 0);
 
   const validNumber = { club: { name: 'Test FC', fmClubId: 57050239, fmCompetitionId: 7540024 }, squad: [{ name: 'P1' }] };
-  check('valid number IDs produce no errors', validateImportedSaveData(validNumber).length === 0);
+  check('valid number IDs produce no errors', validateClubImportData(validNumber).length === 0);
 
   const missing = { club: { name: 'Test FC' }, squad: [{ name: 'P1' }] };
-  check('omitting both ID fields produces no errors (optional)', validateImportedSaveData(missing).length === 0);
+  check('omitting both ID fields produces no errors (optional)', validateClubImportData(missing).length === 0);
 
   const badClubId = { club: { name: 'Test FC', fmClubId: { oops: true } }, squad: [{ name: 'P1' }] };
-  const badErrors = validateImportedSaveData(badClubId);
+  const badErrors = validateClubImportData(badClubId);
   check('an object fmClubId is flagged', badErrors.some(e => e.includes('fmClubId')));
 
   const badCompId = { club: { name: 'Test FC', fmCompetitionId: [1, 2, 3] }, squad: [{ name: 'P1' }] };
-  const badErrors2 = validateImportedSaveData(badCompId);
+  const badErrors2 = validateClubImportData(badCompId);
   check('an array fmCompetitionId is flagged', badErrors2.some(e => e.includes('fmCompetitionId')));
 }
 

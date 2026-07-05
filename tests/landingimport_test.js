@@ -38,26 +38,27 @@ function check(name, cond) {
 }
 
 // --- Validate: valid JSON but missing required fields --------------------------------------
+// Club import is scoped to club-level data only now (squad has its own import on the Squad
+// List page — see squadimport_test.js), so a missing club.name is the one thing this box
+// still requires; it should NOT complain about a missing squad any more.
 {
   const ta = document.getElementById('landing-import-textarea');
   const status = document.getElementById('landing-import-status');
   ta.value = JSON.stringify({ club: {} });
   document.getElementById('landing-import-validate-btn').fire('click');
-  check('missing squad/club.name reports issues', status.className.includes('is-error'));
-  check('missing-field message mentions squad', status.innerHTML.includes('squad'));
+  check('missing club.name reports issues', status.className.includes('is-error'));
+  check('missing-field message mentions club.name', status.innerHTML.includes('club.name'));
+  check('missing-field message does not ask for squad any more', !status.innerHTML.includes('squad'));
 }
 
-// --- Validate: a fully valid payload ---------------------------------------------------
+// --- Validate: a fully valid payload (club data alone, no squad needed) --------------------
 {
   const ta = document.getElementById('landing-import-textarea');
   const status = document.getElementById('landing-import-status');
-  const validData = {
-    club: { name: 'Test FC' },
-    squad: [{ name: 'Test Player' }]
-  };
+  const validData = { club: { name: 'Test FC' } };
   ta.value = JSON.stringify(validData);
   document.getElementById('landing-import-validate-btn').fire('click');
-  check('a valid payload reports ok', status.className.includes('is-ok'));
+  check('a club-only payload reports ok', status.className.includes('is-ok'));
   check('the ok message names the club', status.innerHTML.includes('Test FC'));
 }
 

@@ -4272,7 +4272,7 @@
         </svg>
         <div class="landing-logo">FM <span>Command Centre</span></div>
         <div class="landing-message">No save data loaded yet.</div>
-        <button type="button" class="mini-btn dashboard-empty-import-btn" id="landing-import-btn">Import Save Data</button>
+        <button type="button" class="mini-btn dashboard-empty-import-btn" id="landing-import-btn">Import Club Data</button>
         <button type="button" class="dashboard-empty-settings-link" id="landing-settings-btn">Or go to Settings for backup restore &amp; other options</button>
       </div>
     </section>
@@ -4289,7 +4289,7 @@
       <div class="dashboard-empty-state" id="dashboard-empty-state" style="display:none;">
         <div class="dashboard-empty-logo">FM <span>Command Centre</span></div>
         <div class="dashboard-empty-message">No save data loaded yet.</div>
-        <button type="button" class="mini-btn dashboard-empty-import-btn" id="dashboard-empty-import-btn">Import Save Data</button>
+        <button type="button" class="mini-btn dashboard-empty-import-btn" id="dashboard-empty-import-btn">Import Club Data</button>
         <button type="button" class="dashboard-empty-settings-link" id="dashboard-empty-settings-btn">Or go to Settings for backup restore &amp; other options</button>
       </div>
       <div id="dashboard-normal-content">
@@ -4528,6 +4528,7 @@
       <div class="empty-state" id="squad-empty-state">
         <div class="icon">&#9873;</div>
         No squad data loaded yet.<br>Player list, positions, and stats will appear here once data is connected.
+        <div><button class="mini-btn" id="squad-import-toggle-btn-empty" style="margin-top:14px;">Import Squad Data</button></div>
       </div>
       <div class="dashboard-panel squad-table-panel" id="squad-table-panel" style="display:none;">
         <!-- Every other tile in the app (Scouted Players, Save Overview, Best Players, etc)
@@ -4538,6 +4539,7 @@
              would need distinguishing from it. -->
         <div class="panel-title-row">
           <h3>First Team</h3>
+          <button class="mini-btn" id="squad-import-toggle-btn">Import Squad Data</button>
         </div>
         <div class="squad-table-scroll">
           <table class="squad-table" id="squad-table">
@@ -4565,6 +4567,39 @@
         </div>
       </div>
     </section>
+
+    <!-- Squad List's own import — scoped to { "squad": [...] } only, split out of the old
+         combined "Import Save Data" blob so updating the squad (say, partway through a save,
+         from a fresh batch of screenshots) doesn't mean re-pasting club/tactic data too. Same
+         Validate/Import & Reload/Load Example Template/Upload shape as the landing page's own
+         Import Club Data modal (see #landing-import-modal-backdrop's own comment) — just
+         pointed at validateSquadImportData()/SQUAD_IMPORT_EXAMPLE_TEMPLATE/applySquadData()
+         instead. Always a full replace of the current squad on Import & Reload, matching how
+         squad data has always worked (see applySquadData()'s own comment). -->
+    <div class="player-modal-backdrop" id="squad-import-modal-backdrop">
+      <div class="player-modal import-modal">
+        <button class="player-modal-close" id="squad-import-modal-close" aria-label="Close">&times;</button>
+        <div class="player-modal-header">
+          <div class="player-modal-name">Import Squad Data</div>
+        </div>
+        <p class="settings-help">
+          Screenshot Squad › First Team plus the attribute column views in FM (see the "New
+          Save Data Collection Guide", Sections 3–4), hand them to Claude, and ask for a JSON
+          object matching the schema below. Paste it here — this fully replaces the current
+          squad list with whatever's pasted, the same way a fresh batch of screenshots
+          naturally represents "the squad as of now".
+        </p>
+        <textarea id="squad-import-textarea" class="import-json-textarea" placeholder="Paste your squad data JSON here..." spellcheck="false"></textarea>
+        <div class="import-actions">
+          <button class="mini-btn" id="squad-import-upload-btn">Upload JSON File</button>
+          <input type="file" id="squad-import-file-input" accept=".json,application/json" style="display:none;">
+          <button class="mini-btn" id="squad-import-validate-btn">Validate</button>
+          <button class="mini-btn" id="squad-import-apply-btn">Import &amp; Reload</button>
+          <button class="mini-btn" id="squad-import-load-example-btn">Load Example Template</button>
+        </div>
+        <div class="import-status" id="squad-import-status"></div>
+      </div>
+    </div>
 
     <section id="scout" class="view">
       <div class="view-header">
@@ -4855,6 +4890,7 @@
             <span class="tactic-source-toggle-label">Tactic:</span>
             <button type="button" class="tactic-source-btn" id="tactic-source-btn-fm" data-source="fm">FM Tactic</button>
             <button type="button" class="tactic-source-btn" id="tactic-source-btn-builder" data-source="builder" disabled title="Build one on the Tactic Builder page first">Custom Tactic</button>
+            <button type="button" class="mini-btn" id="tactics-import-toggle-btn" style="margin-left:auto;">Import Tactic Data</button>
           </div>
           <div class="tactics-summary" id="tactics-summary"></div>
           <div class="tactics-pitches-row">
@@ -4895,6 +4931,40 @@
         </div>
       </div>
     </section>
+
+    <!-- Tactical Analysis's own import — scoped to { "tacticIP": [...], "tacticOOP": [...],
+         "fmTacticSummary": {...} } only, split out of the old combined "Import Save Data"
+         blob. Entirely optional (see validateTacticImportData()'s own comment — the Tactic
+         Builder can construct a tactic from the squad instead), so this only exists for
+         anyone who wants their actual FM tactic (captured from Match Day › Tactics › Tactics
+         Planner) mirrored here rather than a Tactic Builder one. Same Validate/Import &
+         Reload/Load Example Template/Upload shape as the landing page's own Import Club Data
+         modal, just pointed at validateTacticImportData()/TACTIC_IMPORT_EXAMPLE_TEMPLATE/
+         applyTacticData() instead. -->
+    <div class="player-modal-backdrop" id="tactics-import-modal-backdrop">
+      <div class="player-modal import-modal">
+        <button class="player-modal-close" id="tactics-import-modal-close" aria-label="Close">&times;</button>
+        <div class="player-modal-header">
+          <div class="player-modal-name">Import Tactic Data</div>
+        </div>
+        <p class="settings-help">
+          Optional — the Tactic Builder page can construct a tactic for you from the squad data
+          already imported, so this is only worth doing if you want your actual FM tactic
+          mirrored here instead. Screenshot both phases on Match Day › Tactics › Tactics
+          Planner (see the "New Save Data Collection Guide", Section 5), hand them to Claude,
+          and paste the resulting JSON below — this fully replaces the current tactic.
+        </p>
+        <textarea id="tactics-import-textarea" class="import-json-textarea" placeholder="Paste your tactic data JSON here..." spellcheck="false"></textarea>
+        <div class="import-actions">
+          <button class="mini-btn" id="tactics-import-upload-btn">Upload JSON File</button>
+          <input type="file" id="tactics-import-file-input" accept=".json,application/json" style="display:none;">
+          <button class="mini-btn" id="tactics-import-validate-btn">Validate</button>
+          <button class="mini-btn" id="tactics-import-apply-btn">Import &amp; Reload</button>
+          <button class="mini-btn" id="tactics-import-load-example-btn">Load Example Template</button>
+        </div>
+        <div class="import-status" id="tactics-import-status"></div>
+      </div>
+    </div>
 
     <section id="tacticbuilder" class="view">
       <div class="view-header">
@@ -4969,26 +5039,32 @@
            than a stack of single-tile "sections" each with its own category header — with
            only 5 tiles total, per-category headers each wrapping just one oddly-sized tile
            didn't read as a settings page so much as a stack of full-width panels. Each
-           tile's own <h3> (Import Save Data, Save / Load Full Backup, etc) still identifies
+           tile's own <h3> (Import Club Data, Save / Load Full Backup, etc) still identifies
            it; grid order below is just page reading order (setup → backup → branding →
            analysis → references), not a strict category grouping any more. -->
       <div class="settings-grid">
-        <!-- New Save Setup — the Setup Wizard. Populates the whole app (dashboard, squad,
-             tactics) from one pasted JSON blob instead of hand-editing loadSaveData_MetaluBuzau()
-             in the source. See applyFullSaveData()'s own header comment for the full schema, and
-             the accompanying "New Save Data Collection Guide" doc for how to gather it from FM. -->
+        <!-- Import Club Data — scoped to club/season/achievements/records/career/league-table
+             only. Squad data has its own import on the Squad List page, and tactic data has
+             its own on Tactical Analysis (see #squad-import-modal-backdrop/
+             #tactics-import-modal-backdrop) — splitting these up means updating just the squad
+             (say, from a fresh batch of screenshots partway through a save) doesn't require
+             re-pasting club/tactic data you don't actually have handy any more. See
+             applyClubData()'s own header comment for the exact schema, and the accompanying
+             "New Save Data Collection Guide" doc for how to gather it from FM. -->
         <div class="dashboard-panel" id="import-settings-panel">
           <div class="panel-title-row">
-            <h3>Import Save Data</h3>
+            <h3>Import Club Data</h3>
           </div>
           <p class="settings-help">
             Starting a new save (or setting this up for a friend)? Follow the "New Save Data
             Collection Guide" to capture what FM needs, then hand the screenshots to Claude in
             a new chat and ask it to fill in the JSON schema from that guide. Paste the result
-            below — this replaces every dashboard, squad and tactic value in the app at once.
-            The bundled Metalul Buzău data is just the starting example.
+            below — this covers the dashboard's club/season/career info. Squad data has its own
+            "Import Squad Data" button on the Squad List page, and tactic data has its own
+            "Import Tactic Data" button on Tactical Analysis. The bundled Metalul Buzău data is
+            just the starting example.
           </p>
-          <textarea id="import-json-textarea" class="import-json-textarea" placeholder="Paste your save data JSON here..." spellcheck="false"></textarea>
+          <textarea id="import-json-textarea" class="import-json-textarea" placeholder="Paste your club data JSON here..." spellcheck="false"></textarea>
           <div class="import-actions">
             <button class="mini-btn" id="import-upload-btn">Upload JSON File</button>
             <input type="file" id="import-file-input" accept=".json,application/json" style="display:none;">
@@ -5276,27 +5352,30 @@
       </div>
     </div>
 
-    <!-- The blank-dashboard landing state's "Import Save Data" button pops this up rather
+    <!-- The blank-dashboard landing state's "Import Club Data" button pops this up rather
          than sending you to Settings — same Validate/Import & Reload/Load Example Template
-         actions as the Settings > New Save Setup tile, just its own copy of the textarea/
+         actions as the Settings > Import Club Data tile, just its own copy of the textarea/
          status elements so the two stay independent (see the wiring further down, right
          after the Settings tile's own import-*-btn listeners — it calls the exact same
-         validateImportedSaveData()/saveImportedSaveData()/IMPORT_EXAMPLE_TEMPLATE the
+         validateClubImportData()/mergeAndSaveImportedData()/IMPORT_EXAMPLE_TEMPLATE the
          Settings tile uses, just pointed at these elements instead). No "Clear All Data"
-         button here — there's nothing to clear yet on a genuinely blank app. -->
+         button here — there's nothing to clear yet on a genuinely blank app. Squad and
+         tactic data each get their own import once you're past this screen (Squad List's
+         "Import Squad Data", Tactical Analysis's "Import Tactic Data"). -->
     <div class="player-modal-backdrop" id="landing-import-modal-backdrop">
       <div class="player-modal import-modal">
         <button class="player-modal-close" id="landing-import-modal-close" aria-label="Close">&times;</button>
         <div class="player-modal-header">
-          <div class="player-modal-name">Import Save Data</div>
+          <div class="player-modal-name">Import Club Data</div>
         </div>
         <p class="settings-help">
           Follow the "New Save Data Collection Guide" to capture what FM needs, then hand the
           screenshots to Claude in a new chat and ask it to fill in the JSON schema from that
-          guide. Paste the result below — this replaces every dashboard, squad and tactic
-          value in the app at once.
+          guide. Paste the result below — this covers the dashboard's club/season/career info.
+          Once this is in, head to the Squad List and Tactical Analysis pages to add their own
+          data the same way.
         </p>
-        <textarea id="landing-import-textarea" class="import-json-textarea" placeholder="Paste your save data JSON here..." spellcheck="false"></textarea>
+        <textarea id="landing-import-textarea" class="import-json-textarea" placeholder="Paste your club data JSON here..." spellcheck="false"></textarea>
         <div class="import-actions">
           <button class="mini-btn" id="landing-import-upload-btn">Upload JSON File</button>
           <input type="file" id="landing-import-file-input" accept=".json,application/json" style="display:none;">
@@ -8304,10 +8383,17 @@
     // linger and re-blank a future import.
     const BLANK_SLATE_STORAGE_KEY = 'fmCommandCentre.blankSlate';
 
+    // Only requires saved.club.name now, not a squad array too — squad is imported
+    // separately on the Squad List page and may not exist yet the moment club data lands
+    // (e.g. a fresh save where club data was just pasted on the landing page, squad still to
+    // come). Requiring club.name at all is still the right bar for "counts as imported": it's
+    // the one piece every one of the three scoped imports can assume already exists, since the
+    // landing/Settings club import is the natural first step before squad or tactic data has
+    // anywhere meaningful to render into.
     function loadImportedSaveData() {
       try {
         const saved = JSON.parse(localStorage.getItem(IMPORTED_SAVE_DATA_STORAGE_KEY));
-        if (saved && typeof saved === 'object' && saved.club && Array.isArray(saved.squad)) return saved;
+        if (saved && typeof saved === 'object' && saved.club && saved.club.name) return saved;
       } catch (e) { /* storage unavailable or corrupt */ }
       return null;
     }
@@ -8318,6 +8404,19 @@
     function clearImportedSaveData() {
       try { localStorage.removeItem(IMPORTED_SAVE_DATA_STORAGE_KEY); }
       catch (e) { /* storage unavailable */ }
+    }
+    // Merges a scoped import (club-only, squad-only, or tactic-only) onto whatever's already
+    // stored, rather than replacing the whole blob the way a single combined paste used to.
+    // Object.assign only overwrites the top-level keys actually present in newData — e.g.
+    // pasting { squad: [...] } here fully replaces the "squad" key (matching the "full
+    // replace" behaviour of that one section) while leaving "club"/"tacticIP" from an earlier
+    // import completely untouched. Returns the merged object so the caller can re-render from
+    // it immediately without a second read of localStorage.
+    function mergeAndSaveImportedData(newData) {
+      const existing = loadImportedSaveData() || {};
+      const merged = Object.assign({}, existing, newData);
+      saveImportedSaveData(merged);
+      return merged;
     }
 
     // Turns one imported squad entry's nested { technical, mental, physical, goalkeeping }
@@ -8330,11 +8429,13 @@
       return out;
     }
 
-    // The generic counterpart to loadSaveData_MetaluBuzau() above — same rendering calls, just
-    // reading from a passed-in data object (the Setup Wizard's parsed JSON) instead of
-    // literals. Used both for a freshly-imported save and for restoring a previously-imported
-    // one on page load.
-    function applyFullSaveData(data) {
+    // Applies just the club-level slice of a save-data blob (club/seasonStats/achievements/
+    // records/careerStats/leagueTable) — everything the landing page's and Settings'
+    // "Import Club Data" boxes are scoped to. Split out of the old monolithic
+    // applyFullSaveData() so a club-only paste doesn't need to touch squad/tactic rendering
+    // at all. Safe to call with a data object that has no squad/tacticIP of its own — every
+    // field here already falls back to a sensible default via `|| {}`/`|| []`.
+    function applyClubData(data) {
       const club = data.club || {};
       const colours = club.colours || {};
       applyClubColours(colours.primary || '#14305A', colours.secondary || '#4C7CBE');
@@ -8388,30 +8489,6 @@
       setText('save-players-signed', career.playersSigned);
       setText('save-win-pct', career.winPct);
 
-      // Swap in the imported squad's own attribute lookup before renderSquad() runs, and strip
-      // the nested "attributes" field back off each player record first — renderSquad/
-      // getPlayerAttrMap expect to look attributes up by name from SQUAD_ATTR_DATA themselves,
-      // same as the Metalul Buzău data above.
-      SQUAD_ATTR_DATA = buildSquadAttrDataFromImport(data.squad || []);
-      renderSquad((data.squad || []).map(p => {
-        const rest = Object.assign({}, p);
-        delete rest.attributes;
-        return rest;
-      }));
-
-      // An imported save can optionally bring its own captured FM tactic (both phases) — if it
-      // didn't, TACTIC_ROLES/TACTIC_ROLES_OOP stay whatever they already were (the Metalul
-      // Buzău example, or a previous import), and the "FM Tactic" source just won't be
-      // meaningful until the Tactic Builder is used instead.
-      if (Array.isArray(data.tacticIP) && data.tacticIP.length) {
-        TACTIC_ROLES = data.tacticIP;
-        TACTIC_ROLES_OOP = (Array.isArray(data.tacticOOP) && data.tacticOOP.length) ? data.tacticOOP : data.tacticIP;
-        if (data.fmTacticSummary) FM_TACTIC_SUMMARY = data.fmTacticSummary;
-      }
-
-      applyActiveTacticSource(activeTacticSource);
-      initTacticBuilder();
-
       document.querySelector('.hotbar-right').textContent = club.saveDataLabel || '';
 
       // If the import brought its own FM unique IDs (see Section 6 of the guide — captured
@@ -8431,6 +8508,51 @@
       }
     }
 
+    // Applies just the squad slice (the Squad List page's own "Import Squad Data" box) —
+    // always a full replace of the current squad, same as a fresh batch of FM screenshots
+    // naturally represents "the squad as of now" rather than a diff against what was there.
+    function applySquadData(data) {
+      // Swap in the imported squad's own attribute lookup before renderSquad() runs, and strip
+      // the nested "attributes" field back off each player record first — renderSquad/
+      // getPlayerAttrMap expect to look attributes up by name from SQUAD_ATTR_DATA themselves,
+      // same as the Metalul Buzău data above.
+      SQUAD_ATTR_DATA = buildSquadAttrDataFromImport(data.squad || []);
+      renderSquad((data.squad || []).map(p => {
+        const rest = Object.assign({}, p);
+        delete rest.attributes;
+        return rest;
+      }));
+    }
+
+    // Applies just the tactic slice (the Tactical Analysis page's own "Import Tactic Data"
+    // box) — optional for the app as a whole (see validateTacticImportData's own comment). If
+    // data has no tacticIP of its own, TACTIC_ROLES/TACTIC_ROLES_OOP are deliberately left
+    // exactly as they were (the Metalul Buzău example, or a previous import) rather than
+    // cleared, so an import that only touches club or squad data can't blank out a tactic
+    // that's already there.
+    function applyTacticData(data) {
+      if (Array.isArray(data.tacticIP) && data.tacticIP.length) {
+        TACTIC_ROLES = data.tacticIP;
+        TACTIC_ROLES_OOP = (Array.isArray(data.tacticOOP) && data.tacticOOP.length) ? data.tacticOOP : data.tacticIP;
+        if (data.fmTacticSummary) FM_TACTIC_SUMMARY = data.fmTacticSummary;
+      }
+      applyActiveTacticSource(activeTacticSource);
+      initTacticBuilder();
+    }
+
+    // The generic counterpart to loadSaveData_MetaluBuzau() above — reads from a passed-in
+    // data object (whatever's accumulated in IMPORTED_SAVE_DATA_STORAGE_KEY across the three
+    // scoped imports above) instead of literals. Used both to restore a previously-imported
+    // save on page load, and by "Import & Reload" in each of the three import boxes — a
+    // club-only paste still calls this (rather than just applyClubData alone) so a stored
+    // squad/tactic from an earlier import gets re-rendered too, not just left stale on screen
+    // until the next reload.
+    function applyFullSaveData(data) {
+      applyClubData(data);
+      applySquadData(data);
+      applyTacticData(data);
+    }
+
     // Boot: an imported save always wins, straight to the normal app (Dashboard etc.) — so
     // a friend who's gone through the Setup Wizard doesn't need to touch this file at all.
     // Anything else — a genuinely fresh copy of the file, or "Clear All Data" having been
@@ -8447,12 +8569,19 @@
       resetToBlankSlate();
     }
 
-    // ---- Setup Wizard UI (Settings > New Save Setup) ----
+    // ---- Setup Wizard UI (Settings > Import Club Data / landing page) ----
     // Lightweight shape/type checks on a parsed import blob — not a full schema validator,
     // just enough to catch the mistakes that would otherwise silently render as blank tiles
-    // or "undefined" text (wrong attribute array lengths, a squad that isn't an array, etc.)
-    // so the wizard can point at the actual problem instead of failing quietly after reload.
-    function validateImportedSaveData(data) {
+    // or "undefined" text so the wizard can point at the actual problem instead of failing
+    // quietly after reload. Scoped to club-level data only (club/seasonStats/achievements/
+    // records/careerStats/leagueTable) — squad and tactic data each get their own import on
+    // the Squad List and Tactical Analysis pages respectively (see validateSquadImportData/
+    // validateTacticImportData below), so this deliberately does NOT require a "squad" key
+    // any more. A pasted blob that still happens to carry "squad"/"tacticIP" alongside club
+    // data isn't an error either — mergeAndSaveImportedData() merges whatever top-level keys
+    // are present, so an old-style combined paste still works, it just isn't the expected
+    // shape for this particular box any more.
+    function validateClubImportData(data) {
       const errors = [];
       if (!data || typeof data !== 'object' || Array.isArray(data)) {
         errors.push('Root value must be a JSON object.');
@@ -8471,32 +8600,100 @@
           }
         });
       }
-
-      if (!Array.isArray(data.squad)) {
-        errors.push('Missing "squad" array.');
-      } else {
-        if (data.squad.length === 0) errors.push('"squad" array is empty.');
-        data.squad.forEach((p, i) => {
-          const tag = `squad[${i}]${p && p.name ? ' (' + p.name + ')' : ''}`;
-          if (!p || !p.name) { errors.push(`${tag} is missing "name".`); return; }
-          if (p.attributes) {
-            const a = p.attributes;
-            if (a.technical && a.technical.length !== 14) errors.push(`${tag} technical should have 14 values, has ${a.technical.length}.`);
-            if (a.mental && a.mental.length !== 14) errors.push(`${tag} mental should have 14 values, has ${a.mental.length}.`);
-            if (a.physical && a.physical.length !== 8) errors.push(`${tag} physical should have 8 values, has ${a.physical.length}.`);
-            if (a.goalkeeping && a.goalkeeping.length !== 11) errors.push(`${tag} goalkeeping should have 11 values, has ${a.goalkeeping.length}.`);
-          }
-        });
-      }
+      if (data.leagueTable && !Array.isArray(data.leagueTable)) errors.push('"leagueTable" must be an array if present.');
+      // A squad/tactic key here isn't wrong (see comment above), just a hint that it's
+      // probably meant for one of the other two import boxes instead.
+      if (data.squad !== undefined && !Array.isArray(data.squad)) errors.push('"squad" must be an array if present.');
       if (data.tacticIP && !Array.isArray(data.tacticIP)) errors.push('"tacticIP" must be an array if present.');
       if (data.tacticOOP && !Array.isArray(data.tacticOOP)) errors.push('"tacticOOP" must be an array if present.');
-      if (data.leagueTable && !Array.isArray(data.leagueTable)) errors.push('"leagueTable" must be an array if present.');
       return errors;
     }
 
-    // A trimmed, two-player example matching the applyFullSaveData() schema exactly — not a
-    // real save, just something to paste, read, and edit rather than writing the JSON from a
-    // blank page. "Load Example Template" fills the wizard's textarea with this.
+    // Squad List page's own import (see #squad-import-modal-backdrop) — scoped to just
+    // { "squad": [...] }, the exact same per-player shape club import used to require inline.
+    // Pasting here always fully replaces the current squad (see applySquadData()), the same
+    // way a fresh batch of FM screenshots naturally represents "the squad as of now" rather
+    // than a diff against whatever was there before.
+    function validateSquadImportData(data) {
+      const errors = [];
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        errors.push('Root value must be a JSON object.');
+        return errors;
+      }
+      if (!Array.isArray(data.squad)) {
+        errors.push('Missing "squad" array.');
+        return errors;
+      }
+      if (data.squad.length === 0) errors.push('"squad" array is empty.');
+      data.squad.forEach((p, i) => {
+        const tag = `squad[${i}]${p && p.name ? ' (' + p.name + ')' : ''}`;
+        if (!p || !p.name) { errors.push(`${tag} is missing "name".`); return; }
+        if (p.attributes) {
+          const a = p.attributes;
+          if (a.technical && a.technical.length !== 14) errors.push(`${tag} technical should have 14 values, has ${a.technical.length}.`);
+          if (a.mental && a.mental.length !== 14) errors.push(`${tag} mental should have 14 values, has ${a.mental.length}.`);
+          if (a.physical && a.physical.length !== 8) errors.push(`${tag} physical should have 8 values, has ${a.physical.length}.`);
+          if (a.goalkeeping && a.goalkeeping.length !== 11) errors.push(`${tag} goalkeeping should have 11 values, has ${a.goalkeeping.length}.`);
+        }
+      });
+      // Not an error — club data belongs on Settings/the landing page's own import instead —
+      // just something worth flagging since it's an easy mix-up now that both boxes accept
+      // a pasted JSON object.
+      if (data.club) errors.__clubHint = true;
+      return errors;
+    }
+
+    // Tactical Analysis page's own import (see #tactics-import-modal-backdrop) — scoped to
+    // { "tacticIP": [...], "tacticOOP": [...], "fmTacticSummary": {...} }. Entirely optional
+    // for the app as a whole (the Tactic Builder can construct a tactic from the squad data
+    // instead), so this only validates shape, not presence — but if tacticIP IS given, it
+    // should actually have entries, since an empty import here would silently do nothing.
+    function validateTacticImportData(data) {
+      const errors = [];
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        errors.push('Root value must be a JSON object.');
+        return errors;
+      }
+      if (data.tacticIP === undefined) {
+        errors.push('Missing "tacticIP" array.');
+      } else if (!Array.isArray(data.tacticIP)) {
+        errors.push('"tacticIP" must be an array.');
+      } else if (data.tacticIP.length === 0) {
+        errors.push('"tacticIP" array is empty.');
+      } else {
+        data.tacticIP.forEach((r, i) => {
+          const tag = `tacticIP[${i}]`;
+          if (!r || typeof r !== 'object') { errors.push(`${tag} must be an object.`); return; }
+          if (!r.position) errors.push(`${tag} is missing "position".`);
+          if (!r.ipRole) errors.push(`${tag} is missing "ipRole".`);
+          if (!r.pitchPos || typeof r.pitchPos.x !== 'number' || typeof r.pitchPos.y !== 'number') {
+            errors.push(`${tag} is missing a valid "pitchPos" { x, y }.`);
+          }
+        });
+      }
+      if (data.tacticOOP !== undefined) {
+        if (!Array.isArray(data.tacticOOP)) errors.push('"tacticOOP" must be an array if present.');
+        else data.tacticOOP.forEach((r, i) => {
+          const tag = `tacticOOP[${i}]`;
+          if (!r || typeof r !== 'object') { errors.push(`${tag} must be an object.`); return; }
+          if (!r.position) errors.push(`${tag} is missing "position".`);
+          if (!r.role) errors.push(`${tag} is missing "role".`);
+          if (!r.pitchPos || typeof r.pitchPos.x !== 'number' || typeof r.pitchPos.y !== 'number') {
+            errors.push(`${tag} is missing a valid "pitchPos" { x, y }.`);
+          }
+        });
+      }
+      if (data.club) errors.__clubHint = true;
+      if (data.squad !== undefined && !Array.isArray(data.squad)) errors.push('"squad" must be an array if present.');
+      return errors;
+    }
+
+    // Club-data-only example (club/seasonStats/leagueTable/achievements/records/careerStats)
+    // — not a real save, just something to paste, read, and edit rather than writing the JSON
+    // from a blank page. "Load Example Template" fills the Import Club Data box with this.
+    // Squad and tactic data each have their own example template further down (see
+    // SQUAD_IMPORT_EXAMPLE_TEMPLATE/TACTIC_IMPORT_EXAMPLE_TEMPLATE), matching their own
+    // page's import box instead of being bundled in here.
     const IMPORT_EXAMPLE_TEMPLATE = {
       club: {
         name: 'Your Club Name',
@@ -8544,7 +8741,13 @@
         playersSignedLabel: 'Players Signed (Career)',
         playersSigned: '5',
         winPct: '60%'
-      },
+      }
+    };
+
+    // Squad List page's own example template (see #squad-import-modal-backdrop) — the exact
+    // same per-player shape the old combined blob used, just scoped under its own top-level
+    // "squad" key rather than bundled alongside club data.
+    const SQUAD_IMPORT_EXAMPLE_TEMPLATE = {
       squad: [
         {
           name: 'Example Goalkeeper', position: 'GK', bestPosition: 'GK', bestRole: 'GK', age: 25, nation: 'ENG', height: '188cm',
@@ -8566,11 +8769,23 @@
             // no "goalkeeping" key for an outfield player — it's optional, omit rather than empty-array
           }
         }
+      ]
+    };
+
+    // Tactical Analysis page's own example template (see #tactics-import-modal-backdrop) —
+    // tacticOOP/fmTacticSummary are optional; omit the whole thing entirely to rely on the
+    // in-app Tactic Builder instead of importing a tactic captured from FM directly.
+    const TACTIC_IMPORT_EXAMPLE_TEMPLATE = {
+      tacticIP: [
+        { position: 'GK', ipRole: 'Ball-Playing Goalkeeper', pitchPos: { x: 50, y: 90 } },
+        { position: 'D (C)', ipRole: 'Ball-Playing Centre-Back', pitchPos: { x: 36, y: 74 } }
+        // ...one entry per position
       ],
-      // tacticIP/tacticOOP/fmTacticSummary are optional — omit them entirely to rely on the
-      // in-app Tactic Builder instead of importing a tactic captured from FM directly.
-      tacticIP: [],
-      tacticOOP: []
+      tacticOOP: [
+        { position: 'GK', role: 'Goalkeeper', pitchPos: { x: 50, y: 90 } },
+        { position: 'D (C)', role: 'Centre-Back', pitchPos: { x: 31, y: 74 } }
+      ],
+      fmTacticSummary: { formation: '4-1-3-2', mentality: 'Positive', style: 'Possession' }
     };
 
     const importTextarea = document.getElementById('import-json-textarea');
@@ -8638,14 +8853,14 @@
       if (error) { setImportStatus(error, 'error'); return; }
       if (isFullBackupShape(data)) {
         const club = data.importedSaveData && data.importedSaveData.club;
-        setImportStatus(`This is a Full Backup file${club && club.name ? ' (' + club.name + ')' : ''} — it also restores the scouting shortlist, position groups, Tactic Builder tactic, crest/kit images and gap threshold, not just club/squad. Click "Import &amp; Reload" to restore all of it.`, 'ok');
+        setImportStatus(`This is a Full Backup file${club && club.name ? ' (' + club.name + ')' : ''} — it also restores the scouting shortlist, position groups, Tactic Builder tactic, crest/kit images and gap threshold, not just club data. Click "Import &amp; Reload" to restore all of it.`, 'ok');
         return;
       }
-      const errors = validateImportedSaveData(data);
+      const errors = validateClubImportData(data);
       if (errors.length) {
         setImportStatus(`Found ${errors.length} issue(s):<br>` + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
       } else {
-        setImportStatus(`Looks good — ${data.squad.length} player(s), club "${data.club.name}". Click "Import &amp; Reload" to apply.`, 'ok');
+        setImportStatus(`Looks good — club "${data.club.name}". Click "Import &amp; Reload" to apply.`, 'ok');
       }
     });
 
@@ -8668,12 +8883,14 @@
         return;
       }
 
-      const errors = validateImportedSaveData(data);
+      const errors = validateClubImportData(data);
       if (errors.length) {
         setImportStatus('Cannot import — fix these first:<br>' + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
         return;
       }
-      saveImportedSaveData(data);
+      // Merges onto whatever squad/tactic data is already stored, rather than replacing the
+      // whole blob — a club-only paste shouldn't wipe out a squad or tactic imported earlier.
+      mergeAndSaveImportedData(data);
       // A real import always wins at boot regardless of this flag (see the boot sequence
       // above), but clear it anyway so it doesn't linger — otherwise clicking "Clear All
       // Data" again later with nothing re-imported yet would look like it did nothing.
@@ -8684,7 +8901,7 @@
 
     document.getElementById('import-load-example-btn').addEventListener('click', () => {
       importTextarea.value = JSON.stringify(IMPORT_EXAMPLE_TEMPLATE, null, 2);
-      setImportStatus('Example template loaded — replace the placeholder values with your own save data, following the same shape.', null);
+      setImportStatus('Example template loaded — replace the placeholder values with your own club data, following the same shape.', null);
     });
 
     wireImportFileUpload('import-upload-btn', 'import-file-input', importTextarea, importStatus);
@@ -8766,14 +8983,14 @@
       if (error) { setImportStatusFor(landingImportStatus, error, 'error'); return; }
       if (isFullBackupShape(data)) {
         const club = data.importedSaveData && data.importedSaveData.club;
-        setImportStatusFor(landingImportStatus, `This is a Full Backup file${club && club.name ? ' (' + club.name + ')' : ''} — it also restores the scouting shortlist, position groups, Tactic Builder tactic, crest/kit images and gap threshold, not just club/squad. Click "Import &amp; Reload" to restore all of it.`, 'ok');
+        setImportStatusFor(landingImportStatus, `This is a Full Backup file${club && club.name ? ' (' + club.name + ')' : ''} — it also restores the scouting shortlist, position groups, Tactic Builder tactic, crest/kit images and gap threshold, not just club data. Click "Import &amp; Reload" to restore all of it.`, 'ok');
         return;
       }
-      const errors = validateImportedSaveData(data);
+      const errors = validateClubImportData(data);
       if (errors.length) {
         setImportStatusFor(landingImportStatus, `Found ${errors.length} issue(s):<br>` + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
       } else {
-        setImportStatusFor(landingImportStatus, `Looks good — ${data.squad.length} player(s), club "${data.club.name}". Click "Import &amp; Reload" to apply.`, 'ok');
+        setImportStatusFor(landingImportStatus, `Looks good — club "${data.club.name}". Click "Import &amp; Reload" to apply.`, 'ok');
       }
     });
 
@@ -8796,12 +9013,12 @@
         return;
       }
 
-      const errors = validateImportedSaveData(data);
+      const errors = validateClubImportData(data);
       if (errors.length) {
         setImportStatusFor(landingImportStatus, 'Cannot import — fix these first:<br>' + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
         return;
       }
-      saveImportedSaveData(data);
+      mergeAndSaveImportedData(data);
       localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
       setImportStatusFor(landingImportStatus, 'Imported — reloading...', 'ok');
       location.reload();
@@ -8809,10 +9026,120 @@
 
     document.getElementById('landing-import-load-example-btn').addEventListener('click', () => {
       landingImportTextarea.value = JSON.stringify(IMPORT_EXAMPLE_TEMPLATE, null, 2);
-      setImportStatusFor(landingImportStatus, 'Example template loaded — replace the placeholder values with your own save data, following the same shape.', null);
+      setImportStatusFor(landingImportStatus, 'Example template loaded — replace the placeholder values with your own club data, following the same shape.', null);
     });
 
     wireImportFileUpload('landing-import-upload-btn', 'landing-import-file-input', landingImportTextarea, landingImportStatus);
+
+    // ---- Squad List page's own "Import Squad Data" popup ----
+    // Same Validate/Import & Reload/Load Example Template/Upload shape as the landing page's
+    // import modal, just scoped to validateSquadImportData()/SQUAD_IMPORT_EXAMPLE_TEMPLATE/
+    // applySquadData() and its own textarea/status elements (see #squad-import-modal-backdrop).
+    const squadImportTextarea = document.getElementById('squad-import-textarea');
+    const squadImportStatus = document.getElementById('squad-import-status');
+
+    function openSquadImportModal() { document.getElementById('squad-import-modal-backdrop').classList.add('open'); }
+    function closeSquadImportModal() { document.getElementById('squad-import-modal-backdrop').classList.remove('open'); }
+    document.getElementById('squad-import-toggle-btn').addEventListener('click', openSquadImportModal);
+    document.getElementById('squad-import-toggle-btn-empty').addEventListener('click', openSquadImportModal);
+    document.getElementById('squad-import-modal-close').addEventListener('click', closeSquadImportModal);
+    document.getElementById('squad-import-modal-backdrop').addEventListener('click', (e) => {
+      if (e.target.id === 'squad-import-modal-backdrop') closeSquadImportModal();
+    });
+
+    // A club-data paste (or a Full Backup file) landing in this box is an easy mix-up now that
+    // three different boxes all accept a pasted JSON object — flagged as a hint, not an error,
+    // since validateSquadImportData() itself doesn't treat data.club as invalid.
+    function clubHintSuffix(data) {
+      if (isFullBackupShape(data)) return '<br><br>This looks like a Full Backup file — restore it from Settings &gt; Save / Load Full Backup instead.';
+      if (data && data.club) return '<br><br>This also has a "club" object in it — club data has its own import on the landing page or Settings.';
+      return '';
+    }
+
+    document.getElementById('squad-import-validate-btn').addEventListener('click', () => {
+      const { data, error } = parseImportTextareaValue(squadImportTextarea);
+      if (error) { setImportStatusFor(squadImportStatus, error, 'error'); return; }
+      const errors = validateSquadImportData(data);
+      if (errors.length) {
+        setImportStatusFor(squadImportStatus, `Found ${errors.length} issue(s):<br>` + errors.map(e => '&bull; ' + e).join('<br>') + clubHintSuffix(data), 'error');
+      } else {
+        setImportStatusFor(squadImportStatus, `Looks good — ${data.squad.length} player(s). Click "Import &amp; Reload" to apply.` + clubHintSuffix(data), 'ok');
+      }
+    });
+
+    document.getElementById('squad-import-apply-btn').addEventListener('click', () => {
+      const { data, error } = parseImportTextareaValue(squadImportTextarea);
+      if (error) { setImportStatusFor(squadImportStatus, error, 'error'); return; }
+      const errors = validateSquadImportData(data);
+      if (errors.length) {
+        setImportStatusFor(squadImportStatus, 'Cannot import — fix these first:<br>' + errors.map(e => '&bull; ' + e).join('<br>') + clubHintSuffix(data), 'error');
+        return;
+      }
+      // Merges the whole parsed object (not just a manually-picked "squad" subset) — a plain
+      // JSON.parse() result only ever has the keys that were actually present in the pasted
+      // text, so this can't accidentally stamp an explicit `undefined` over an existing
+      // club/tacticIP key the way constructing a new object with all three names would.
+      mergeAndSaveImportedData(data);
+      localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
+      setImportStatusFor(squadImportStatus, 'Imported — reloading...', 'ok');
+      location.reload();
+    });
+
+    document.getElementById('squad-import-load-example-btn').addEventListener('click', () => {
+      squadImportTextarea.value = JSON.stringify(SQUAD_IMPORT_EXAMPLE_TEMPLATE, null, 2);
+      setImportStatusFor(squadImportStatus, 'Example template loaded — replace the placeholder values with your own squad data, following the same shape.', null);
+    });
+
+    wireImportFileUpload('squad-import-upload-btn', 'squad-import-file-input', squadImportTextarea, squadImportStatus);
+
+    // ---- Tactical Analysis page's own "Import Tactic Data" popup ----
+    // Same shape again, scoped to validateTacticImportData()/TACTIC_IMPORT_EXAMPLE_TEMPLATE/
+    // applyTacticData() (see #tactics-import-modal-backdrop).
+    const tacticsImportTextarea = document.getElementById('tactics-import-textarea');
+    const tacticsImportStatus = document.getElementById('tactics-import-status');
+
+    function openTacticsImportModal() { document.getElementById('tactics-import-modal-backdrop').classList.add('open'); }
+    function closeTacticsImportModal() { document.getElementById('tactics-import-modal-backdrop').classList.remove('open'); }
+    document.getElementById('tactics-import-toggle-btn').addEventListener('click', openTacticsImportModal);
+    document.getElementById('tactics-import-modal-close').addEventListener('click', closeTacticsImportModal);
+    document.getElementById('tactics-import-modal-backdrop').addEventListener('click', (e) => {
+      if (e.target.id === 'tactics-import-modal-backdrop') closeTacticsImportModal();
+    });
+
+    document.getElementById('tactics-import-validate-btn').addEventListener('click', () => {
+      const { data, error } = parseImportTextareaValue(tacticsImportTextarea);
+      if (error) { setImportStatusFor(tacticsImportStatus, error, 'error'); return; }
+      const errors = validateTacticImportData(data);
+      if (errors.length) {
+        setImportStatusFor(tacticsImportStatus, `Found ${errors.length} issue(s):<br>` + errors.map(e => '&bull; ' + e).join('<br>') + clubHintSuffix(data), 'error');
+      } else {
+        setImportStatusFor(tacticsImportStatus, `Looks good — ${data.tacticIP.length} position(s). Click "Import &amp; Reload" to apply.` + clubHintSuffix(data), 'ok');
+      }
+    });
+
+    document.getElementById('tactics-import-apply-btn').addEventListener('click', () => {
+      const { data, error } = parseImportTextareaValue(tacticsImportTextarea);
+      if (error) { setImportStatusFor(tacticsImportStatus, error, 'error'); return; }
+      const errors = validateTacticImportData(data);
+      if (errors.length) {
+        setImportStatusFor(tacticsImportStatus, 'Cannot import — fix these first:<br>' + errors.map(e => '&bull; ' + e).join('<br>') + clubHintSuffix(data), 'error');
+        return;
+      }
+      // Same reasoning as the squad box above — merge the whole parsed object, not a
+      // manually-reconstructed subset, so an omitted tacticOOP/fmTacticSummary key stays
+      // omitted rather than overwriting a previous import's value with `undefined`.
+      mergeAndSaveImportedData(data);
+      localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
+      setImportStatusFor(tacticsImportStatus, 'Imported — reloading...', 'ok');
+      location.reload();
+    });
+
+    document.getElementById('tactics-import-load-example-btn').addEventListener('click', () => {
+      tacticsImportTextarea.value = JSON.stringify(TACTIC_IMPORT_EXAMPLE_TEMPLATE, null, 2);
+      setImportStatusFor(tacticsImportStatus, 'Example template loaded — replace the placeholder values with your own tactic data, following the same shape.', null);
+    });
+
+    wireImportFileUpload('tactics-import-upload-btn', 'tactics-import-file-input', tacticsImportTextarea, tacticsImportStatus);
 
     function setBackupStatus(text, kind) {
       const el = document.getElementById('backup-status');
@@ -11755,8 +12082,9 @@
       renderScoutTable();
     }
 
-    // Same lightweight shape checks as validateImportedSaveData (Setup Wizard), scoped to a
-    // bare array of players rather than a whole save.
+    // Same lightweight shape-check style as validateClubImportData/validateSquadImportData/
+    // validateTacticImportData above, scoped to a bare array of players rather than a whole
+    // save section.
     function validateScoutedPlayers(data) {
       const errors = [];
       if (!Array.isArray(data)) {
