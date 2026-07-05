@@ -8660,7 +8660,7 @@
       applyActiveTacticSource(activeTacticSource);
       initTacticBuilder();
 
-      document.querySelector('.hotbar-right').textContent = 'Save data — 18 Feb 2037';
+      document.querySelector('.hotbar-right').textContent = '18 Feb 2037';
     }
     // ---- END REAL SAVE DATA ----
 
@@ -8780,7 +8780,10 @@
     //           stadiumCapacity, stadiumBuiltNote, saveDataLabel, saveFileName },
     //   (saveFileName is what shows under "FM Command Centre" in the hotbar — the name of the
     //   FM save file itself, not the club; falls back to club.name if omitted so older
-    //   imports without this field still show something there.)
+    //   imports without this field still show something there. saveDataLabel is the small
+    //   line right underneath that — just the date itself now, e.g. "1 Jul 2026", not a
+    //   "Save data — " prefix any more, since it already reads as a subtitle of the save
+    //   name directly above it.)
     //   seasonStats: { p, w, d, l, f, a, pts, gd },
     //   achievements: [ { label, season } ],
     //   records: [ { icon, label, value } ],
@@ -9127,7 +9130,7 @@
         stadiumName: 'Stadium Name',
         stadiumCapacity: '10,000',
         stadiumBuiltNote: 'Built 2000',
-        saveDataLabel: 'Save data — 1 Jul 2026',
+        saveDataLabel: '1 Jul 2026',
         saveFileName: 'Your FM Save File Name',
         // Optional — from FM's Club Site screen and the Competition Overview screen with
         // Preferences > Display & Sound > "Show Unique IDs" turned on (each shows its ID
