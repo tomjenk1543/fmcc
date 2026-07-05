@@ -3823,6 +3823,11 @@
     width: 60px;
   }
 
+  /* Clickable through to the full candidates list (see openMissionCandidatesModal) — same
+     cursor + hover tint every other clickable row in the app uses (.scout-tile-row:hover
+     above), rather than inventing a second hover treatment for this one row type. The delete
+     button inside still works on its own: its click handler stops propagation, so clicking it
+     never also triggers this row's own "open candidates" handler. */
   .mission-row {
     display: flex;
     align-items: center;
@@ -3830,7 +3835,14 @@
     gap: 10px;
     padding: 8px 2px;
     border-bottom: 1px solid var(--panel-border);
+    border-radius: var(--radius-sm);
     font-size: 12.5px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .mission-row:hover {
+    background: color-mix(in srgb, var(--club-primary) 10%, transparent);
   }
 
   .mission-row:last-child {
@@ -3891,6 +3903,15 @@
 
   .mission-delete-btn:hover {
     color: var(--text);
+  }
+
+  /* Candidates list inside the "click a mission" modal (see buildMissionCandidatesHtml/
+     openMissionCandidatesModal) — rows reuse .scout-tile-row wholesale (padding/hover/
+     cursor already covered there), this just keeps the middle fit-label column from being
+     squeezed by the longer name/meta text either side of it. */
+  .mission-candidate-fit {
+    flex-shrink: 0;
+    font-weight: 700;
   }
 
   /* Short "- meets X" description sitting right after each triage tile's name (see
@@ -12353,11 +12374,94 @@
       return { status: 'critical', label: 'Open', best: best.player };
     }
 
+    // Builds the "who fits this mission" list for the modal a mission row opens into (see
+    // openMissionCandidatesModal below) — every shortlisted player with a real fit for the
+    // mission's role (Suited or better, same roleFitScore/fitScoreLabel 10-point bar
+    // evaluateMission itself uses to ever call someone a candidate at all), ranked strongest
+    // first. evaluateMission only ever surfaces the single BEST candidate for the mission
+    // row's own status badge — this shows the whole pool behind that one name, so "is there
+    // actually a backup option if my first choice falls through" has a real answer.
+    //
+    // Age/wage/value are shown per candidate with whichever figures breach the mission's own
+    // ceiling highlighted the same "weak" red used for an under-par attribute elsewhere in
+    // Scouting, so it's obvious at a glance who's realistically affordable and who's a stretch
+    // — rather than making the user cross-reference the ceiling text in the mission row above.
+    function buildMissionCandidatesHtml(mission) {
+      const profile = ROLE_ATTRIBUTES[mission.role];
+      if (!profile) return '<div class="scout-tile-empty">Unknown role.</div>';
+
+      const candidates = [];
+      scoutShortlist.forEach((p, i) => {
+        if (!p.attributes) return;
+        const score = roleFitScore(p, profile);
+        if (score < 10) return; // below "Suited" — not a real candidate for this role
+        candidates.push({ p, i, score });
+      });
+
+      if (!candidates.length) {
+        return `<div class="scout-tile-empty">No shortlisted player is currently a Suited (or better) fit for ${mission.role}.</div>`;
+      }
+
+      candidates.sort((a, b) => b.score - a.score);
+
+      const rows = candidates.map(({ p, i, score }) => {
+        const label = fitScoreLabel(score);
+
+        const ageText = p.age != null ? `Age ${p.age}` : 'Age &mdash;';
+        const ageBreach = !!mission.maxAge && p.age != null && p.age > mission.maxAge;
+
+        const wageText = formatWage(p.wage);
+        const wageValue = parseWageValue(p.wage);
+        const wageBreach = !!mission.maxWageK && wageValue != null && wageValue > mission.maxWageK;
+
+        const valueText = p.value ?? '&mdash;';
+        const rawValue = parseValueSortValue(p.value);
+        const valueM = rawValue >= 0 ? rawValue / 1000000 : null;
+        const valueBreach = !!mission.maxValueM && valueM != null && valueM > mission.maxValueM;
+
+        const flag = (text, breach) => breach ? `<span class="scout-tactic-fit-highlight weak">${text}</span>` : text;
+        const meta = [flag(ageText, ageBreach), flag(wageText, wageBreach), flag(valueText, valueBreach)].join(' &middot; ');
+
+        return `
+          <div class="scout-tile-row mission-candidate-row" data-index="${i}">
+            <span class="scout-tile-name">${p.name}</span>
+            <span class="mission-candidate-fit scout-tactic-fit-highlight ${label.cls}">${label.text}</span>
+            <span class="scout-tile-meta">${meta}</span>
+          </div>
+        `;
+      }).join('');
+
+      return `<div class="mission-candidates-list">${rows}</div>`;
+    }
+
+    // Opens the shared "view all" modal (see openGapsModal) with every real candidate for a
+    // mission — the click target for a mission row (see renderRecruitmentMissions' own row
+    // click wiring below). Each candidate row opens straight through to that player's own
+    // scouted-player profile (same "click a row in a full-list modal" pattern used for every
+    // other view-all list in the app — see attachRowHandlers elsewhere for the identical idea).
+    function openMissionCandidatesModal(mission) {
+      const ceilingParts = [];
+      if (mission.maxAge) ceilingParts.push(`Age ${mission.maxAge}-`);
+      if (mission.maxWageK) ceilingParts.push(`£${mission.maxWageK}K-`);
+      if (mission.maxValueM) ceilingParts.push(`£${mission.maxValueM}M-`);
+      const ceilingText = ceilingParts.length ? ` (${ceilingParts.join(', ')})` : '';
+
+      openGapsModal(`${mission.role}${ceilingText} — Candidates`, buildMissionCandidatesHtml(mission));
+
+      document.getElementById('gaps-modal-body').querySelectorAll('.mission-candidate-row').forEach(row => {
+        row.addEventListener('click', () => openScoutProfile(parseInt(row.dataset.index, 10)));
+      });
+    }
+
     // Renders the Recruitment Missions tile's mission list — one row per mission with its
     // role/age/wage ceiling, priority, live green/amber/red status against the current
-    // shortlist, and a delete (x) control. Always runs (unlike the triage tiles row, which is
-    // hidden until something's shortlisted) since missions are useful to set up before any
-    // shortlisting has happened, and their status naturally reads "No Candidate" until it has.
+    // shortlist, and a delete (x) control. Clicking anywhere on a mission row (other than the
+    // delete control) opens the full candidates list for that mission (see
+    // openMissionCandidatesModal above) — the row itself only ever shows the single best
+    // match, so this is how to see everyone else who's also in the running. Always runs
+    // (unlike the triage tiles row, which is hidden until something's shortlisted) since
+    // missions are useful to set up before any shortlisting has happened, and their status
+    // naturally reads "No Candidate" until it has.
     function renderRecruitmentMissions() {
       const listEl = document.getElementById('recruitment-missions-list');
       if (!listEl) return;
@@ -12398,6 +12502,19 @@
           recruitmentMissions.splice(idx, 1);
           saveRecruitmentMissions(recruitmentMissions);
           renderRecruitmentMissions();
+        });
+      });
+
+      // Looks the mission up fresh from recruitmentMissions at click-time (rather than
+      // capturing "m" from the closure above) so this stays correct even after a delete
+      // shifts every later mission's real index down — same reason the delete handler above
+      // reads from recruitmentMissions by index rather than trusting a captured reference.
+      listEl.querySelectorAll('.mission-row').forEach(row => {
+        row.addEventListener('click', e => {
+          if (e.target.closest('.mission-delete-btn')) return;
+          const idx = parseInt(row.dataset.missionIndex, 10);
+          const mission = recruitmentMissions[idx];
+          if (mission) openMissionCandidatesModal(mission);
         });
       });
     }

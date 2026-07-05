@@ -166,5 +166,84 @@ check('.scout-table-panel, .scout-tiles-row and .recruitment-missions-panel all 
   !!tableMinHeight && tableMinHeight === tilesMinHeight && tilesMinHeight === missionsMinHeight);
 check('.recruitment-missions-panel keeps a margin-top for spacing below the tiles row', /margin-top:\s*\d+px/.test(missionsPanelRule));
 
+// --- Clicking a mission opens every fitting candidate, not just the single best one --------
+// evaluateMission()/the mission row itself only ever surface the single best match — clicking
+// the row should open the shared gaps-modal listing every shortlisted player who's at least a
+// "Suited" fit for the role (the same 10-point roleFitScore bar evaluateMission itself uses),
+// ranked strongest first, each one clickable through to their own profile.
+scoutShortlist.length = 0;
+recruitmentMissions.length = 0;
+
+// Advanced Playmaker's key attrs (First Touch, Passing, Technique, Composure, Decisions, Off
+// The Ball, Teamwork, Vision) and preferred attrs (Crossing, Dribbling, Anticipation, Flair,
+// Acceleration, Agility) both need real values — roleFitScore averages preferred attrs same as
+// key ones, so leaving preferred attrs out of a fixture entirely scores them as 0 and drags
+// the weighted score down further than "key attrs alone" would suggest. Key 18 + preferred 16
+// gives a weighted score of (18*2+16)/3 ≈ 17.3 — comfortably "Very Suited" (>=15). Key 13 +
+// preferred 8 gives (13*2+8)/3 ≈ 11.3 — solidly "Suited" (10-14), clearly weaker than the
+// first candidate but still a real fit for the role. A goalkeeper with none of these
+// attributes filled in stays well under the 10-point bar and must NOT appear in the
+// candidates list at all.
+const strongCandidate = {
+  name: 'Test Strong Candidate', position: 'M (C)', age: 23, club: 'Test FC', nation: 'ESP',
+  ability: '4★', potential: '4★', wage: '£12K p/w', value: '£5M',
+  attributes: {
+    'First Touch': 18, Passing: 18, Technique: 18, Composure: 18, Decisions: 18, 'Off The Ball': 18, Teamwork: 18, Vision: 18,
+    Crossing: 16, Dribbling: 16, Anticipation: 16, Flair: 16, Acceleration: 16, Agility: 16,
+  },
+};
+const suitedCandidate = {
+  name: 'Test Suited Candidate', position: 'M (C)', age: 29, club: 'Test FC', nation: 'ARG',
+  ability: '3★', potential: '3★', wage: '£40K p/w', value: '£50M',
+  attributes: {
+    'First Touch': 13, Passing: 13, Technique: 13, Composure: 13, Decisions: 13, 'Off The Ball': 13, Teamwork: 13, Vision: 13,
+    Crossing: 8, Dribbling: 8, Anticipation: 8, Flair: 8, Acceleration: 8, Agility: 8,
+  },
+};
+const unrelatedGoalkeeper = {
+  name: 'Test Unrelated Goalkeeper', position: 'GK', age: 24, club: 'Test FC', nation: 'ENG',
+  ability: '3★', potential: '3★',
+  attributes: { Reflexes: 4, Handling: 4, 'One on Ones': 4, Communication: 4, Kicking: 4 },
+};
+addScoutedPlayers([strongCandidate, suitedCandidate, unrelatedGoalkeeper]);
+
+const clickableMission = { role: 'Advanced Playmaker', maxAge: 25, maxWageK: 20, maxValueM: 10, priority: 'high' };
+recruitmentMissions.push(clickableMission);
+renderRecruitmentMissions();
+
+const missionRowEl = document.querySelector('.mission-row[data-mission-index="0"]');
+check('the mission row exists and is separately clickable from the delete button', !!missionRowEl);
+missionRowEl.fire('click');
+
+check('clicking a mission row opens the shared gaps-modal', document.getElementById('gaps-modal-backdrop').className.includes('open'));
+check('the modal title names the mission\'s role', document.getElementById('gaps-modal-title').textContent.includes('Advanced Playmaker'));
+check('the modal title includes the mission\'s ceiling text', /Age 25-.*£20K-.*£10M-/.test(document.getElementById('gaps-modal-title').textContent));
+
+const candidatesModalHtml = document.getElementById('gaps-modal-body').innerHTML;
+check('the candidates list includes the Very Suited candidate', /Test Strong Candidate/.test(candidatesModalHtml));
+check('the candidates list includes the merely-Suited candidate too', /Test Suited Candidate/.test(candidatesModalHtml));
+check('the candidates list excludes a shortlisted player who is not a fit for the role at all', !/Test Unrelated Goalkeeper/.test(candidatesModalHtml));
+check('the Very Suited candidate is ranked ahead of the merely-Suited one',
+  candidatesModalHtml.indexOf('Test Strong Candidate') < candidatesModalHtml.indexOf('Test Suited Candidate'));
+check('the merely-Suited candidate has their age flagged as breaching the mission\'s ceiling (29 > 25)',
+  /scout-tactic-fit-highlight weak">Age 29/.test(candidatesModalHtml));
+check('the merely-Suited candidate has their wage flagged as breaching the mission\'s ceiling (£40K > £20K)',
+  /scout-tactic-fit-highlight weak">£40K p\/w/.test(candidatesModalHtml));
+check('the Very Suited candidate\'s age is NOT flagged (23 is within the 25 ceiling)',
+  !/scout-tactic-fit-highlight weak">Age 23/.test(candidatesModalHtml));
+
+// Clicking a candidate row inside the modal opens that player's own profile.
+const candidateRowEl = document.querySelector('#gaps-modal-body .mission-candidate-row');
+check('a candidate row exists inside the modal', !!candidateRowEl);
+candidateRowEl.fire('click');
+check('clicking a candidate opens the scouted-player profile modal', document.getElementById('scout-modal-backdrop').className.includes('open'));
+check('the opened profile is for the top-ranked candidate (Very Suited, shown first)', document.getElementById('sm-name').textContent === 'Test Strong Candidate');
+
+// --- Empty state: a mission with no real candidate at all -----------------------------------
+scoutShortlist.length = 0;
+addScoutedPlayers([unrelatedGoalkeeper]);
+const noFitHtml = buildMissionCandidatesHtml({ role: 'Advanced Playmaker', maxAge: null, maxWageK: null, maxValueM: null, priority: 'low' });
+check('buildMissionCandidatesHtml explains when nobody shortlisted is even Suited for the role', /No shortlisted player is currently a Suited/.test(noFitHtml));
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exitCode = 1;
