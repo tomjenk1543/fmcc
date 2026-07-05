@@ -3766,27 +3766,38 @@
   }
 
   /* Performance Data page height budget — table + chart + secondary row are three stacked
-     sections on one page, each given a fixed share of the design canvas (same idea as
-     Scouting's own .scout-table-panel capping itself to 46% so its 3 tiles below have real
-     room) so the PAGE itself never needs to scroll. Content that's still too long to fit its
-     own small share scrolls internally instead (.squad-table-scroll below the table already
-     does this; the chart and the two secondary tiles get the same treatment further down) —
-     the "Full Overview" button/modal is the way to see everything uncapped at once. Scoped
-     to these specific IDs rather than the shared .squad-table-panel class, since Squad
+     sections on one page. The chart and secondary row get a fixed share of the design canvas
+     (same idea as Scouting's own .scout-table-panel capping itself to 46%), but the table
+     itself is a flex child (see #performance .view-scroll-area below) that STRETCHES to fill
+     whatever's left over instead of also being capped to a fixed percentage — a fixed
+     percentage for all three left dead space at the bottom of the page on taller windows,
+     since the actual available height varies with the window but the percentages didn't.
+     Content still too long for its own small share scrolls internally (.squad-table-scroll
+     below the table already does this; the chart and the two secondary tiles get the same
+     treatment further down) — the "Full Overview" button/modal is the way to see everything
+     uncapped at once regardless of how much the table itself has grown to fill. Scoped to
+     these specific IDs rather than the shared .squad-table-panel class, since Squad
      List/Scouting's own table tiles have a different page layout (no chart/secondary row
      below them) and shouldn't be capped the same way. */
+  #performance .view-scroll-area {
+    display: flex;
+    flex-direction: column;
+  }
+
   #performance-table-panel {
-    height: calc(var(--design-height) * 0.34);
+    flex: 1;
     min-height: 220px;
     margin-bottom: 16px;
   }
 
   #performance-chart-panel {
+    flex: 0 0 auto;
     height: calc(var(--design-height) * 0.20);
     min-height: 160px;
   }
 
   #performance-secondary-row {
+    flex: 0 0 auto;
     height: calc(var(--design-height) * 0.26);
     min-height: 200px;
   }
