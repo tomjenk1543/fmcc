@@ -3043,6 +3043,44 @@
     font-weight: 700;
   }
 
+  /* Bullet-chart style indicator next to each weak attribute — the fill shows the best
+     eligible player's actual value (0-20 FM scale) and the marker shows where gapThreshold
+     sits, so "how far below the bar" reads as a shape instead of two numbers you have to
+     subtract yourself. Purely supplementary to the existing numeric value (attr-val already
+     states it as text), so it's aria-hidden rather than announced a second time. Inline-block
+     + vertical-align so it drops into the existing text line rather than adding row height,
+     since these rows are already height-budgeted by fitRowsToClip() at runtime. */
+  .gap-bullet {
+    position: relative;
+    display: inline-block;
+    width: 54px;
+    height: 6px;
+    margin: 0 2px;
+    vertical-align: middle;
+    background: var(--panel-border);
+    border-radius: 3px;
+  }
+
+  .gap-bullet-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--val, 0%);
+    background: var(--negative, #ff8080);
+    border-radius: 3px;
+  }
+
+  .gap-bullet-target {
+    position: absolute;
+    left: var(--target, 0%);
+    top: -2px;
+    bottom: -2px;
+    width: 2px;
+    background: var(--text);
+    opacity: 0.8;
+  }
+
   /* No fixed max-height — this clip now flex-grows to fill whatever real height its panel
      has (see #scouting-focus-list/#tactics-gaps-list-ip/-oop below), and the JS
      (fitRowsToClip()) measures that actual rendered height to decide how many rows fit,
@@ -9725,8 +9763,17 @@
       }).filter(w => w.bestVal < gapThreshold);
     }
 
+    // FM attributes run 1-20 regardless of which attribute this is, so both the fill (best
+    // eligible player's value) and the target marker (gapThreshold) convert onto the same
+    // 0-100% bar with one fixed divisor - no per-attribute scale lookup needed.
+    function buildGapBulletHtml(value, threshold) {
+      const valPct = Math.max(0, Math.min(100, (value / 20) * 100));
+      const targetPct = Math.max(0, Math.min(100, (threshold / 20) * 100));
+      return `<span class="gap-bullet" style="--val:${valPct}%; --target:${targetPct}%;" aria-hidden="true"><span class="gap-bullet-fill"></span><span class="gap-bullet-target"></span></span>`;
+    }
+
     function formatWeakAttrs(list, cls) {
-      return list.map(w => `${w.name} <span class="attr-val ${cls}">${w.bestVal}</span> (best: ${w.bestPlayer})`).join(', ');
+      return list.map(w => `${w.name} <span class="attr-val ${cls}">${w.bestVal}</span>${buildGapBulletHtml(w.bestVal, gapThreshold)} (best: ${w.bestPlayer})`).join(', ');
     }
 
     function buildGapRowHtml(g) {
