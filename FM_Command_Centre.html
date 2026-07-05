@@ -508,13 +508,17 @@
      .squad-table-panel/.squad-table-scroll below). #scout (Scouting Shortlist) was missing
      from this list — its .view-scroll-area's own flex:1 rule was silently doing nothing
      without a flex parent, which is why that page in particular was left with dead space
-     below its tiles instead of filling the screen like every other page. */
+     below its tiles instead of filling the screen like every other page. #performance had
+     the exact same bug: its own #performance .view-scroll-area {display:flex...} and
+     #performance-table-panel {flex:1} rules had nothing to measure against without this,
+     so the table's "fill the rest of the page" behaviour never actually took effect. */
   #dashboard.view.active,
   #tactics.view.active,
   #scouting.view.active,
   #settings.view.active,
   #tacticbuilder.view.active,
   #scout.view.active,
+  #performance.view.active,
   #landing.view.active {
     display: flex;
     flex-direction: column;
