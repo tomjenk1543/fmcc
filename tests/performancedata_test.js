@@ -87,9 +87,25 @@ addPerformanceSnapshots([
       { name: 'Sergio Acosta', apps: '7', cleanSheets: 4, goalsConceded: 5, svPct: 72, xSvPct: 78 },
       // A dirty tackler: more fouls made than successful tackles won, on real volume.
       { name: 'Michael Botha', apps: '35 (6)', foulsMade: 47, tacklesWon: 20, tacklesAttempted: 30, passPct: 87, passesAttempted: 1748 },
+      // Six more shot-takers with no other signal, purely to push the number of
+      // chart-eligible attacking players (has goals+xG, shots >= 1) to 8 — past the inline
+      // chart's topN of 6 — so the "Full Overview" modal's uncapped chart can be checked
+      // against the capped inline one.
+      { name: 'Extra Player One', apps: '10 (2)', goals: 1, shots: 5, xG: 1 },
+      { name: 'Extra Player Two', apps: '9 (1)', goals: 0, shots: 3, xG: 0.4 },
+      { name: 'Extra Player Three', apps: '8 (4)', goals: 2, shots: 6, xG: 1.5 },
+      { name: 'Extra Player Four', apps: '12 (0)', goals: 1, shots: 4, xG: 0.8 },
+      { name: 'Extra Player Five', apps: '6 (3)', goals: 0, shots: 2, xG: 0.3 },
+      { name: 'Extra Player Six', apps: '15 (2)', goals: 3, shots: 9, xG: 2.2 },
     ],
   },
 ]);
+
+// Total players in the latest snapshot: Musolino, Ndo, Pol, Acosta, Botha + 6 extras = 11.
+// Chart-eligible for Attacking specifically (needs goals+xG, shots>=1): Musolino, Ndo, +6
+// extras = 8 — deliberately more than the inline chart's topN (6), see below.
+const LATEST_SNAPSHOT_PLAYER_COUNT = 11;
+const ATTACKING_CHART_ELIGIBLE_COUNT = 8;
 
 check('two snapshots recorded', performanceSnapshots.length === 2);
 check('table panel visible once snapshots exist', document.getElementById('performance-table-panel').style.display === '');
@@ -136,6 +152,39 @@ check('discipline chart renders bars without an actual/expected marker requireme
 // Reset back to the default category so later checks aren't order-dependent.
 performanceCategory = 'attacking';
 renderPerformanceCategoryView();
+
+// ---- Inline chart is capped (topN) so the page itself never needs to scroll ----
+const inlineChartHtml = document.getElementById('performance-chart-container').innerHTML;
+const inlineBarCount = (inlineChartHtml.match(/perf-chart-row/g) || []).length;
+check('inline attacking chart is capped to the category\'s topN (6), not showing every eligible player',
+  inlineBarCount === PERFORMANCE_CATEGORIES.attacking.chart.topN && inlineBarCount < ATTACKING_CHART_ELIGIBLE_COUNT);
+check('inline chart caption explains bar length and the expected-value tick',
+  /Bar length = Goals/.test(document.getElementById('performance-chart-caption').textContent)
+  && /xG/.test(document.getElementById('performance-chart-caption').textContent));
+
+// ---- Full Overview modal: uncapped table + chart for whichever category is selected ----
+renderPerformanceOverviewModal();
+check('Full Overview modal opens', document.getElementById('performance-overview-modal-backdrop').classList.contains('open'));
+check('Full Overview modal title names the category and latest date',
+  document.getElementById('performance-overview-modal-title').textContent === 'Attacking (xG) — Full Overview (2037-04-11)');
+
+const overviewBodyHtml = document.getElementById('performance-overview-table-body').innerHTML;
+const overviewRowCount = (overviewBodyHtml.match(/<tr>/g) || []).length;
+check('Full Overview table shows every player in the snapshot, not just the capped inline set',
+  overviewRowCount === LATEST_SNAPSHOT_PLAYER_COUNT);
+
+const overviewChartHtml = document.getElementById('performance-overview-chart-container').innerHTML;
+const overviewBarCount = (overviewChartHtml.match(/perf-chart-row/g) || []).length;
+check('Full Overview chart shows every chart-eligible player, more than the inline topN cap',
+  overviewBarCount > inlineBarCount && overviewBarCount === ATTACKING_CHART_ELIGIBLE_COUNT);
+check('Full Overview chart caption reflects the full eligible-player count, not "Top N"',
+  new RegExp(`All ${ATTACKING_CHART_ELIGIBLE_COUNT} eligible players`).test(document.getElementById('performance-overview-chart-caption').textContent));
+
+const overviewInsightsHtml = document.getElementById('performance-overview-insights-content').innerHTML;
+check('Full Overview modal includes the same Assumptions/Improvement analysis', /Assumptions/.test(overviewInsightsHtml) && /Areas for Improvement/.test(overviewInsightsHtml));
+
+closePerformanceOverviewModal();
+check('Full Overview modal closes', !document.getElementById('performance-overview-modal-backdrop').classList.contains('open'));
 
 // ---- Insights: assumptions / improvements / over-underperformers ----
 const insightsHtml = document.getElementById('performance-insights-content').innerHTML;

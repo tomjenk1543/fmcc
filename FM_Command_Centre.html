@@ -3765,6 +3765,32 @@
     min-width: 0;
   }
 
+  /* Performance Data page height budget — table + chart + secondary row are three stacked
+     sections on one page, each given a fixed share of the design canvas (same idea as
+     Scouting's own .scout-table-panel capping itself to 46% so its 3 tiles below have real
+     room) so the PAGE itself never needs to scroll. Content that's still too long to fit its
+     own small share scrolls internally instead (.squad-table-scroll below the table already
+     does this; the chart and the two secondary tiles get the same treatment further down) —
+     the "Full Overview" button/modal is the way to see everything uncapped at once. Scoped
+     to these specific IDs rather than the shared .squad-table-panel class, since Squad
+     List/Scouting's own table tiles have a different page layout (no chart/secondary row
+     below them) and shouldn't be capped the same way. */
+  #performance-table-panel {
+    height: calc(var(--design-height) * 0.34);
+    min-height: 220px;
+    margin-bottom: 16px;
+  }
+
+  #performance-chart-panel {
+    height: calc(var(--design-height) * 0.20);
+    min-height: 160px;
+  }
+
+  #performance-secondary-row {
+    height: calc(var(--design-height) * 0.26);
+    min-height: 200px;
+  }
+
   /* Performance Data page — the two tiles sitting below the main table + chart (Analysis and
      Snapshot History), side by side like .settings-grid's own 2-up rows rather than full-width
      stacked, since neither needs the full tile width to stay readable. */
@@ -3772,13 +3798,51 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
-    margin-top: 20px;
+    margin-top: 16px;
   }
 
   @media (max-width: 900px) {
     .performance-secondary-row {
       grid-template-columns: 1fr;
     }
+  }
+
+  /* Both secondary tiles are a title row + a content list that can run long (many insight
+     lines, many snapshots) — title stays put, content scrolls internally within this tile's
+     own fixed height instead of pushing the page taller. */
+  #performance-insights-panel,
+  #performance-history-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #performance-insights-content,
+  #performance-history-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  /* Chart area gets the same internal-scroll safety net — normally unnecessary since the
+     inline view's topN is capped low enough to fit #performance-chart-panel's own height
+     budget above, but this keeps a genuinely tall chart from bleeding into the tiles below
+     rather than silently overflowing. */
+  .perf-chart-container-clip {
+    max-height: calc(var(--design-height) * 0.155);
+    overflow-y: auto;
+  }
+
+  /* Full Overview modal's table needs its own scroll cap independent of the page-level
+     budgets above — it can legitimately show 20-30+ rows at once. */
+  .performance-overview-table-scroll {
+    max-height: calc(var(--design-height) * 0.40);
+  }
+
+  /* Wider than the base .player-modal (640px) — same reasoning as .import-modal's own
+     override: a 9-column stats table needs more room than a player profile does. */
+  .performance-overview-modal {
+    width: min(1200px, calc(var(--design-width) * 0.94));
   }
 
   /* Snapshot history row style — matches .scouting-focus-row's own bordered-row pattern
@@ -3911,11 +3975,21 @@
   }
 
   .perf-chart-value {
-    flex: 0 0 68px;
+    flex: 0 0 92px;
     text-align: right;
     font-size: 11.5px;
     font-weight: 700;
     color: var(--text);
+  }
+
+  /* Plain-language explanation shown above every chart (see buildPerformanceChartCaption())
+     — the bar/marker convention isn't self-explanatory at a glance, so this spells out what
+     the bar length and the white tick each represent rather than leaving it to be inferred. */
+  .perf-chart-caption {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-dim);
+    margin-bottom: 8px;
   }
 
   /* ---- Analysis panel (Assumptions / Areas for Improvement / Over-Underperformers) ---- */
@@ -4658,6 +4732,11 @@
               <!-- Options filled in by JS from PERFORMANCE_CATEGORIES so the dropdown and the
                    table/chart column config can never drift out of sync with each other. -->
               <select id="performance-category-select" class="role-fit-select" title="Choose which set of stats to view"></select>
+              <!-- Opens #performance-overview-modal-backdrop — the on-page table/chart below
+                   are deliberately height-capped (see .squad-table-scroll's own overflow, and
+                   #performance-chart-panel's CSS) so this whole page fits without needing to
+                   scroll; this button is the way to see everything uncapped at once. -->
+              <button class="mini-btn" id="performance-view-full-btn">Full Overview</button>
               <button class="mini-btn" id="performance-add-toggle-btn">+ Add Snapshot</button>
             </div>
           </div>
@@ -4670,11 +4749,12 @@
             </table>
           </div>
         </div>
-        <div class="dashboard-panel" id="performance-chart-panel" style="display:none; margin-top:20px;">
+        <div class="dashboard-panel" id="performance-chart-panel" style="display:none; margin-top:16px;">
           <div class="panel-title-row">
             <h3 id="performance-chart-title">Chart</h3>
           </div>
-          <div id="performance-chart-container"></div>
+          <div class="perf-chart-caption" id="performance-chart-caption"></div>
+          <div id="performance-chart-container" class="perf-chart-container-clip"></div>
         </div>
         <div class="performance-secondary-row" id="performance-secondary-row" style="display:none;">
           <div class="dashboard-panel" id="performance-insights-panel">
@@ -4692,6 +4772,35 @@
         </div>
       </div>
     </section>
+
+    <!-- Full Overview modal — the uncapped counterpart to the height-capped inline tile
+         above: every player in the table (not just however many fit), every eligible player
+         in the chart (not just the top handful), and the same Analysis content, all for
+         whichever category is currently picked. Wider than the base .player-modal (same
+         .import-modal-style variant pattern) since a 9-column table needs more room than a
+         player profile does. -->
+    <div class="player-modal-backdrop" id="performance-overview-modal-backdrop">
+      <div class="player-modal performance-overview-modal">
+        <button class="player-modal-close" id="performance-overview-modal-close" aria-label="Close">&times;</button>
+        <div class="player-modal-header">
+          <div class="player-modal-name" id="performance-overview-modal-title">Full Overview</div>
+        </div>
+        <div class="squad-table-scroll performance-overview-table-scroll">
+          <table class="squad-table" id="performance-overview-table">
+            <thead>
+              <tr id="performance-overview-table-head"></tr>
+            </thead>
+            <tbody id="performance-overview-table-body"></tbody>
+          </table>
+        </div>
+        <div class="perf-chart-caption" id="performance-overview-chart-caption" style="margin-top:16px;"></div>
+        <div id="performance-overview-chart-container"></div>
+        <div class="perf-insight-section" style="margin-top:16px;">
+          <div class="perf-insight-heading">Analysis</div>
+          <div id="performance-overview-insights-content"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- Add Performance Snapshot modal — same shape as #scout-add-modal-backdrop (see its own
          comment): screenshot -> Claude -> paste-JSON, one dated snapshot per submission (or
@@ -11975,7 +12084,7 @@
         ],
         sortKey: 'goals',
         trendKey: 'goals', trendDecimals: 0,
-        chart: { actualKey: 'goals', expectedKey: 'xG', expectedLabel: 'xG', minVolumeKey: 'shots', minVolume: 1, topN: 10, decimals: 0, epsilon: 1 },
+        chart: { actualKey: 'goals', actualLabel: 'Goals', expectedKey: 'xG', expectedLabel: 'xG', volumeKey: 'shots', volumeLabel: 'Shots', minVolumeKey: 'shots', minVolume: 1, topN: 6, decimals: 0, epsilon: 1 },
       },
       goalkeeping: {
         label: 'Goalkeeping',
@@ -11989,7 +12098,7 @@
         ],
         sortKey: 'apps',
         trendKey: 'svPct', trendDecimals: 1, trendSuffix: '%',
-        chart: { actualKey: 'svPct', expectedKey: 'xSvPct', expectedLabel: 'xSv%', minVolumeKey: 'apps', minVolume: 1, topN: 10, decimals: 0, suffix: '%', epsilon: 1.5 },
+        chart: { actualKey: 'svPct', actualLabel: 'Sv%', expectedKey: 'xSvPct', expectedLabel: 'xSv%', volumeKey: 'apps', volumeLabel: 'Apps', minVolumeKey: 'apps', minVolume: 1, topN: 6, decimals: 0, suffix: '%', epsilon: 1.5 },
       },
       discipline: {
         label: 'Discipline',
@@ -12003,7 +12112,7 @@
         ],
         sortKey: 'tacklesAttempted',
         trendKey: 'foulsMade', trendDecimals: 0,
-        chart: { singleKey: 'foulsMade', volumeKey: 'tacklesAttempted', topN: 10, decimals: 0 },
+        chart: { singleKey: 'foulsMade', singleLabel: 'Fouls Made', volumeKey: 'tacklesAttempted', volumeLabel: 'Tackles Att.', topN: 6, decimals: 0 },
       },
       generalplay: {
         label: 'General Play',
@@ -12018,7 +12127,7 @@
         ],
         sortKey: 'passesAttempted',
         trendKey: 'passPct', trendDecimals: 1, trendSuffix: '%',
-        chart: { singleKey: 'passPct', volumeKey: 'passesAttempted', topN: 10, decimals: 0, suffix: '%' },
+        chart: { singleKey: 'passPct', singleLabel: 'Pass %', volumeKey: 'passesAttempted', volumeLabel: 'Passes Attempted', topN: 6, decimals: 0, suffix: '%' },
       },
       goalattempts: {
         label: 'Goal Attempts',
@@ -12032,7 +12141,7 @@
         ],
         sortKey: 'shots',
         trendKey: '__conversion', trendDecimals: 1, trendSuffix: '%',
-        chart: { singleKey: '__conversion', volumeKey: 'shots', topN: 10, decimals: 0, suffix: '%' },
+        chart: { singleKey: '__conversion', singleLabel: 'Conversion %', volumeKey: 'shots', volumeLabel: 'Shots', topN: 6, decimals: 0, suffix: '%' },
       },
     };
 
@@ -12152,22 +12261,13 @@
       performanceCategorySelectReady = true;
     }
 
-    // Renders just the table + chart for whichever category is currently picked, against
-    // whatever snapshot renderPerformanceData() last resolved as "latest" — kept separate
-    // from the full render so switching the dropdown doesn't need to re-touch the empty
-    // state, insights, or history list at all.
-    function renderPerformanceCategoryView() {
-      if (!performanceLatestSnapshot) return;
-      const cat = PERFORMANCE_CATEGORIES[performanceCategory];
-      const players = performanceLatestSnapshot.players;
-      const prevByName = performancePreviousSnapshot
-        ? new Map(performancePreviousSnapshot.players.map(p => [normalizeNameForMatch(p.name), p]))
-        : null;
-
+    // Builds the table's <thead>/<tbody> HTML for a category against a player list — shared
+    // by the inline (capped) view and the Full Overview modal's own uncapped copy, so the two
+    // can never drift out of sync on column definitions or trend logic.
+    function buildPerformanceTableHtml(cat, players, prevByName) {
       const headCells = ['<th>Player</th>', '<th>Position</th>']
         .concat(cat.columns.map(c => `<th>${c.label}</th>`));
       if (prevByName) headCells.push('<th>Trend</th>');
-      document.getElementById('performance-table-head').innerHTML = headCells.join('');
 
       const sortedPlayers = players.slice().sort((a, b) => {
         const av = typeof a[cat.sortKey] === 'number' ? a[cat.sortKey] : parseAppsTotal(a[cat.sortKey]);
@@ -12175,7 +12275,7 @@
         return bv - av;
       });
 
-      document.getElementById('performance-table-body').innerHTML = sortedPlayers.map(p => {
+      const bodyHtml = sortedPlayers.map(p => {
         const derived = computeDerivedStats(p);
         const position = findSquadPosition(p.name) || '—';
         const cells = cat.columns.map(c => `<td>${formatColumnCell(c, p, derived)}</td>`).join('');
@@ -12187,8 +12287,84 @@
         return `<tr><td>${p.name}</td><td>${position}</td>${cells}${trendCell}</tr>`;
       }).join('');
 
+      return { headHtml: headCells.join(''), bodyHtml };
+    }
+
+    // Plain-language explanation of what the chart is actually showing — the bar/marker
+    // convention isn't self-explanatory at a glance, so this renders as a caption directly
+    // above the chart rather than relying on the reader to infer it from the row labels.
+    // Built from the category's own chart config so it can never describe a different stat
+    // than the one actually plotted.
+    function buildPerformanceChartCaption(cat, rowCount, isFull) {
+      const chart = cat.chart;
+      const scopeText = isFull ? `All ${rowCount} eligible player${rowCount === 1 ? '' : 's'}` : `Top ${rowCount}`;
+      if (chart.actualKey && chart.expectedKey) {
+        return `Bar length = ${chart.actualLabel}. White tick = ${chart.expectedLabel} (what the model expected). `
+          + `Green bar = clearly ahead of ${chart.expectedLabel}, red = clearly behind. `
+          + `${scopeText}, ranked by ${chart.volumeLabel}.`;
+      }
+      return `Bar length = ${chart.singleLabel}. ${scopeText}, ranked by ${chart.volumeLabel}.`;
+    }
+
+    // Renders the table + chart for whichever category is currently picked, against
+    // whatever snapshot renderPerformanceData() last resolved as "latest" — kept separate
+    // from the full render so switching the dropdown doesn't need to re-touch the empty
+    // state, insights, or history list at all. Targets the small inline tile's own element
+    // IDs; renderPerformanceOverviewModal() below reuses the same building blocks against a
+    // separate set of (uncapped) modal element IDs.
+    function renderPerformanceCategoryView() {
+      if (!performanceLatestSnapshot) return;
+      const cat = PERFORMANCE_CATEGORIES[performanceCategory];
+      const players = performanceLatestSnapshot.players;
+      const prevByName = performancePreviousSnapshot
+        ? new Map(performancePreviousSnapshot.players.map(p => [normalizeNameForMatch(p.name), p]))
+        : null;
+
+      const { headHtml, bodyHtml } = buildPerformanceTableHtml(cat, players, prevByName);
+      document.getElementById('performance-table-head').innerHTML = headHtml;
+      document.getElementById('performance-table-body').innerHTML = bodyHtml;
+
       document.getElementById('performance-chart-title').innerHTML = `Chart <span class="scout-tile-subtitle">- ${cat.label}</span>`;
-      renderPerformanceBarChart(document.getElementById('performance-chart-container'), computePerformanceChartRows(cat, players));
+      const chartRows = computePerformanceChartRows(cat, players);
+      renderPerformanceBarChart(document.getElementById('performance-chart-container'), chartRows);
+      document.getElementById('performance-chart-caption').textContent = chartRows.length
+        ? buildPerformanceChartCaption(cat, chartRows.length, false)
+        : '';
+    }
+
+    // Full, uncapped view of whatever category is currently picked — table shows every
+    // player (not just the ones that fit the small tile), chart shows every eligible player
+    // rather than just the top handful. Opened via the "Full Overview" button since the
+    // inline tile is deliberately height-capped to keep the page itself from needing to
+    // scroll (see #performance-table-panel/#performance-chart-panel's own CSS).
+    function renderPerformanceOverviewModal() {
+      if (!performanceLatestSnapshot) return;
+      const cat = PERFORMANCE_CATEGORIES[performanceCategory];
+      const players = performanceLatestSnapshot.players;
+      const prevByName = performancePreviousSnapshot
+        ? new Map(performancePreviousSnapshot.players.map(p => [normalizeNameForMatch(p.name), p]))
+        : null;
+
+      document.getElementById('performance-overview-modal-title').textContent =
+        `${cat.label} — Full Overview (${performanceLatestSnapshot.date})`;
+
+      const { headHtml, bodyHtml } = buildPerformanceTableHtml(cat, players, prevByName);
+      document.getElementById('performance-overview-table-head').innerHTML = headHtml;
+      document.getElementById('performance-overview-table-body').innerHTML = bodyHtml;
+
+      const chartRows = computePerformanceChartRows(cat, players, players.length);
+      renderPerformanceBarChart(document.getElementById('performance-overview-chart-container'), chartRows);
+      document.getElementById('performance-overview-chart-caption').textContent = chartRows.length
+        ? buildPerformanceChartCaption(cat, chartRows.length, true)
+        : '';
+
+      renderPerformanceInsights(performanceLatestSnapshot, 'performance-overview-insights-content');
+
+      document.getElementById('performance-overview-modal-backdrop').classList.add('open');
+    }
+
+    function closePerformanceOverviewModal() {
+      document.getElementById('performance-overview-modal-backdrop').classList.remove('open');
     }
 
     // Trend cell compares the category's own "headline" stat (cat.trendKey — a raw field or
@@ -12221,8 +12397,9 @@
     // "volume" stat (shots, apps, passes attempted...) rather than the metric itself, so e.g.
     // one sub's lone 100%-pass-completion cameo doesn't outrank the actual first-choice
     // players on the Pass % chart.
-    function computePerformanceChartRows(cat, players) {
+    function computePerformanceChartRows(cat, players, topNOverride) {
       const chart = cat.chart;
+      const topN = topNOverride || chart.topN || 10;
       if (chart.actualKey && chart.expectedKey) {
         const rows = players
           .map(p => {
@@ -12232,13 +12409,13 @@
           })
           .filter(r => typeof r.value === 'number' && typeof r.expected === 'number' && r.volume >= (chart.minVolume || 0))
           .sort((a, b) => b.value - a.value)
-          .slice(0, chart.topN || 10);
+          .slice(0, topN);
         return rows.map(r => {
           const diff = r.value - r.expected;
           const over = diff >= (chart.epsilon || 0.5) ? true : diff <= -(chart.epsilon || 0.5) ? false : null;
           return {
             label: r.label, value: r.value, expected: r.expected, over,
-            displayValue: `${fmtNum(r.value, chart.decimals)}${chart.suffix || ''} (xp ${fmtNum(r.expected, chart.decimals)}${chart.suffix || ''})`,
+            displayValue: `${fmtNum(r.value, chart.decimals)}${chart.suffix || ''} (${chart.expectedLabel} ${fmtNum(r.expected, chart.decimals)}${chart.suffix || ''})`,
           };
         });
       }
@@ -12252,7 +12429,7 @@
         })
         .filter(r => typeof r.value === 'number')
         .sort((a, b) => b.volume - a.volume)
-        .slice(0, chart.topN || 10);
+        .slice(0, topN);
       return rows.map(r => ({ label: r.label, value: r.value, displayValue: `${fmtNum(r.value, chart.decimals)}${chart.suffix || ''}` }));
     }
 
@@ -12399,9 +12576,9 @@
       return { assumptions, improvements, overperformers, underperformers, gkOver, gkUnder };
     }
 
-    function renderPerformanceInsights(latest) {
+    function renderPerformanceInsights(latest, targetId) {
       const insights = computePerformanceInsights(latest);
-      const container = document.getElementById('performance-insights-content');
+      const container = document.getElementById(targetId || 'performance-insights-content');
 
       const overUnderRows = [];
       insights.overperformers.forEach(p => overUnderRows.push(
@@ -12536,6 +12713,20 @@
     document.getElementById('performance-add-modal-close').addEventListener('click', closePerformanceAddModal);
     document.getElementById('performance-add-modal-backdrop').addEventListener('click', (e) => {
       if (e.target.id === 'performance-add-modal-backdrop') closePerformanceAddModal();
+    });
+
+    // "Full Overview" — the inline tile above is deliberately height-capped (see
+    // #performance-table-panel/#performance-chart-panel/#performance-secondary-row's own
+    // CSS) so the page never needs to scroll; this button/modal is the escape hatch to see
+    // everything uncapped at once, same idea as the shared gaps-modal elsewhere but wide
+    // enough for this page's own multi-column table.
+    document.getElementById('performance-view-full-btn').addEventListener('click', renderPerformanceOverviewModal);
+    document.getElementById('performance-overview-modal-close').addEventListener('click', closePerformanceOverviewModal);
+    document.getElementById('performance-overview-modal-backdrop').addEventListener('click', (e) => {
+      if (e.target.id === 'performance-overview-modal-backdrop') closePerformanceOverviewModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closePerformanceOverviewModal();
     });
 
     renderPerformanceData();
