@@ -1,0 +1,20 @@
+{
+  "leagueTable": [
+    { "pos": 1, "club": "Metalul Buzău", "p": 26, "w": 23, "d": 3, "l": 0, "f": 65, "a": 14, "gd": "+51", "pts": 72 },
+    { "pos": 2, "club": "FC Rapid", "p": 26, "w": 16, "d": 6, "l": 4, "f": 36, "a": 18, "gd": "+18", "pts": 54 },
+    { "pos": 3, "club": "FC Voluntari", "p": 26, "w": 15, "d": 6, "l": 5, "f": 44, "a": 21, "gd": "+23", "pts": 51 },
+    { "pos": 4, "club": "Dinamo București", "p": 26, "w": 12, "d": 8, "l": 6, "f": 41, "a": 26, "gd": "+15", "pts": 44 },
+    { "pos": 5, "club": "FC Botoșani", "p": 26, "w": 13, "d": 2, "l": 11, "f": 31, "a": 26, "gd": "+5", "pts": 41 },
+    { "pos": 6, "club": "U Cluj", "p": 26, "w": 9, "d": 11, "l": 6, "f": 33, "a": 29, "gd": "+4", "pts": 38 },
+    { "pos": 7, "club": "Farul Constanța", "p": 26, "w": 11, "d": 4, "l": 11, "f": 30, "a": 28, "gd": "+2", "pts": 37 },
+    { "pos": 8, "club": "Sepsi OSK", "p": 26, "w": 10, "d": 7, "l": 9, "f": 28, "a": 31, "gd": "-3", "pts": 37 },
+    { "pos": 9, "club": "CFR Cluj", "p": 26, "w": 9, "d": 7, "l": 10, "f": 26, "a": 38, "gd": "-12", "pts": 34 },
+    { "pos": 10, "club": "Campionii FC Argeș", "p": 26, "w": 10, "d": 4, "l": 12, "f": 29, "a": 35, "gd": "-6", "pts": 34 },
+    { "pos": 11, "club": "FCSB", "p": 26, "w": 9, "d": 6, "l": 11, "f": 40, "a": 39, "gd": "+1", "pts": 33 },
+    { "pos": 12, "club": "UTA Arad", "p": 26, "w": 6, "d": 8, "l": 12, "f": 27, "a": 33, "gd": "-6", "pts": 26 },
+    { "pos": 13, "club": "Unirea Slobozia", "p": 26, "w": 6, "d": 7, "l": 13, "f": 22, "a": 33, "gd": "-11", "pts": 25 },
+    { "pos": 14, "club": "Universitatea Craiova", "p": 26, "w": 5, "d": 5, "l": 16, "f": 19, "a": 37, "gd": "-18", "pts": 20 },
+    { "pos": 15, "club": "FC Politehnica Iași", "p": 26, "w": 3, "d": 7, "l": 16, "f": 10, "a": 41, "gd": "-31", "pts": 16 },
+    { "pos": 16, "club": "CS Afumați", "p": 26, "w": 3, "d": 5, "l": 18, "f": 15, "a": 47, "gd": "-32", "pts": 14 }
+  ]
+}

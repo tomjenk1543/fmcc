@@ -1,0 +1,87 @@
+[
+  {
+    "name": "Test - Perfect Fit ST",
+    "position": "ST (C)",
+    "age": 24,
+    "nation": "ROU",
+    "club": "Test FC",
+    "ability": "4★",
+    "potential": "4★",
+    "wage": "£8K p/w",
+    "value": "£2.5M",
+    "notes": "FAKE TEST DATA — should land in the Perfect Fit tile (100% match).",
+    "attributes": {
+      "technical": [8, 10, 17, 14, 8, 16, 12, 6, 13, 8, 6, 15, 5, 16],
+      "mental": [12, 16, 13, 16, 13, 14, 15, 14, 10, 17, 14, 13, 13, 14],
+      "physical": [16, 14, 13, 13, 14, 17, 14, 15]
+    }
+  },
+  {
+    "name": "Test - Nearly There ST",
+    "position": "ST (C)",
+    "age": 25,
+    "nation": "ROU",
+    "club": "Test FC",
+    "ability": "3★",
+    "potential": "3.5★",
+    "wage": "£4K p/w",
+    "value": "£900K",
+    "notes": "FAKE TEST DATA — should land in Nearly There (exactly 75% match today).",
+    "attributes": {
+      "technical": [7, 9, 15, 12, 6, 8, 10, 5, 11, 7, 5, 12, 4, 13],
+      "mental": [11, 12, 12, 14, 12, 13, 14, 12, 9, 13, 12, 12, 11, 13],
+      "physical": [14, 13, 12, 10, 13, 15, 13, 6]
+    }
+  },
+  {
+    "name": "Test - Potential (Young)",
+    "position": "ST (C)",
+    "age": 19,
+    "nation": "ROU",
+    "club": "Test FC",
+    "ability": "2★",
+    "potential": "4.5★",
+    "wage": "£1K p/w",
+    "value": "£250K",
+    "notes": "FAKE TEST DATA — low match today, but 2.5-star gap + young age should project to 75%+ in the Potential tile.",
+    "attributes": {
+      "technical": [5, 6, 8, 9, 4, 8, 6, 3, 8, 5, 4, 9, 3, 8],
+      "mental": [9, 8, 10, 8, 9, 8, 12, 10, 6, 8, 8, 9, 8, 11],
+      "physical": [12, 11, 10, 9, 12, 8, 12, 8]
+    }
+  },
+  {
+    "name": "Test - Potential (Old, tapered)",
+    "position": "ST (C)",
+    "age": 29,
+    "nation": "ROU",
+    "club": "Test FC",
+    "ability": "2★",
+    "potential": "4.5★",
+    "wage": "£1K p/w",
+    "value": "£150K",
+    "notes": "FAKE TEST DATA — identical attributes/star-gap to the Young Potential example, but age 29 tapers projected growth almost to nothing, so this one should NOT land in any tile. Shows the age-tapering effect.",
+    "attributes": {
+      "technical": [5, 6, 8, 9, 4, 8, 6, 3, 8, 5, 4, 9, 3, 8],
+      "mental": [9, 8, 10, 8, 9, 8, 12, 10, 6, 8, 8, 9, 8, 11],
+      "physical": [12, 11, 10, 9, 12, 8, 12, 8]
+    }
+  },
+  {
+    "name": "Test - None",
+    "position": "D (C)",
+    "age": 27,
+    "nation": "ROU",
+    "club": "Test FC",
+    "ability": "2.5★",
+    "potential": "2.5★",
+    "wage": "£2K p/w",
+    "value": "£400K",
+    "notes": "FAKE TEST DATA — no star gap to project from and only 50% match today, so should sit outside all three tiles.",
+    "attributes": {
+      "technical": [6, 7, 5, 10, 4, 8, 5, 6, 11, 4, 11, 9, 9, 7],
+      "mental": [11, 9, 12, 9, 11, 10, 13, 8, 10, 8, 10, 12, 9, 12],
+      "physical": [10, 10, 11, 13, 13, 9, 12, 12]
+    }
+  }
+]
