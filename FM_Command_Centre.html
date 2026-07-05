@@ -8852,6 +8852,18 @@
       return out;
     }
 
+    // saveDataLabel used to be documented/shown as "Save data — 1 Jul 2026" (the prefix baked
+    // right into the value). Now that the label sits directly under the save name as its own
+    // small subtitle, the prefix is redundant — but any ALREADY-imported save (or a full
+    // backup taken before this change) still has that old prefix stored in its own JSON, and
+    // just changing the app's example/demo text doesn't touch data a user already has sitting
+    // in localStorage or a save file. Stripped here, at render time, so it disappears
+    // regardless of whether the underlying data was ever re-captured — matches "Save data",
+    // any amount of whitespace, then a hyphen/en-dash/em-dash/colon separator, case-insensitive.
+    function stripSaveDataLabelPrefix(label) {
+      return String(label || '').replace(/^\s*save\s*data\s*[-–—:]\s*/i, '').trim();
+    }
+
     // Applies just the club-level slice of a save-data blob (club/seasonStats/achievements/
     // records/careerStats/leagueTable) — everything the landing page's and Settings'
     // "Import Club Data" boxes are scoped to. Split out of the old monolithic
@@ -8912,7 +8924,7 @@
       setText('save-players-signed', career.playersSigned);
       setText('save-win-pct', career.winPct);
 
-      document.querySelector('.hotbar-right').textContent = club.saveDataLabel || '';
+      document.querySelector('.hotbar-right').textContent = stripSaveDataLabelPrefix(club.saveDataLabel);
 
       // If the import brought its own FM unique IDs (see Section 6 of the guide — captured
       // from the Club Site / Competition Overview screens with "Show Unique IDs" on), prefill
