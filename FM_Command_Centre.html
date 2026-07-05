@@ -314,16 +314,18 @@
     display: none;
   }
 
-  /* Small uppercase label grouping Squad/Squad Breakdown/Scouting under one "Players"
-     heading - see the redesign-explore comment on the nav-links markup itself for why
-     this is a always-visible grouping label rather than a collapsible parent item (no new
-     expand/collapse state to manage, lower risk, and the whole point - fewer, clearer
-     top-level destinations - is achieved either way). Not a .nav-btn, so it's invisible to
-     querySelectorAll('.nav-btn')/switchToView() - purely a visual heading.
+  /* Small uppercase label grouping a handful of nav-links buttons under one heading —
+     reused twice (once for "Squad": Squad List/Squad Breakdown, once for "Tactics":
+     Tactical Analysis/Tactic Builder) - see the redesign-explore comment on the nav-links
+     markup itself for why this is a always-visible grouping label rather than a
+     collapsible parent item (no new expand/collapse state to manage, lower risk, and the
+     whole point - fewer, clearer top-level destinations - is achieved either way). Not a
+     .nav-btn, so it's invisible to querySelectorAll('.nav-btn')/switchToView() - purely a
+     visual heading.
      v2: lower opacity + tighter padding than the first pass - it read as a stray floating
      caption rather than a real grouping, which is also why the sub-items below now get a
-     connecting guide line (see .nav-btn-sub::before) tying the label to its three items
-     as one visible unit instead of just indentation on its own. */
+     connecting guide line (see .nav-btn-sub::before) tying the label to its items as one
+     visible unit instead of just indentation on its own. */
   .nav-group-label {
     font-size: 10px;
     font-weight: 700;
@@ -724,12 +726,18 @@
     flex: 0 0 auto;
   }
 
+  /* margin:0 explicitly — a bare <button> picks up a small browser-default margin (varies
+     by browser, a few px), which every other left-aligned block in these modals (plain
+     divs) doesn't have. Left uncorrected, that default margin nudges a .mini-btn like
+     #sm-remove-btn out of alignment with the data above it even though both share the same
+     parent and padding. */
   .mini-btn {
     background: none;
     border: 1px solid var(--panel-border);
     color: var(--text-dim);
     font-size: 11px;
     padding: 4px 8px;
+    margin: 0;
     border-radius: var(--radius-sm);
     cursor: pointer;
     white-space: nowrap;
@@ -3624,16 +3632,22 @@
     gap: 10px;
     padding: 8px 2px;
     border-bottom: 1px solid var(--panel-border);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     font-size: 12.5px;
+    transition: background 0.15s ease;
   }
 
   .scout-tile-row:last-child {
     border-bottom: none;
   }
 
+  /* Matches every other clickable row in the app (.scouting-focus-row/.gap-row's own
+     cheat-sheet-clickable:hover) — a branded club-primary tint on a 0.15s fade, rather than
+     the flat colourless white tint this had before, which read as a different, unbranded
+     hover style from every other row-level click target (Squad Breakdown, Tactics gaps). */
   .scout-tile-row:hover {
-    background: rgba(255,255,255,0.03);
+    background: color-mix(in srgb, var(--club-primary) 10%, transparent);
   }
 
   .scout-tile-row .scout-tile-name {
@@ -3822,20 +3836,26 @@
       </div>
     </div>
     </div>
-    <!-- redesign-explore: Squad / Squad Breakdown / Scouting consolidated under one
-         "Players" grouping label instead of sitting flat alongside Dashboard/Tactical
-         Analysis/Tactic Builder/Settings - see .nav-group-label's own CSS comment for why
-         this is a visual grouping rather than a collapsible parent, and switchToView()
-         further down in the script for why every button below still needed to keep its
-         exact class="nav-btn" + data-view value unchanged. -->
+    <!-- redesign-explore: Squad List / Squad Breakdown consolidated under one "Squad"
+         grouping label, and Tactical Analysis / Tactic Builder under a second "Tactics"
+         grouping label, instead of everything sitting flat alongside Dashboard/Scouting/
+         Settings - see .nav-group-label's own CSS comment for why this is a visual
+         grouping rather than a collapsible parent (the rule is generic, so a second group
+         just reuses it — each group draws its own connecting guide line independently).
+         Scouting sits top-level between the two groups rather than nested under Squad —
+         it's its own shortlist/recruitment workflow, not a view onto the current squad.
+         See switchToView() further down in the script for why every button below still
+         needed to keep its exact class="nav-btn" + data-view value unchanged regardless
+         of which group it sits in. -->
     <nav class="nav-links">
       <button class="nav-btn active" data-view="dashboard">Dashboard</button>
-      <div class="nav-group-label">Players</div>
-      <button class="nav-btn nav-btn-sub" data-view="squad">Squad</button>
+      <div class="nav-group-label">Squad</div>
+      <button class="nav-btn nav-btn-sub" data-view="squad">Squad List</button>
       <button class="nav-btn nav-btn-sub" data-view="scouting">Squad Breakdown</button>
-      <button class="nav-btn nav-btn-sub" data-view="scout">Scouting</button>
-      <button class="nav-btn" data-view="tactics">Tactical Analysis</button>
-      <button class="nav-btn" data-view="tacticbuilder">Tactic Builder</button>
+      <button class="nav-btn" data-view="scout">Scouting</button>
+      <div class="nav-group-label">Tactics</div>
+      <button class="nav-btn nav-btn-sub" data-view="tactics">Tactical Analysis</button>
+      <button class="nav-btn nav-btn-sub" data-view="tacticbuilder">Tactic Builder</button>
       <button class="nav-btn" data-view="settings">Settings</button>
     </nav>
     <div class="hotbar-right">Save not loaded</div>
