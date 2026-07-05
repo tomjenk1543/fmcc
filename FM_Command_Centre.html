@@ -2048,6 +2048,42 @@
     color: var(--text);
   }
 
+  /* "Check role fit" picker — see the HTML comment above #pm-role-fit-picker. Sits as its
+     own row under the ability/potential/status badges, separated by a hairline so it reads
+     as a distinct tool rather than more player identity info. */
+  .role-fit-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--panel-border);
+  }
+
+  .role-fit-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+  }
+
+  /* Same look as .position-move-select (Squad Breakdown's "move player to group" picker) —
+     shared visual language for every small inline dropdown in the app. */
+  .role-fit-select {
+    background: var(--bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 12px;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+
+  .role-fit-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   /* Three independent flex columns rather than a single 2-row CSS grid — a shared grid's
      row-1 track height is set by the TALLEST group placed in row 1 across every column
      (usually Mental, with 14 attribute rows), which pushed Set Pieces (outfield) / the
@@ -2109,6 +2145,35 @@
   .attribute-row .attr-value.mid { color: #f0d666; }
   .attribute-row .attr-value.weak { color: #ff8080; }
   .attribute-row .attr-value.very-weak { color: var(--text-dim); }
+
+  /* Role-fit highlight — applied by highlightRoleAttributesInModal() once a position+role
+     is picked in .role-fit-picker above. A left accent bar + tinted background rather than
+     touching .attr-value's own colour, so the existing strong/mid/weak/very-weak banding
+     (a value quality signal) and this (a role relevance signal) can both be read on the
+     same row without fighting each other. Key attributes get the stronger gold accent —
+     matching the 'mid' quality colour already used elsewhere as this app's "important
+     number" gold — Preferred gets a dimmer neutral accent so Key still reads as the
+     priority of the two, same steer as the Tactics tab's own Key/Preferred split. */
+  .attribute-row.is-key-attr {
+    background: rgba(240, 214, 102, 0.14);
+    box-shadow: inset 3px 0 0 #f0d666;
+    padding-left: 7px;
+    margin-left: -10px;
+    border-radius: 3px;
+  }
+
+  .attribute-row.is-key-attr > span:first-child {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .attribute-row.is-preferred-attr {
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.4);
+    padding-left: 7px;
+    margin-left: -10px;
+    border-radius: 3px;
+  }
 
   /* Tactics tab — formation summary strip + one card per role slot in the tactic. */
   .tactics-summary {
@@ -4275,6 +4340,25 @@
             <span class="value-pill" id="pm-potential">Potential —</span>
             <span class="status-badge" id="pm-status" style="display:none;"></span>
           </div>
+          <!-- Role fit picker — pick a position family then one of its roles (same
+               POSITION_FAMILY_ROLES/ROLE_ATTRIBUTES data the Tactics/Tactic Builder pages
+               already use) to highlight that role's Key/Preferred attributes among the
+               groups below, so you can judge at a glance whether this specific player suits
+               it. Deliberately not restricted to the player's own trained positions — the
+               point is also to explore "could they play here instead", not just confirm
+               their listed position. The selection is intentionally NOT reset when a
+               different player's profile is opened (see openPlayerProfile()), so you can
+               flip through several players against the same role without re-picking it
+               each time. -->
+          <div class="role-fit-picker" id="pm-role-fit-picker">
+            <span class="role-fit-label">Check role fit</span>
+            <select id="pm-position-select" class="role-fit-select">
+              <option value="">Position…</option>
+            </select>
+            <select id="pm-role-select" class="role-fit-select" disabled>
+              <option value="">Role…</option>
+            </select>
+          </div>
         </div>
         <!-- Three independent flex columns (not a single CSS grid) so each column's own
              content height decides where its next group starts — see the
@@ -5753,6 +5837,23 @@
       'AM-C': ['Attacking Midfielder', 'Channel Midfielder', 'Free Role', 'Second Striker', 'Central Outlet Attacking Midfielder', 'Splitting Outlet Attacking Midfielder', 'Tracking Attacking Midfielder'],
       'AM-W': ['Winger', 'Inside Winger', 'Playmaking Winger', 'Wide Forward', 'Inside Forward', 'Inside Outlet Winger', 'Tracking Winger', 'Wide Outlet Winger'],
       'ST': ['Centre Forward', 'Target Forward', 'Channel Forward', 'Deep-Lying Forward', 'False Nine', 'Poacher', 'Central Outlet Centre Forward', 'Splitting Outlet Centre Forward', 'Tracking Centre Forward']
+    };
+
+    // Friendly labels for the same position-family keys, used by the player profile modal's
+    // "Check role fit" picker (see #pm-position-select/openPlayerProfile()) — POSITION_FAMILY_
+    // ROLES' own keys (D-C, D-W, AM-W, etc.) are convenient lookup keys but not something to
+    // show a user directly.
+    const POSITION_FAMILY_LABELS = {
+      'GK': 'Goalkeeper',
+      'D-C': 'Centre-Back',
+      'D-W': 'Full-Back / Wide CB',
+      'WB': 'Wing-Back',
+      'DM': 'Defensive Midfielder',
+      'M-C': 'Central Midfielder',
+      'M-W': 'Wide Midfielder',
+      'AM-C': 'Attacking Midfielder (C)',
+      'AM-W': 'Winger / AM (W)',
+      'ST': 'Striker'
     };
 
     // Looks up a role's reference Key/Preferred attribute lists by name. Falls back to
@@ -10101,13 +10202,16 @@
     // Same strong/mid/weak colour banding as the Tactics tab (keyAttrClass), applied here
     // too so a glance at a player's profile reads the same way a glance at a role's
     // recommended-player attributes does — one visual language for "is this number good".
+    // data-attr-name carries the *underlying* attribute name (not the display label, which
+    // can differ — see ATTR_DISPLAY_LABELS) so highlightRoleAttributesInModal() can match
+    // rows straight against a role's ROLE_ATTRIBUTES key/preferred lists.
     function attributeRowsHtml(attrNames, playerAttrs) {
       return attrNames.map(name => {
         const value = playerAttrs && playerAttrs[name];
         const hasValue = value !== undefined && value !== null;
         const label = ATTR_DISPLAY_LABELS[name] || name;
         return `
-        <div class="attribute-row">
+        <div class="attribute-row" data-attr-name="${name}">
           <span>${label}</span>
           <span class="attr-value ${hasValue ? keyAttrClass(value) : ''}">${hasValue ? value : '—'}</span>
         </div>
@@ -10183,6 +10287,15 @@
       // every current squad member has one, but this keeps future additions honest.
       document.getElementById('pm-attribute-note').style.display = p.attributes ? 'none' : '';
 
+      // Every attribute-row div above was just rebuilt from scratch via innerHTML, so any
+      // previous is-key-attr/is-preferred-attr classes are gone along with the old nodes —
+      // re-apply them here against whatever role (if any) is still selected in the picker,
+      // rather than clearing the picker itself. Deliberately NOT resetting #pm-position-
+      // select/#pm-role-select back to blank on every open (see the picker's own HTML
+      // comment) — this is what makes flipping through several players against the same
+      // role work without re-picking it each time.
+      highlightRoleAttributesInModal(getSelectedRoleFitProfile());
+
       document.getElementById('player-modal-backdrop').classList.add('open');
     }
 
@@ -10196,6 +10309,72 @@
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') { closePlayerProfile(); closeScoutProfile(); closeScoutAddModal(); }
+    });
+
+    // ---- Player modal "Check role fit" picker (#pm-role-fit-picker) ----
+    // Position select lists every POSITION_FAMILY_ROLES key (every role family the app knows
+    // attribute profiles for), independent of the currently-open player's own trained
+    // positions — this is as much an exploratory "could they play here" tool as a "confirm
+    // their listed role" one. Role select is populated from that family once a position is
+    // chosen. Picking a role highlights its Key/Preferred attributes among the attribute
+    // groups below via highlightRoleAttributesInModal(); picking a value back down to blank
+    // (either select) clears the highlight.
+    function populatePmRoleFitPicker() {
+      const posSelect = document.getElementById('pm-position-select');
+      Object.keys(POSITION_FAMILY_ROLES).forEach(key => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = POSITION_FAMILY_LABELS[key] || key;
+        posSelect.appendChild(opt);
+      });
+    }
+
+    function getSelectedRoleFitProfile() {
+      const roleName = document.getElementById('pm-role-select').value;
+      return roleName ? (ROLE_ATTRIBUTES[roleName] || null) : null;
+    }
+
+    // Colours every attribute-row in the modal's attribute groups according to whether its
+    // data-attr-name (set by attributeRowsHtml) appears in the given role profile's key or
+    // preferred list — see the .is-key-attr/.is-preferred-attr CSS for the actual highlight.
+    // Passing a falsy profile just clears every row back to unhighlighted, which is also
+    // exactly what's needed when the picker itself is reset to blank.
+    function highlightRoleAttributesInModal(profile) {
+      document.querySelectorAll('#pm-attribute-groups .attribute-row').forEach(row => {
+        row.classList.remove('is-key-attr', 'is-preferred-attr');
+        if (!profile) return;
+        const name = row.getAttribute('data-attr-name');
+        if (!name) return;
+        if (profile.key.includes(name)) row.classList.add('is-key-attr');
+        else if (profile.preferred.includes(name)) row.classList.add('is-preferred-attr');
+      });
+    }
+
+    populatePmRoleFitPicker();
+
+    document.getElementById('pm-position-select').addEventListener('change', (e) => {
+      const roleSelect = document.getElementById('pm-role-select');
+      const key = e.target.value;
+      roleSelect.innerHTML = '<option value="">Role…</option>';
+      if (!key) {
+        roleSelect.disabled = true;
+        highlightRoleAttributesInModal(null);
+        return;
+      }
+      (POSITION_FAMILY_ROLES[key] || []).forEach(roleName => {
+        const opt = document.createElement('option');
+        opt.value = roleName;
+        opt.textContent = roleName;
+        roleSelect.appendChild(opt);
+      });
+      roleSelect.disabled = false;
+      // Changing position with no role chosen yet leaves nothing to highlight — only a
+      // role pick (below) actually lights anything up.
+      highlightRoleAttributesInModal(null);
+    });
+
+    document.getElementById('pm-role-select').addEventListener('change', () => {
+      highlightRoleAttributesInModal(getSelectedRoleFitProfile());
     });
 
     // Turns one scouted player's raw { technical, mental, physical, goalkeeping } attribute
