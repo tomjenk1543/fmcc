@@ -59,7 +59,7 @@ check('tier line is just the label with no trailing description', /Perfect Fit<\
 check('does NOT contain the old "meets X% of the ... role requirements" phrasing', !/role requirements/i.test(fitSummaryHtml));
 check('does NOT contain the removed fit-score sentence', !/fit score:/i.test(fitSummaryHtml));
 check('does NOT contain the Key×2 formula explanation', !/Key(&times;|×|x)2/i.test(fitSummaryHtml));
-check('still contains the squad-status sentence', /Squad status there:/.test(fitSummaryHtml));
+check('still contains the squad-status sentence, naming the position group explicitly', /Squad status in <strong>[^<]+<\/strong>:/.test(fitSummaryHtml));
 
 check('the old standalone scout-gap-line div is gone (merged into the status sentence)', !/scout-gap-line/.test(fitSummaryHtml));
 
@@ -68,9 +68,9 @@ if (evaluation.addressesGap) {
   // Whichever wording applies (headcount gap vs attribute-quality gap — see
   // openScoutProfile()'s isHeadcountGap branch), it must be part of the SAME sentence as
   // "Squad status there:", not a separate line/div below it.
-  const statusIdx = fitSummaryHtml.indexOf('Squad status there:');
+  const statusIdx = fitSummaryHtml.indexOf('Squad status in');
   const addressesIdx = fitSummaryHtml.indexOf('scout-addresses-gap');
-  check('addresses-gap highlight appears after "Squad status there:" in the same sentence',
+  check('addresses-gap highlight appears after "Squad status in <group>:" in the same sentence',
     statusIdx >= 0 && addressesIdx > statusIdx && fitSummaryHtml.slice(statusIdx, addressesIdx).indexOf('</div>') === -1);
 } else {
   check('no addresses-gap highlight rendered when addressesGap is false', !/scout-addresses-gap/.test(fitSummaryHtml));
@@ -128,6 +128,46 @@ check('a less-than-Very-Suited player gets a "Held back by" clause', /Held back 
 check('the clause names Finishing, the deliberately weak shared Key attribute', /Held back by[^.]*Finishing/.test(weakFitSummaryHtml));
 check('the clause names Off The Ball, the other deliberately weak shared Key attribute', /Held back by[^.]*Off The Ball/.test(weakFitSummaryHtml));
 check('the fit label itself is not Very Suited (confirms the clause condition is doing real work)', /scout-tactic-fit-highlight (mid|weak|very-weak)"/.test(weakFitSummaryHtml));
+
+// --- Clearer-wording pass: "Development Prospect" tier label, group-named squad-status
+// line, and a two-line tactic-fit sentence instead of one dense run-on. See openScoutProfile()
+// for the reasoning behind each rewording.
+
+check('the squad-status line names the actual position group instead of a bare "there"',
+  fitSummaryHtml.includes(`Squad status in <strong>${evaluation.groupName}</strong>:`));
+
+check('the tactic-fit line uses the new "Best role in" phrasing', /Best role in/.test(weakFitSummaryHtml));
+check('the "Held back by" clause is its own line (scout-tactic-fit-weak), not appended to the fit sentence',
+  /<div class="scout-tactic-fit-weak">Held back by/.test(weakFitSummaryHtml));
+check('the old "for this role" trailing phrase is gone', !/for this role/.test(weakFitSummaryHtml));
+
+// A high-Potential, low-current-Ability prospect with a weak position-group attribute match
+// (pct < 0.75, so neither 'perfect' nor 'nearly' — see scoutFitTier) lands in the 'potential'
+// tier, whose label used to be the bare word "Potential" — colliding with the "Potential N★"
+// badge shown directly above this box in the modal (id="sm-potential"). Renamed to
+// "Development Prospect" so the two don't read as the same claim repeated twice.
+const prospectTarget = {
+  name: 'Test Raw Prospect',
+  position: 'ST (C)',
+  age: 18,
+  nation: 'BRA',
+  club: 'Test FC',
+  ability: '2★',
+  potential: '5★',
+  attributes: flattenScoutAttributes({
+    technical: Array(14).fill(5),
+    mental: Array(14).fill(5),
+    physical: Array(8).fill(5),
+  }),
+};
+addScoutedPlayers([prospectTarget]);
+const prospectIdx = scoutShortlist.findIndex(p => p.name === 'Test Raw Prospect');
+check('fixture sanity: scoutFitTier resolves to \'potential\' for this player', scoutFitTier(scoutShortlist[prospectIdx]) === 'potential');
+openScoutProfile(prospectIdx);
+const prospectFitSummaryHtml = document.getElementById('sm-fit-summary').innerHTML;
+
+check('the \'potential\' tier now reads "Development Prospect"', /scout-tier-potential">Development Prospect<\/div>/.test(prospectFitSummaryHtml));
+check('the bare word "Potential" is no longer used as the tier label', !/scout-tier-potential">Potential<\/div>/.test(prospectFitSummaryHtml));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exitCode = 1;

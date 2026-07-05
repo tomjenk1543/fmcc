@@ -4322,6 +4322,14 @@
   .scout-tactic-fit-highlight.weak { color: #ff8080; }
   .scout-tactic-fit-highlight.very-weak { color: var(--text-dim); }
 
+  /* The "Held back by X" clause used to be tacked onto the end of the tactic-fit sentence
+     itself — now its own short line underneath (see openScoutProfile()), so it needs a little
+     separation of its own without repeating .scout-tactic-fit-line's dashed divider treatment. */
+  .scout-tactic-fit-weak {
+    margin-top: 4px;
+    color: var(--text-dim);
+  }
+
   .scout-tier-line {
     font-weight: 700;
     color: var(--text);
@@ -12850,7 +12858,12 @@
       } else if (tier === 'nearly') {
         tierLine = `<div class="scout-tier-line scout-tier-nearly">Nearly There</div>`;
       } else if (tier === 'potential') {
-        tierLine = `<div class="scout-tier-line scout-tier-potential">Potential</div>`;
+        // Deliberately NOT the word "Potential" alone — the badge directly above this box
+        // (id="sm-potential") already reads "Potential N★", and this tier means something
+        // different (a big gap between current ability and potential stars, i.e. a raw
+        // prospect rather than a ready-now fit) — reusing the bare word here read as the
+        // same claim repeated, not a distinct one.
+        tierLine = `<div class="scout-tier-line scout-tier-potential">Development Prospect</div>`;
       } else if (e.groupName) {
         tierLine = `<div class="scout-tier-line">Not currently in a tile</div>`;
       }
@@ -12880,10 +12893,14 @@
         // a list of nitpicks, but anything short of that gets the specific attribute(s)
         // actually dragging their fit down for this role, not just the bare label.
         const weakAttrs = tacticFit.best.weakKeyAttrs;
+        // Split into its own line rather than tacked onto the end of the fit sentence — the
+        // old single run-on sentence (tactic name, role name, fit label, AND the held-back
+        // attributes all in one clause) read as a wall of text. A short second line, shown
+        // only when there's actually something dragging the fit down, is easier to scan.
         const weakAttrsHtml = (label.text !== 'Very Suited' && weakAttrs.length)
-          ? ` Held back by <strong>${weakAttrs.join(', ')}</strong> for this role.`
+          ? `<div class="scout-tactic-fit-weak">Held back by <strong>${weakAttrs.join(', ')}</strong>.</div>`
           : '';
-        tacticFitInner = `In the active tactic (<strong>${formationLabel}</strong>), best fits <strong>${tacticFit.best.roleName}</strong> (${tacticFit.best.position}): <span class="scout-tactic-fit-highlight ${label.cls}">${label.text}</span>.${weakAttrsHtml}`;
+        tacticFitInner = `<div>Best role in <strong>${formationLabel}</strong>: <strong>${tacticFit.best.roleName}</strong> (${tacticFit.best.position}) — <span class="scout-tactic-fit-highlight ${label.cls}">${label.text}</span>.</div>${weakAttrsHtml}`;
       }
       const tacticFitLineHtml = `<div class="scout-tactic-fit-line" id="sm-tactic-fit">${tacticFitInner}</div>`;
 
@@ -12893,7 +12910,7 @@
         fitSummary.innerHTML = `Position "${p.position}" didn't match a known scouting group, so no fit assessment is available.${tacticFitLineHtml}`;
       } else if (e.score === null) {
         fitSummary.className = 'scout-fit-summary';
-        fitSummary.innerHTML = `${tierLine}<strong>${e.groupName}</strong> — no attributes captured yet, so no fit score is available. Squad status there: <strong>${e.status.label}</strong>.${tacticFitLineHtml}`;
+        fitSummary.innerHTML = `${tierLine}<strong>${e.groupName}</strong>: no attributes captured yet, so no fit score is available. Squad status: <strong>${e.status.label}</strong>.${tacticFitLineHtml}`;
       } else {
         fitSummary.className = 'scout-fit-summary' + (e.addressesGap ? ' addresses-gap' : '');
         // The fit-score sentence (score + "Key×2 + Preferred" formula explanation) was dropped
@@ -12905,14 +12922,18 @@
         // Stocked" and "addresses a squad need" look like opposite verdicts side by side
         // without the headcount-vs-attributes distinction spelled out. isHeadcountGap draws
         // that distinction explicitly so the single sentence stays consistent either way.
+        // Names the position group explicitly ("Squad status in Wing-Back") instead of the
+        // old bare "Squad status there:" — "there" had nothing to point back to in this
+        // branch (the group name was only ever spelled out in the no-attributes-yet branch
+        // above), so on its own this read as a dangling reference to nothing.
         const isHeadcountGap = e.status.key === 'critical' || e.status.key === 'thin';
         let needLine;
         if (isHeadcountGap) {
-          needLine = `Squad status there: <strong>${e.status.label}</strong> — <span class="scout-addresses-gap">this player would help fill that gap</span>.`;
+          needLine = `Squad status in <strong>${e.groupName}</strong>: <strong>${e.status.label}</strong> — <span class="scout-addresses-gap">this player would help fill that gap</span>.`;
         } else if (e.weakAttrsHit.length) {
-          needLine = `Squad status there: <strong>${e.status.label}</strong> on headcount, but the squad's current options are weak in ${e.weakAttrsHit.join(', ')} — <span class="scout-addresses-gap">this player would raise the level there</span>.`;
+          needLine = `Squad status in <strong>${e.groupName}</strong>: <strong>${e.status.label}</strong> on headcount, but the squad's current options are weak in ${e.weakAttrsHit.join(', ')} — <span class="scout-addresses-gap">this player would raise the level there</span>.`;
         } else {
-          needLine = `Squad status there: <strong>${e.status.label}</strong>.`;
+          needLine = `Squad status in <strong>${e.groupName}</strong>: <strong>${e.status.label}</strong>.`;
         }
         fitSummary.innerHTML = `${tierLine}<div>${needLine}</div>${tacticFitLineHtml}`;
       }
