@@ -237,6 +237,7 @@ check('inline Analysis tile includes the goalkeeping depth-gap improvement namin
 check('inline Analysis tile does NOT show the Discipline dirty-tackler improvement', !/Michael Botha/.test(gkInlineHtml));
 check('inline Analysis tile has a "View full breakdown" button', /View full breakdown/.test(gkInlineHtml));
 check('goalkeeping depth-gap improvement suggests the shortlisted Scouted Keeper', /Scouted option/.test(gkInlineHtml) && /Scouted Keeper/.test(gkInlineHtml));
+check('the suggestion sits under its own "Recommendation" label', /perf-recommendation-label">Recommendation</.test(gkInlineHtml));
 check('the scouted suggestion line is a clickable element wired to its shortlist index', document.querySelector('#performance-insights-content .scout-suggestion-line[data-scout-index]') !== null);
 
 document.getElementById('performance-insights-panel').fire('click');

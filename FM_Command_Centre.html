@@ -4052,6 +4052,34 @@
     color: var(--text);
   }
 
+  /* One "Recommendation" label above the scouted-player suggestion line(s) for a given
+     Areas for Improvement entry — see buildImprovementScoutSuggestionsHtml(). Sits right
+     after that entry's own <p>, so margin-top (rather than the section-level heading's
+     margin-bottom-only spacing) is what separates it from the improvement text above. */
+  .perf-recommendation {
+    margin: 2px 0 6px 0;
+  }
+
+  .perf-recommendation:last-child {
+    margin-bottom: 0;
+  }
+
+  .perf-recommendation-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    opacity: 0.75;
+    margin-bottom: 2px;
+  }
+
+  /* .scout-suggestion-line's own margin-top (spacing when it sits directly under a reason
+     paragraph elsewhere) would double up with the label's margin-bottom above — keep the
+     first line flush under the label here instead. */
+  .perf-recommendation .scout-suggestion-line:first-child {
+    margin-top: 0;
+  }
+
   .scout-fit-summary {
     margin: 4px 0 16px;
     padding: 10px 12px;
@@ -13243,7 +13271,10 @@
     // when the improvement names no one, or no one resolves to a real position group, rather
     // than showing a suggestion that isn't actually targeted at the concern.
     function buildImprovementScoutSuggestionsHtml(improvement) {
-      return findImprovementScoutGroups(improvement.players).map(buildScoutSuggestionLineHtml).join('');
+      const groups = findImprovementScoutGroups(improvement.players);
+      if (!groups.length) return '';
+      const lines = groups.map(buildScoutSuggestionLineHtml).join('');
+      return `<div class="perf-recommendation"><div class="perf-recommendation-label">Recommendation</div>${lines}</div>`;
     }
 
     function buildPerformanceOverUnderRow(name, label, diff, isOver) {
