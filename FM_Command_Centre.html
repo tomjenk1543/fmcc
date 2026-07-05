@@ -52,6 +52,28 @@
        window's aspect ratio doesn't match the design canvas's own (1680:1000). */
     --design-width: 1680px;
     --design-height: 1000px;
+
+    /* --- redesign-explore tokens ---
+       This branch is a contained visual variation to compare against the hard-offset-shadow
+       "scoreboard card" look used on main/dev (see .hero-tile/.dashboard-panel's own box-shadow
+       comments there). Everything below only touches surface/elevation/radius — no layout,
+       spacing-that-affects-JS-height-budgets, class names, or IDs, so it's safe to cherry-pick
+       individual tokens back into dev without dragging the rest of this branch along. */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    /* A card surface one step lighter than --panel, for the soft-elevation look below —
+       distinct from the flat gradient-tint treatment the hard-shadow cards used instead. */
+    --panel-raised: color-mix(in srgb, white 5%, var(--panel));
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px rgba(0, 0, 0, 0.45);
+    --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.5), 0 18px 40px rgba(0, 0, 0, 0.5);
+    /* Semantic status colours, decoupled from --club-primary/--club-text on purpose — a
+       red-branded club's "good stat" shouldn't read as a warning, and a green-branded club's
+       "bad stat" shouldn't read as a success. Not yet wired into every existing hardcoded
+       gap/attribute colour in the app (that's a bigger follow-up pass); added here so any new
+       redesign work on this branch has a consistent pair to reach for. */
+    --positive: #22c55e;
+    --negative: #ef4444;
   }
 
   * { box-sizing: border-box; }
@@ -522,21 +544,22 @@
     font-size: 13px;
   }
 
-  /* Hero tile */
+  /* Hero tile — redesign-explore: swapped the hard offset-shadow block for a soft, floating
+     elevation (single blurred shadow, no crisp duplicate edge), a lighter --panel-raised
+     surface so the card actually reads as "lifted" off --bg rather than just outlined, and a
+     thin full-width top accent instead of a thick left bar, so the club colour reads as a
+     brand hairline rather than a sidebar. Larger radius (--radius-lg) for a softer silhouette. */
   .hero-tile {
     display: flex;
     align-items: stretch;
     gap: 24px;
-    background: linear-gradient(135deg, var(--panel) 0%, color-mix(in srgb, var(--club-primary) 12%, var(--panel)) 100%);
+    background: var(--panel-raised);
     border: 1px solid var(--panel-border);
-    border-left: 4px solid var(--club-primary);
-    border-radius: 6px;
+    border-top: 3px solid var(--club-primary);
+    border-radius: var(--radius-lg);
     padding: 24px;
     margin-bottom: 28px;
-    /* Lifts the card off the page: a crisp offset edge plus a soft shadow beneath it. */
-    box-shadow:
-      8px 8px 0 rgba(0, 0, 0, 0.35),
-      8px 8px 26px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-card);
   }
 
   /* Fixed size rather than a percentage/aspect-ratio chain off the card's height —
@@ -595,7 +618,7 @@
     color: var(--text-dim);
     font-size: 11px;
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     white-space: nowrap;
   }
@@ -1388,16 +1411,17 @@
   }
 
   /* Shared dashboard panel (Save Overview, Best Players, etc.) — sits inside
-     .dashboard-panels-grid, so spacing between tiles comes from the grid gap. */
+     .dashboard-panels-grid, so spacing between tiles comes from the grid gap.
+     redesign-explore: same soft-elevation/raised-surface treatment as .hero-tile, so every
+     tile in the grid reads as one consistent card system rather than two shadow styles. */
   .dashboard-panel {
-    background: linear-gradient(135deg, var(--panel) 0%, color-mix(in srgb, var(--club-primary) 12%, var(--panel)) 100%);
+    background: var(--panel-raised);
     border: 1px solid var(--panel-border);
-    border-left: 3px solid var(--club-primary);
-    border-radius: 4px;
+    border-top: 3px solid var(--club-primary);
+    border-radius: var(--radius-md);
     padding: 18px 20px;
-    box-shadow:
-      6px 6px 0 rgba(0, 0, 0, 0.35),
-      6px 6px 20px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
   }
 
   .dashboard-panel .panel-title-row {
@@ -1421,15 +1445,19 @@
     font-weight: 600;
   }
 
-  /* Best players tile — clickable variant of dashboard-panel */
+  /* Best players tile — clickable variant of dashboard-panel.
+     redesign-explore: hover now reads as a physical lift (deeper shadow + a couple of px of
+     translateY) rather than a background-colour shift, which fits the elevated-card language
+     better than tinting a card that's already meant to look "raised". */
   .best-players-panel {
     cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
+    transition: box-shadow 0.15s ease, transform 0.15s ease, border-top-color 0.15s ease;
   }
 
   .best-players-panel:hover {
-    background: linear-gradient(135deg, var(--panel) 0%, color-mix(in srgb, var(--club-primary) 22%, var(--panel)) 100%);
-    border-left-color: var(--club-primary);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+    border-top-color: var(--club-text);
   }
 
   /* min-height:0 lets this shrink below its content's natural height instead of pushing
@@ -2001,11 +2029,13 @@
     z-index: 210;
   }
 
+  /* redesign-explore: same soft-elevation card language as .hero-tile/.dashboard-panel,
+     rather than a third shadow style for modals specifically. */
   .player-modal {
-    background: linear-gradient(135deg, var(--panel) 0%, color-mix(in srgb, var(--club-primary) 12%, var(--panel)) 100%);
+    background: var(--panel-raised);
     border: 1px solid var(--panel-border);
-    border-left: 4px solid var(--club-primary);
-    border-radius: 6px;
+    border-top: 3px solid var(--club-primary);
+    border-radius: var(--radius-lg);
     padding: 28px;
     /* min(...) against --design-width/--design-height, not real vw/vh — see that
        variable's own comment for why (this modal lives inside the scaled #app-scale-root,
@@ -2014,7 +2044,7 @@
     max-height: calc(var(--design-height) * 0.85);
     overflow-y: auto;
     position: relative;
-    box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.35), 8px 8px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-card-hover);
   }
 
   /* Wider than the default .player-modal (640px) — a JSON textarea needs more breathing
@@ -2784,7 +2814,7 @@
   .tb-btn-secondary {
     background: none;
     border: 1px solid var(--panel-border);
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     color: var(--club-text);
     font-size: 12.5px;
     font-weight: 700;
@@ -2800,7 +2830,7 @@
   .tb-btn-primary {
     background: var(--club-primary);
     border: 1px solid var(--club-primary);
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     color: #fff;
     font-size: 12.5px;
     font-weight: 700;
