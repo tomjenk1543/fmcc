@@ -3602,12 +3602,12 @@
      its scrollbar. But the title row sits above that scroll container, not inside it, so
      without its own right padding here the "+ Add to Shortlist" button ends up flush
      against the tile's edge. Matches .scout-table-panel .squad-table-scroll's own
-     padding-right (6px, not the roomier 20px Squad's table uses — see that rule's own
+     padding-right (14px, not the roomier 20px Squad's table uses — see that rule's own
      comment) so the button's right edge lines up with the table's right edge below it,
      rather than the two disagreeing. Scoped to #scout-table-panel specifically since
      Squad's own table tile has no title row to worry about. */
   #scout-table-panel .panel-title-row {
-    padding-right: 6px;
+    padding-right: 14px;
   }
 
   /* The Scouting table carries far more columns than the Squad table (FM's own shortlist
@@ -3650,9 +3650,14 @@
 
   /* Same reasoning as above — every pixel matters when trying to fit this many columns
      without a horizontal scrollbar, so the scroll gutter .squad-table-scroll normally
-     reserves (20px, sized for the roomier Squad table) is trimmed down just here. */
+     reserves (20px, sized for the roomier Squad table) is trimmed down here rather than
+     matched exactly. Was 6px — barely readable as a margin at all next to the tile's edge
+     (the actual bug report this fixes) — bumped to 14px, a real but still deliberately
+     narrower gutter than Squad's 20px, so the table keeps fitting without a horizontal
+     scrollbar on as many windows as before (see .scout-table-compact's own comment; the
+     overflow-x:auto fallback on .squad-table-scroll still covers anything narrower). */
   .scout-table-panel .squad-table-scroll {
-    padding-right: 6px;
+    padding-right: 14px;
   }
 
   /* flex:1/min-height:0 lets this row fill whatever's left below the (fixed-height, see
@@ -3917,20 +3922,20 @@
          Settings - see .nav-group-label's own CSS comment for why this is a visual
          grouping rather than a collapsible parent (the rule is generic, so a second group
          just reuses it — each group draws its own connecting guide line independently).
-         Scouting sits top-level between the two groups rather than nested under Squad —
-         it's its own shortlist/recruitment workflow, not a view onto the current squad.
-         See switchToView() further down in the script for why every button below still
-         needed to keep its exact class="nav-btn" + data-view value unchanged regardless
-         of which group it sits in. -->
+         Scouting sits top-level after the Tactics group rather than nested under either one —
+         it's its own shortlist/recruitment workflow, not a view onto the current squad or
+         tactic. See switchToView() further down in the script for why every button below
+         still needed to keep its exact class="nav-btn" + data-view value unchanged
+         regardless of which group it sits in. -->
     <nav class="nav-links">
       <button class="nav-btn active" data-view="dashboard">Dashboard</button>
       <div class="nav-group-label">Squad</div>
       <button class="nav-btn nav-btn-sub" data-view="squad">Squad List</button>
       <button class="nav-btn nav-btn-sub" data-view="scouting">Squad Breakdown</button>
-      <button class="nav-btn" data-view="scout">Scouting</button>
       <div class="nav-group-label">Tactics</div>
       <button class="nav-btn nav-btn-sub" data-view="tactics">Tactical Analysis</button>
       <button class="nav-btn nav-btn-sub" data-view="tacticbuilder">Tactic Builder</button>
+      <button class="nav-btn" data-view="scout">Scouting</button>
       <button class="nav-btn" data-view="settings">Settings</button>
     </nav>
     <div class="hotbar-right">Save not loaded</div>
