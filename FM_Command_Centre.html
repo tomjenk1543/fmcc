@@ -4057,20 +4057,25 @@
      after that entry's own <p>, so margin-top (rather than the section-level heading's
      margin-bottom-only spacing) is what separates it from the improvement text above. */
   .perf-recommendation {
-    margin: 2px 0 6px 0;
+    margin: 6px 0 6px 0;
   }
 
   .perf-recommendation:last-child {
     margin-bottom: 0;
   }
 
+  /* Same format as .perf-insight-heading (Assumptions/Areas for Improvement/Over-
+     Underperforming Players) — same font-size, weight, uppercase treatment, letter-spacing,
+     colour, and margin-bottom, so "Recommendation" reads as the same kind of label rather
+     than a lesser one. Kept as its own class (rather than reusing .perf-insight-heading
+     directly) only because it needs the scout-suggestion-line margin reset below, which is
+     specific to this nested context. */
   .perf-recommendation-label {
-    font-size: 10px;
+    font-size: 10.5px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--text-dim);
-    opacity: 0.75;
-    margin-bottom: 2px;
+    margin-bottom: 6px;
   }
 
   /* .scout-suggestion-line's own margin-top (spacing when it sits directly under a reason
