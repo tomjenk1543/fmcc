@@ -31,10 +31,15 @@
     --text-dim: #9a9a9a;
     /* Sidebar badge size only now (see .corner-stripe) - used to also be the horizontal
        hotbar's own height before the redesign-explore sidebar conversion, back when the
-       badge was sized to exactly fill the bar it sat in. Shrunk from 64px since a badge
-       that size was dominating a 232px-wide sidebar header once the layout became a
-       stacked badge-over-wordmark (see .sidebar-header's own comment). */
-    --hotbar-h: 44px;
+       badge was sized to exactly fill the bar it sat in. Originally shrunk to 44px from
+       64px because a badge that size was dominating a 232px-wide sidebar header back when
+       the layout was still a side-by-side row (badge + wordmark). That crowding was really
+       the row layout's problem, not the badge's own size — once .sidebar-header switched to
+       stacking the badge above the wordmark (see that rule's own comment), the wordmark got
+       the sidebar's full width regardless of badge size, so the size increase requested
+       afterwards (60px, most of the way back toward the original 64px) doesn't reintroduce
+       the crowding the first shrink was fixing. */
+    --hotbar-h: 60px;
     /* A lightened version of club-primary used specifically for text (see --club-text below,
        used in place of --club-primary anywhere text is coloured) — plain club-primary can
        be nearly unreadable against the near-black background when a club's colour is
@@ -317,16 +322,23 @@
   /* Small uppercase label grouping a handful of nav-links buttons under one heading —
      reused twice (once for "Squad": Squad List/Squad Breakdown, once for "Tactics":
      Tactical Analysis/Tactic Builder) - see the redesign-explore comment on the nav-links
-     markup itself for why this is a always-visible grouping label rather than a
-     collapsible parent item (no new expand/collapse state to manage, lower risk, and the
-     whole point - fewer, clearer top-level destinations - is achieved either way). Not a
-     .nav-btn, so it's invisible to querySelectorAll('.nav-btn')/switchToView() - purely a
-     visual heading.
+     markup itself for the reasoning this started from. Not a .nav-btn, so it's invisible to
+     querySelectorAll('.nav-btn')/switchToView() - still purely a visual heading, not a page
+     of its own.
      v2: lower opacity + tighter padding than the first pass - it read as a stray floating
      caption rather than a real grouping, which is also why the sub-items below now get a
      connecting guide line (see .nav-btn-sub::before) tying the label to its items as one
-     visible unit instead of just indentation on its own. */
+     visible unit instead of just indentation on its own.
+     v3: now clickable to collapse/expand its own group (see the ::after chevron below and
+     applyNavGroupCollapse() in the script) - added after user feedback wanted a way to hide
+     a group's pages from the sidebar, once there were two groups instead of one and the
+     list started feeling long. Collapse state persists per-label-text via localStorage
+     (NAV_GROUP_COLLAPSE_STORAGE_KEY), same pattern as gapThreshold/positionOverrides
+     elsewhere in the app. */
   .nav-group-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
@@ -334,6 +346,30 @@
     color: var(--text-dim);
     opacity: 0.75;
     padding: 16px 20px 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.15s ease;
+  }
+
+  .nav-group-label:hover {
+    opacity: 1;
+  }
+
+  /* Small chevron indicating the group can be collapsed — rotates to point sideways rather
+     than swapping glyphs, so the collapse/expand state reads as one continuous rotation
+     instead of two unrelated icons. */
+  .nav-group-label::after {
+    content: '\25BE';
+    font-size: 8px;
+    transition: transform 0.15s ease;
+  }
+
+  .nav-group-label.nav-group-collapsed::after {
+    transform: rotate(-90deg);
+  }
+
+  .nav-links button.nav-btn-sub.nav-hidden {
+    display: none;
   }
 
   .nav-links button {
@@ -995,9 +1031,14 @@
 
   /* Kit images on the hero card (Home/Away/Third, next to Manager+Division) — see
      setKitImage() for the show/hide logic that makes a missing kit (most commonly Third)
-     collapse the row instead of leaving a gap or broken image. */
+     collapse the row instead of leaving a gap or broken image.
+     flex-wrap is a safety net for the narrowest end of --design-width's 1400-2400px clamp
+     range (see updateDesignWidthForViewport()) — .hero-kit-img's own height already shrinks
+     with --design-width (see that rule's comment) so this shouldn't often be needed, but a
+     3rd kit wrapping onto its own line still beats it overflowing past the column. */
   .hero-kits-row {
     display: flex;
+    flex-wrap: wrap;
     gap: 18px;
   }
 
@@ -1008,8 +1049,17 @@
     gap: 6px;
   }
 
+  /* height was a flat 104px regardless of --design-width — fine at the wide end of that
+     variable's 1400-2400px clamp range (see updateDesignWidthForViewport()), but at the
+     narrow end the hero-tile's other fixed-width neighbours (crest, Club Records,
+     Achievements) leave much less room for .hero-info, and three same-sized kit images
+     with no ability to shrink were overflowing their column and overlapping the
+     Manager/Division/Stadium text next to them - the actual bug report this fixes. Scaling
+     with --design-width via clamp() (same pattern already used for the player/scout
+     drawer's own width, back when that existed) keeps the original 104px at the wide end
+     but shrinks proportionally at the narrow end instead of staying fixed. */
   .hero-kit-img {
-    height: 104px;
+    height: clamp(64px, calc(var(--design-width) * 0.052), 104px);
     width: auto;
     border-radius: var(--radius-xs);
   }
@@ -1826,11 +1876,16 @@
     font-size: 9px;
   }
 
+  /* font-size was unset here (inheriting the browser's 16px default) while the Scouting
+     page's own table (.scout-table-compact, sharing this same .squad-table base class) sets
+     an explicit 12px — the two tables ended up visibly different sizes despite looking like
+     the same component. Matches .scout-table-compact th/td's 12px exactly. */
   .squad-table td {
     padding: 10px 12px;
     border-bottom: 1px solid var(--panel-border);
     color: var(--text-dim);
     font-style: italic;
+    font-size: 12px;
   }
 
   /* Star rating graphic used for Ability / Potential columns — a dim 5-star background
@@ -3716,6 +3771,17 @@
     border-left-color: #7bdc7b;
   }
 
+  /* Colour for the active-tactic fit line's own highlighted word (Very Suited/Suited/etc,
+     see computeScoutPlayerActiveTacticFit()) — same 4 hex values fitScoreLabel() maps
+     everywhere else a fit score is shown (attribute values, Tactic Builder's fit dots, the
+     dashboard's own tactic-summary tile), scoped to its own class rather than reused from
+     one of those rather than making a class named after one specific dashboard tile double
+     up as a general utility. */
+  .scout-tactic-fit-highlight.strong { color: #7bdc7b; }
+  .scout-tactic-fit-highlight.mid { color: #f0d666; }
+  .scout-tactic-fit-highlight.weak { color: #ff8080; }
+  .scout-tactic-fit-highlight.very-weak { color: var(--text-dim); }
+
   .scout-tier-line {
     font-weight: 700;
     color: var(--text);
@@ -4737,6 +4803,13 @@
           </div>
         </div>
         <div class="scout-fit-summary" id="sm-fit-summary"></div>
+        <!-- Fit against whichever tactic is currently active on Tactical Analysis (FM's own
+             tactic, or a built one — see activeTacticIP/getActiveTacticFormationLabel) rather
+             than the broad position-group fit above (.scout-fit-summary), which is about
+             their position in the abstract, not a specific role. Own line since the two
+             answer genuinely different questions - see computeScoutPlayerActiveTacticFit()'s
+             own comment further down for the scoring itself. -->
+        <div class="scout-fit-summary scout-tactic-fit-line" id="sm-tactic-fit"></div>
         <!-- Same 3-independent-flex-column layout as the squad player-modal above (see its
              own comment) — three column wrappers so a keeper's Technical group sits
              directly under whichever box is above it in that SAME column, rather than
@@ -10812,6 +10885,37 @@
       return { groupName, pct: metCount / allAttrs.length };
     }
 
+    // Finds the single best-fitting role slot for a shortlisted player within whichever
+    // tactic is currently active on Tactical Analysis (FM's own tactic, or a built one —
+    // see activeTacticIP/getActiveTacticFormationLabel), checking eligibility + roleFitScore
+    // against every In Possession slot exactly the way Tactics' own detail panel scores
+    // squad players (recommendPlayerForRole) — a different, more specific question than
+    // evaluateScoutTarget's broad position-GROUP fit above (e.g. "Centre-Back" in general
+    // vs. this exact tactic's own Ball-Playing Defender slot). Out of Possession slots
+    // aren't checked separately: a formation's OOP roles sit at the same position codes as
+    // its IP ones (just different role names for the same shape), so IP eligibility already
+    // answers "would this player physically fit in the formation" for both phases.
+    // Returns one of:
+    //   { noTactic: true }        — nothing captured/built yet, nothing to compare against
+    //   { noAttributes: true }    — tactic exists, but this player has no attributes yet
+    //   { best: null }            — attributes exist, but no slot matches their position
+    //   { best: {position, roleName, score} } — their single best-fitting slot
+    function computeScoutPlayerActiveTacticFit(player) {
+      if (!activeTacticIP || activeTacticIP.length === 0) return { noTactic: true };
+      if (!player.attributes) return { noAttributes: true };
+      let best = null;
+      activeTacticIP.forEach(r => {
+        const { code, side } = parseRolePosition(r.position);
+        if (!isEligibleForRole(player.position, code, side)) return;
+        const profile = getRoleAttrProfile(r);
+        const score = roleFitScore(player, profile);
+        if (!best || score > best.score) {
+          best = { position: r.position, roleName: r.ipRole || r.role, score };
+        }
+      });
+      return { best };
+    }
+
     // ---- Potential tile: projected attribute growth ----
     // Rather than just flagging "high Potential star rating" in the abstract, this projects
     // each of a role's reference attributes forward using the gap between FM's Potential and
@@ -11311,6 +11415,23 @@
         fitSummary.innerHTML = `${tierLine}<div>Squad status there: <strong>${e.status.label}</strong>.${hitLine}</div>${gapLine}`;
       }
 
+      // Separate line for fit against the tactic actually in use on Tactical Analysis —
+      // see computeScoutPlayerActiveTacticFit()'s own comment for why this is a different
+      // question from the position-group fit summary just above.
+      const tacticFitEl = document.getElementById('sm-tactic-fit');
+      const tacticFit = computeScoutPlayerActiveTacticFit(p);
+      const formationLabel = getActiveTacticFormationLabel();
+      if (tacticFit.noTactic) {
+        tacticFitEl.innerHTML = `No tactic set yet — visit Tactical Analysis to pick or build one.`;
+      } else if (tacticFit.noAttributes) {
+        tacticFitEl.innerHTML = `Fit against the active tactic (<strong>${formationLabel}</strong>) needs attribute data, not captured yet for this player.`;
+      } else if (!tacticFit.best) {
+        tacticFitEl.innerHTML = `No slot in the active tactic (<strong>${formationLabel}</strong>) matches their listed position.`;
+      } else {
+        const label = fitScoreLabel(tacticFit.best.score);
+        tacticFitEl.innerHTML = `In the active tactic (<strong>${formationLabel}</strong>), best fits <strong>${tacticFit.best.roleName}</strong> (${tacticFit.best.position}): <span class="scout-tactic-fit-highlight ${label.cls}">${label.text}</span>.`;
+      }
+
       document.getElementById('sm-mental').innerHTML = attributeRowsHtml(ATTRIBUTE_GROUPS.Mental, p.attributes);
       document.getElementById('sm-physical').innerHTML = attributeRowsHtml(ATTRIBUTE_GROUPS.Physical, p.attributes);
 
@@ -11440,6 +11561,57 @@
     navButtons.forEach(btn => {
       btn.addEventListener('click', () => switchToView(btn.dataset.view));
     });
+
+    // Collapsible nav groups ("Squad", "Tactics") — click a .nav-group-label to hide/show
+    // its own .nav-btn-sub items, so the sidebar can be trimmed down to just the groups
+    // currently in use rather than always showing every page at once. State is keyed by
+    // the label's own text (there are only ever a couple of these, so no need for a more
+    // elaborate id scheme) and persisted to localStorage, same pattern as gapThreshold/
+    // positionOverrides/etc elsewhere in the app — survives a reload rather than resetting
+    // every time.
+    const NAV_GROUP_COLLAPSE_STORAGE_KEY = 'fmcc_navGroupCollapse';
+
+    function loadNavGroupCollapseState() {
+      try {
+        return JSON.parse(localStorage.getItem(NAV_GROUP_COLLAPSE_STORAGE_KEY)) || {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveNavGroupCollapseState(state) {
+      try { localStorage.setItem(NAV_GROUP_COLLAPSE_STORAGE_KEY, JSON.stringify(state)); }
+      catch (e) { /* ignore — worst case the collapse choice doesn't survive a reload */ }
+    }
+
+    // Walks forward from a label to every .nav-btn-sub that belongs to it (i.e. until the
+    // next .nav-group-label or the end of the list), toggling .nav-hidden on each — this is
+    // what actually hides/shows the group's pages, the label's own .nav-group-collapsed
+    // class just drives the chevron rotation.
+    function applyNavGroupCollapse() {
+      const state = loadNavGroupCollapseState();
+      document.querySelectorAll('.nav-group-label').forEach(label => {
+        const collapsed = !!state[label.textContent.trim()];
+        label.classList.toggle('nav-group-collapsed', collapsed);
+        let el = label.nextElementSibling;
+        while (el && el.classList.contains('nav-btn-sub')) {
+          el.classList.toggle('nav-hidden', collapsed);
+          el = el.nextElementSibling;
+        }
+      });
+    }
+
+    document.querySelectorAll('.nav-group-label').forEach(label => {
+      label.addEventListener('click', () => {
+        const state = loadNavGroupCollapseState();
+        const key = label.textContent.trim();
+        state[key] = !state[key];
+        saveNavGroupCollapseState(state);
+        applyNavGroupCollapse();
+      });
+    });
+
+    applyNavGroupCollapse();
 
     document.getElementById('best-players-panel').addEventListener('click', () => {
       switchToView('squad');
