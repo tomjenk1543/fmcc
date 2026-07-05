@@ -4821,7 +4821,7 @@
           <div id="performance-chart-container" class="perf-chart-container-clip"></div>
         </div>
         <div class="performance-secondary-row" id="performance-secondary-row" style="display:none;">
-          <div class="dashboard-panel" id="performance-insights-panel">
+          <div class="dashboard-panel gaps-clickable" id="performance-insights-panel">
             <div class="panel-title-row">
               <h3 id="performance-insights-title">Analysis</h3>
             </div>
@@ -13060,13 +13060,12 @@
       return `<div class="perf-history-row"><span>${name} <span class="scout-tile-subtitle">- ${label}</span></span><span class="${cls}">${sign}${diff.toFixed(1)}</span></div>`;
     }
 
-    function renderPerformanceInsights(latest, categoryKey, targetId) {
-      const cat = PERFORMANCE_CATEGORIES[categoryKey];
-      const insights = computePerformanceInsights(latest, categoryKey);
-      const container = document.getElementById(targetId || 'performance-insights-content');
-      const titleEl = document.getElementById(targetId ? 'performance-overview-insights-title' : 'performance-insights-title');
-      if (titleEl && cat) titleEl.innerHTML = `Analysis <span class="scout-tile-subtitle">- ${cat.label}</span>`;
-
+    // Full three-section breakdown (Assumptions / Areas for Improvement / Over-Underperforming
+    // Players) as one HTML block — shared by the Full Overview modal's own insights container
+    // and by the shared gaps-modal that the inline Analysis tile opens on click (see
+    // openPerformanceInsightsModal below). Kept as its own function so neither caller can drift
+    // out of sync on section order/labels.
+    function buildPerformanceInsightsHtml(insights) {
       const overUnderRows = [];
       if (insights.overUnderKind === 'attacking') {
         insights.overUnderOver.forEach(p => overUnderRows.push(buildPerformanceOverUnderRow(p.name, 'overperforming xG', p.diff, true)));
@@ -13079,7 +13078,7 @@
         insights.overUnderUnder.forEach(p => overUnderRows.push(buildPerformanceOverUnderRow(p.name, 'conversion below squad average', p.conversion - insights.squadConversion, false)));
       }
 
-      container.innerHTML = `
+      return `
         <div class="perf-insight-section">
           <div class="perf-insight-heading">Assumptions</div>
           ${insights.assumptions.map(a => `<p>${a}</p>`).join('')}
@@ -13093,6 +13092,44 @@
           ${overUnderRows.length ? overUnderRows.join('') : `<p>${insights.overUnderEmptyMessage}</p>`}
         </div>
       `;
+    }
+
+    // targetId present (Full Overview modal) -> full three-section breakdown, same as before.
+    // targetId absent (the small inline dashboard tile) -> Assumptions only, plus a "view full
+    // breakdown" cue — Areas for Improvement and Over/Underperforming Players can run to several
+    // paragraphs/rows and were making the inline tile itself scroll, so they now live one click
+    // away in the shared gaps-modal (see openPerformanceInsightsModal, wired to the whole tile
+    // via the .gaps-clickable class already used for this exact pattern elsewhere in the app).
+    function renderPerformanceInsights(latest, categoryKey, targetId) {
+      const cat = PERFORMANCE_CATEGORIES[categoryKey];
+      const insights = computePerformanceInsights(latest, categoryKey);
+      const container = document.getElementById(targetId || 'performance-insights-content');
+      const titleEl = document.getElementById(targetId ? 'performance-overview-insights-title' : 'performance-insights-title');
+      if (titleEl && cat) titleEl.innerHTML = `Analysis <span class="scout-tile-subtitle">- ${cat.label}</span>`;
+
+      if (!targetId) {
+        container.innerHTML = `
+          <div class="perf-insight-section">
+            ${insights.assumptions.map(a => `<p>${a}</p>`).join('')}
+          </div>
+          <button type="button" class="view-all-gaps-btn" id="performance-insights-view-all-btn">View full breakdown</button>
+        `;
+        return;
+      }
+
+      container.innerHTML = buildPerformanceInsightsHtml(insights);
+    }
+
+    // Opens the shared gaps-modal with the full Assumptions/Improvement/Over-Underperformers
+    // breakdown for whichever category the page is currently on — the click target is the
+    // whole tile (see .gaps-clickable on #performance-insights-panel) plus the visible "View
+    // full breakdown" button rendered inside it, same affordance pattern as the Tactics/Squad
+    // Breakdown gap tiles.
+    function openPerformanceInsightsModal() {
+      if (!performanceLatestSnapshot) return;
+      const cat = PERFORMANCE_CATEGORIES[performanceCategory];
+      const insights = computePerformanceInsights(performanceLatestSnapshot, performanceCategory);
+      openGapsModal(`Analysis — ${cat.label}`, buildPerformanceInsightsHtml(insights));
     }
 
     function renderPerformanceHistory(snapshots) {
@@ -13216,6 +13253,12 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closePerformanceOverviewModal();
     });
+
+    // Analysis tile — the inline tile only shows Assumptions (see renderPerformanceInsights);
+    // the whole tile is a click target (.gaps-clickable, wired once here rather than
+    // re-attached on every render since — unlike the conditional gap tiles elsewhere — this
+    // tile always has more to show) that opens the full breakdown in the shared gaps-modal.
+    document.getElementById('performance-insights-panel').addEventListener('click', openPerformanceInsightsModal);
 
     renderPerformanceData();
     // ---- END Performance Data ----

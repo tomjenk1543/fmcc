@@ -143,14 +143,26 @@ check('backup keeper\'s Sv%-xSv% diff is colour-classed negative', /perf-diff-ne
 
 // ---- The Analysis tile re-renders (via renderPerformanceCategoryView -> renderPerformanceInsights)
 // scoped to whichever category the dropdown is on — this is the actual feature being tested:
-// picking Goalkeeping should surface goalkeeping-only observations, not the Attacking ones. ----
+// picking Goalkeeping should surface goalkeeping-only observations, not the Attacking ones.
+// The inline tile itself only shows Assumptions (Areas for Improvement/Over-Underperformers
+// live behind the "View full breakdown" click — see the gaps-modal checks below), so these
+// checks confirm the inline Assumptions text is scoped, then open the modal for the rest. ----
 const gkInsightsTitle = document.getElementById('performance-insights-title').innerHTML;
 check('Analysis title reflects the Goalkeeping category', /Goalkeeping/.test(gkInsightsTitle));
-const gkInsightsHtml = document.getElementById('performance-insights-content').innerHTML;
-check('goalkeeping insights flag Sergio Acosta as underperforming xSv%', /Sergio Acosta/.test(gkInsightsHtml) && /underperforming xSv%/.test(gkInsightsHtml));
-check('goalkeeping insights include the depth-gap improvement naming both keepers', /Pol/.test(gkInsightsHtml) && /goalkeeping depth/.test(gkInsightsHtml));
-check('goalkeeping insights do NOT show the Attacking category\'s over/underperformer labels', !/overperforming xG/.test(gkInsightsHtml) && !/underperforming xG/.test(gkInsightsHtml));
-check('goalkeeping insights do NOT show the Discipline dirty-tackler improvement', !/Michael Botha/.test(gkInsightsHtml));
+const gkInlineHtml = document.getElementById('performance-insights-content').innerHTML;
+check('inline Analysis tile has no Areas for Improvement/Over-Under sections (assumptions only)',
+  !/Areas for Improvement/.test(gkInlineHtml) && !/Over \/ Underperforming/.test(gkInlineHtml));
+check('inline Analysis tile has a "View full breakdown" button', /View full breakdown/.test(gkInlineHtml));
+
+document.getElementById('performance-insights-panel').fire('click');
+check('clicking the Analysis tile opens the shared gaps-modal', document.getElementById('gaps-modal-backdrop').classList.contains('open'));
+check('the gaps-modal title names the Goalkeeping category', /Goalkeeping/.test(document.getElementById('gaps-modal-title').textContent));
+const gkModalHtml = document.getElementById('gaps-modal-body').innerHTML;
+check('goalkeeping full breakdown flags Sergio Acosta as underperforming xSv%', /Sergio Acosta/.test(gkModalHtml) && /underperforming xSv%/.test(gkModalHtml));
+check('goalkeeping full breakdown includes the depth-gap improvement naming both keepers', /Pol/.test(gkModalHtml) && /goalkeeping depth/.test(gkModalHtml));
+check('goalkeeping full breakdown does NOT show the Attacking category\'s over/underperformer labels', !/overperforming xG/.test(gkModalHtml) && !/underperforming xG/.test(gkModalHtml));
+check('goalkeeping full breakdown does NOT show the Discipline dirty-tackler improvement', !/Michael Botha/.test(gkModalHtml));
+closeGapsModal();
 
 // ---- Switch to discipline category (single-metric chart, no actual/expected pair) ----
 performanceCategory = 'discipline';
@@ -160,10 +172,12 @@ check('discipline table header includes Tackles Won and Fouls Made', /Tackles Wo
 const discChartHtml = document.getElementById('performance-chart-container').innerHTML;
 check('discipline chart renders bars without an actual/expected marker requirement', /perf-chart-row/.test(discChartHtml));
 
-const discInsightsHtml = document.getElementById('performance-insights-content').innerHTML;
-check('discipline insights flag Michael Botha as a dirty tackler', /Michael Botha/.test(discInsightsHtml));
-check('discipline insights have no over/underperformer ranking (no expected-value baseline)', /no expected-value baseline/.test(discInsightsHtml));
-check('discipline insights do NOT show goalkeeping or attacking content', !/Sergio Acosta/.test(discInsightsHtml) && !/overperforming xG/.test(discInsightsHtml));
+document.getElementById('performance-insights-panel').fire('click');
+const discModalHtml = document.getElementById('gaps-modal-body').innerHTML;
+check('discipline full breakdown flags Michael Botha as a dirty tackler', /Michael Botha/.test(discModalHtml));
+check('discipline full breakdown has no over/underperformer ranking (no expected-value baseline)', /no expected-value baseline/.test(discModalHtml));
+check('discipline full breakdown does NOT show goalkeeping or attacking content', !/Sergio Acosta/.test(discModalHtml) && !/overperforming xG/.test(discModalHtml));
+closeGapsModal();
 
 // Reset back to the default category so later checks aren't order-dependent.
 performanceCategory = 'attacking';
@@ -203,15 +217,23 @@ closePerformanceOverviewModal();
 check('Full Overview modal closes', !document.getElementById('performance-overview-modal-backdrop').classList.contains('open'));
 
 // ---- Insights: assumptions / improvements / over-underperformers (back on Attacking, per the reset above) ----
+// Inline tile stays assumptions-only; the full breakdown (Improvements + Over/Under) is
+// checked via the gaps-modal the tile opens on click, same as the goalkeeping/discipline
+// checks above.
 const insightsHtml = document.getElementById('performance-insights-content').innerHTML;
-check('insights panel has an Assumptions section', /Assumptions/.test(insightsHtml));
-check('insights panel has an Areas for Improvement section', /Areas for Improvement/.test(insightsHtml));
-check('insights panel has an Over\/Underperforming Players section', /Over \/ Underperforming Players/.test(insightsHtml));
+check('inline Analysis tile has no Areas for Improvement/Over-Under sections here either', !/Areas for Improvement/.test(insightsHtml) && !/Over \/ Underperforming/.test(insightsHtml));
 check('Analysis title reflects the Attacking category', /Attacking/.test(document.getElementById('performance-insights-title').innerHTML));
-check('Musolino listed as an overperformer', /Samuel Musolino/.test(insightsHtml) && /overperforming xG/.test(insightsHtml));
-check('Ndo listed as an underperformer', /Arthur Ndo/.test(insightsHtml) && /underperforming xG/.test(insightsHtml));
-check('attacking insights do NOT show the goalkeeping depth-gap improvement', !/goalkeeping depth/.test(insightsHtml));
-check('attacking insights do NOT show the discipline dirty-tackler improvement', !/Michael Botha/.test(insightsHtml));
+
+document.getElementById('performance-insights-panel').fire('click');
+const attackingModalHtml = document.getElementById('gaps-modal-body').innerHTML;
+check('attacking full breakdown has an Assumptions section', /Assumptions/.test(attackingModalHtml));
+check('attacking full breakdown has an Areas for Improvement section', /Areas for Improvement/.test(attackingModalHtml));
+check('attacking full breakdown has an Over\/Underperforming Players section', /Over \/ Underperforming Players/.test(attackingModalHtml));
+check('Musolino listed as an overperformer', /Samuel Musolino/.test(attackingModalHtml) && /overperforming xG/.test(attackingModalHtml));
+check('Ndo listed as an underperformer', /Arthur Ndo/.test(attackingModalHtml) && /underperforming xG/.test(attackingModalHtml));
+check('attacking full breakdown does NOT show the goalkeeping depth-gap improvement', !/goalkeeping depth/.test(attackingModalHtml));
+check('attacking full breakdown does NOT show the discipline dirty-tackler improvement', !/Michael Botha/.test(attackingModalHtml));
+closeGapsModal();
 
 // ---- computePerformanceInsights is category-scoped: same snapshot, different categoryKey ----
 const attackingInsights = computePerformanceInsights(performanceLatestSnapshot, 'attacking');
