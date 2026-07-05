@@ -3593,30 +3593,30 @@
      --design-width/--design-height's own comment) — .squad-table-scroll inside is
      already flex:1/min-height:0/overflow:auto (see that rule), so it just fills whatever
      height is left inside this panel and scrolls internally rather than growing the page. */
-  /* padding-left overrides .squad-table-panel's inherited 20px down to 14px, matching
-     .squad-table-scroll's own 14px right-side gutter below (see that rule's own comment) —
-     without this the table sat 20px from the tile's left edge but only 14px from the right,
-     an uneven 6px mismatch between the two sides. Both 14px now so it reads as one
-     consistent margin all the way around, just narrower than Squad's roomier 20px/20px to
-     keep this table's extra columns fitting without a horizontal scrollbar. */
+  /* Used to override padding-left down to 14px (and the two rules below matched it) so this
+     table's extra columns had a better shot at fitting without a horizontal scrollbar — but
+     that meant Scouting's table tile had different (narrower) margins than Squad List's
+     table tile right next to it in the nav, which read as visually inconsistent between two
+     tiles that are otherwise the same component. Dropped the override entirely: this panel
+     now just inherits .squad-table-panel's own 20px left padding unchanged, matching Squad
+     exactly. The two rules below do the same for the right side. */
   .scout-table-panel {
     height: calc(var(--design-height) * 0.46);
     min-height: 260px;
     margin-bottom: 20px;
-    padding-left: 14px;
   }
 
   /* .squad-table-panel (shared with Squad) deliberately zeroes the panel's own right
      padding — .squad-table-scroll supplies its own padding-right instead, as the gutter for
      its scrollbar. But the title row sits above that scroll container, not inside it, so
      without its own right padding here the "+ Add to Shortlist" button ends up flush
-     against the tile's edge. Matches .scout-table-panel .squad-table-scroll's own
-     padding-right (14px, not the roomier 20px Squad's table uses — see that rule's own
-     comment) so the button's right edge lines up with the table's right edge below it,
-     rather than the two disagreeing. Scoped to #scout-table-panel specifically since
-     Squad's own table tile has no title row to worry about. */
+     against the tile's edge. Matches .squad-table-scroll's own 20px padding-right (the same
+     value Squad's table uses too — see that rule's own comment) so the button's right edge
+     lines up with the table's right edge below it, and both tiles' margins actually match
+     each other now instead of Scouting using a narrower value. Scoped to #scout-table-panel
+     specifically since Squad's own table tile has no title row to worry about. */
   #scout-table-panel .panel-title-row {
-    padding-right: 14px;
+    padding-right: 20px;
   }
 
   /* The Scouting table carries far more columns than the Squad table (FM's own shortlist
@@ -3657,17 +3657,11 @@
     font-size: 10px;
   }
 
-  /* Same reasoning as above — every pixel matters when trying to fit this many columns
-     without a horizontal scrollbar, so the scroll gutter .squad-table-scroll normally
-     reserves (20px, sized for the roomier Squad table) is trimmed down here rather than
-     matched exactly. Was 6px — barely readable as a margin at all next to the tile's edge
-     (the actual bug report this fixes) — bumped to 14px, a real but still deliberately
-     narrower gutter than Squad's 20px, so the table keeps fitting without a horizontal
-     scrollbar on as many windows as before (see .scout-table-compact's own comment; the
-     overflow-x:auto fallback on .squad-table-scroll still covers anything narrower). */
-  .scout-table-panel .squad-table-scroll {
-    padding-right: 14px;
-  }
+  /* Used to trim this down (6px, then 14px) to squeeze this table's extra columns in
+     without a horizontal scrollbar — dropped entirely so this tile's gutter matches Squad's
+     own .squad-table-scroll padding-right (20px) exactly instead of the two tiles disagreeing
+     on their margins. The overflow-x:auto fallback already on .squad-table-scroll still
+     covers any window too narrow to fit every column at this wider gutter. */
 
   /* flex:1/min-height:0 lets this row fill whatever's left below the (fixed-height, see
      .scout-table-panel above) table instead of leaving dead space there — #scout is now in
