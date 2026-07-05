@@ -3603,10 +3603,13 @@
      #scout-empty-state before that, so there's always exactly one visible regardless of
      which state is showing. */
 
-  /* Capped to roughly the top half of the design canvas (not real vh — see
-     --design-width/--design-height's own comment) — .squad-table-scroll inside is
-     already flex:1/min-height:0/overflow:auto (see that rule), so it just fills whatever
-     height is left inside this panel and scrolls internally rather than growing the page. */
+  /* Capped to roughly 40% of the design canvas (not real vh — see --design-width/
+     --design-height's own comment) — trimmed down from 46% so the two flex:1 rows below
+     (.scout-tiles-row/.recruitment-missions-panel) get a bit more of the leftover room,
+     since 46% here was leaving them looking short/leaving visible dead space beneath them
+     on tall windows. .squad-table-scroll inside is already flex:1/min-height:0/overflow:auto
+     (see that rule), so it just fills whatever height is left inside this panel and scrolls
+     internally rather than growing the page. */
   /* Used to override padding-left down to 14px (and the two rules below matched it) so this
      table's extra columns had a better shot at fitting without a horizontal scrollbar — but
      that meant Scouting's table tile had different (narrower) margins than Squad List's
@@ -3615,7 +3618,7 @@
      now just inherits .squad-table-panel's own 20px left padding unchanged, matching Squad
      exactly. The two rules below do the same for the right side. */
   .scout-table-panel {
-    height: calc(var(--design-height) * 0.46);
+    height: calc(var(--design-height) * 0.4);
     min-height: 260px;
     margin-bottom: 20px;
   }
@@ -3696,7 +3699,7 @@
     gap: 16px;
     flex-wrap: wrap;
     flex: 1;
-    min-height: 260px;
+    min-height: 280px;
   }
 
   /* No more max-height cap — the tiles stretch to fill .scout-tiles-row's height (see
@@ -3783,7 +3786,7 @@
      tiles row's own real rendered height directly, whatever the split ends up being. */
   .recruitment-missions-panel {
     flex: 1;
-    min-height: 260px;
+    min-height: 280px;
     margin-top: 20px;
     margin-bottom: 20px;
   }
