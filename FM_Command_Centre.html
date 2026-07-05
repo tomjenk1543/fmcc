@@ -10678,13 +10678,6 @@
       return 'very-weak';
     }
 
-    // Finds a squad member by the abbreviated name used in the tactics screen
-    // (e.g. "S. Musolino") by matching on surname — full names live in currentSquad.
-    function findSquadIndexByShortName(shortName) {
-      const surname = shortName.trim().split(' ').pop().toLowerCase();
-      return currentSquad.findIndex(p => p.name.toLowerCase().split(' ').pop() === surname);
-    }
-
     // Parses FM's compact position shorthand from the squad list (e.g. "D (LC)/WB/AM (L)",
     // "D/WB/M/AM (R)", "GK") into { code, sides } segments. FM's own convention: a run of
     // slash-separated codes takes the (SIDES) that follows it, so a bare code with no
@@ -12166,70 +12159,6 @@
         .sort((a, b) => a.value - b.value)
         .slice(0, max)
         .map(a => a.name);
-    }
-
-    // ---- Potential tile: projected attribute growth ----
-    // Rather than just flagging "high Potential star rating" in the abstract, this projects
-    // each of a role's reference attributes forward using the gap between FM's Potential and
-    // Ability star ratings, then checks whether THAT projection would actually clear the
-    // role's requirements — the same 75% bar as the Nearly There tile, just applied to where
-    // the player could plausibly end up rather than where they are today.
-    //
-    // A flat "N points per star of gap" applied equally to every attribute would overstate
-    // things badly for Physical attributes (Pace, Acceleration, Strength, Jumping Reach) —
-    // those are much more fixed by a player's mid-teens than Technical/Mental ones, which
-    // respond far more to coaching and game time. So growth is weighted by category, and
-    // tapered by age (most real development happens before the mid-20s) — see
-    // CATEGORY_GROWTH_WEIGHT/ageGrowthFactor below. This is still a deliberately simple
-    // heuristic, not a real prediction — FM doesn't expose per-attribute potential, only the
-    // overall CA/PA stars this app already captures — but it's a meaningfully more grounded
-    // guess than treating every attribute and every age the same.
-    const BASE_GROWTH_PER_STAR = 1; // conservative — see the Potential tile design discussion
-    const CATEGORY_GROWTH_WEIGHT = { technical: 1, mental: 1, goalkeeping: 1, physical: 0.25 };
-
-    // Reverse lookup from attribute name to category, built once from the same name lists
-    // getPlayerAttrMap/flattenScoutAttributes already use to zip captured values.
-    const ATTR_CATEGORY_LOOKUP = {};
-    TECHNICAL_ATTR_NAMES.forEach(n => { ATTR_CATEGORY_LOOKUP[n] = 'technical'; });
-    MENTAL_ATTR_NAMES.forEach(n => { ATTR_CATEGORY_LOOKUP[n] = 'mental'; });
-    PHYSICAL_ATTR_NAMES.forEach(n => { ATTR_CATEGORY_LOOKUP[n] = 'physical'; });
-    GOALKEEPING_ATTR_NAMES.forEach(n => { ATTR_CATEGORY_LOOKUP[n] = 'goalkeeping'; });
-
-    // How much of the theoretical star-gap growth above actually gets projected, based on
-    // age. Full weight at 23 or under; tapers linearly to a 10% floor by 29 (never all the
-    // way to zero — late developers do happen, just rarely) so an already-established
-    // late-20s player with a big star gap isn't projected to grow the same as a promising
-    // teenager with the identical gap. Unknown age gets a middling 0.7 rather than assuming
-    // either extreme.
-    function ageGrowthFactor(age) {
-      if (!age) return 0.7;
-      if (age <= 23) return 1;
-      if (age >= 29) return 0.1;
-      return 1 - ((age - 23) / 6) * 0.9;
-    }
-
-    // Same shape as scoutRequirementMatch, but checks each attribute against its *projected*
-    // value instead of its current one. Returns pct: null if there's no attribute data, no
-    // recognised position group, or no meaningful potential-over-ability gap to project from
-    // (Potential <= Ability — nothing to develop toward).
-    function scoutProjectedRequirementMatch(target) {
-      const groupName = classifyPositions(target.position || '')[0] || null;
-      if (!groupName || !target.attributes) return { groupName, pct: null };
-      const def = POSITION_GROUPS[groupName];
-      const allAttrs = [...def.keyAttributes, ...(def.preferredAttributes || [])];
-      if (allAttrs.length === 0) return { groupName, pct: null };
-
-      const starGap = parseStarRating(target.potential) - parseStarRating(target.ability);
-      if (starGap <= 0) return { groupName, pct: null };
-
-      const ageFactor = ageGrowthFactor(target.age);
-      const metCount = allAttrs.filter(name => {
-        const current = target.attributes[name] || 0;
-        const weight = CATEGORY_GROWTH_WEIGHT[ATTR_CATEGORY_LOOKUP[name]] ?? 1;
-        const projected = Math.min(20, current + starGap * BASE_GROWTH_PER_STAR * weight * ageFactor);
-        return projected >= gapThreshold;
-      }).length;
-      return { groupName, pct: metCount / allAttrs.length };
     }
 
     // High Potential tile thresholds — a shortlisted player qualifies only if BOTH hold:
