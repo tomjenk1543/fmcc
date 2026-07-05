@@ -253,6 +253,17 @@ check('the candidates list excludes a shortlisted player who is not a fit for th
 check('the Very Suited candidate is ranked ahead of the merely-Suited one',
   candidatesModalHtml.indexOf('Test Strong Candidate') < candidatesModalHtml.indexOf('Test Affordable Suited Candidate'));
 
+// --- Column layout: a real header row, and age/wage/value as separate cells (not one
+// middot-joined string) so every candidate's figures land in the same aligned column --------
+const modalBodyEl = document.getElementById('gaps-modal-body');
+const headerEl = modalBodyEl.querySelector('.mission-candidates-header');
+check('the candidates list has a header row', !!headerEl);
+check('the header names all five columns in order', headerEl.textContent.replace(/\s+/g, ' ').trim() === 'Player Fit Age Wage Value');
+const firstCandidateRow = modalBodyEl.querySelector('.mission-candidate-row');
+check('a candidate row has three separate age/wage/value cells rather than one joined meta string',
+  firstCandidateRow.querySelectorAll('.mission-candidate-cell').length === 3);
+check('a candidate row no longer uses the old middot-joined .scout-tile-meta layout', !firstCandidateRow.querySelector('.scout-tile-meta'));
+
 // Clicking a candidate row inside the modal opens that player's own profile.
 const candidateRowEl = document.querySelector('#gaps-modal-body .mission-candidate-row');
 check('a candidate row exists inside the modal', !!candidateRowEl);
@@ -271,6 +282,15 @@ scoutShortlist.length = 0;
 addScoutedPlayers([tooOldTooExpensiveCandidate]);
 const allBreachedHtml = buildMissionCandidatesHtml(clickableMission);
 check('buildMissionCandidatesHtml shows the empty state when every real fit breaches a ceiling (rather than an empty candidates-list div)', /No shortlisted player is currently a Suited/.test(allBreachedHtml));
+
+// --- Layout regression guard: header and rows must share the same column widths ------------
+// A header row that names the columns is only actually useful if it lines up with the data
+// rows below it — this reads the app's own CSS source and confirms
+// .mission-candidates-header and .mission-candidate-row declare the identical
+// grid-template-columns, which is what makes the alignment real rather than coincidental.
+const missionCandStyleBlock = appHtml.match(/<style>([\s\S]*?)<\/style>/)[1];
+const candidatesGridRule = missionCandStyleBlock.match(/\.mission-candidates-header,\s*\.mission-candidate-row\s*\{([^}]*)\}/);
+check('the candidates header and rows share one grid-template-columns declaration (kept in sync by construction)', !!candidatesGridRule && /grid-template-columns/.test(candidatesGridRule[1]));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exitCode = 1;

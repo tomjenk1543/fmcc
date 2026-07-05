@@ -3906,12 +3906,46 @@
   }
 
   /* Candidates list inside the "click a mission" modal (see buildMissionCandidatesHtml/
-     openMissionCandidatesModal) — rows reuse .scout-tile-row wholesale (padding/hover/
-     cursor already covered there), this just keeps the middle fit-label column from being
-     squeezed by the longer name/meta text either side of it. */
-  .mission-candidate-fit {
-    flex-shrink: 0;
+     openMissionCandidatesModal). Header and rows share one grid-template-columns so Player/
+     Fit/Age/Wage/Value all line up vertically down the list — the original version joined
+     age/wage/value into one middot-separated string inside a plain flex row, which put those
+     figures at a different horizontal spot on every row depending on how long each one's own
+     text happened to be, reading as disorganised rather than a real table. Rows still carry
+     .scout-tile-row for its padding/hover/cursor/border-bottom — this overrides just its
+     display/justify-content with the shared grid so those still apply. */
+  .mission-candidates-header,
+  .mission-candidate-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 78px 40px 104px 108px;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mission-candidates-header {
+    padding: 0 2px 8px;
+    margin-bottom: 2px;
+    border-bottom: 1px solid var(--panel-border);
+    font-size: 10px;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-dim);
+  }
+
+  .mission-candidate-fit,
+  .mission-candidate-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mission-candidate-fit {
+    font-weight: 700;
+  }
+
+  .mission-candidate-cell {
+    color: var(--text-dim);
+    font-size: 12px;
   }
 
   /* Short "- meets X" description sitting right after each triage tile's name (see
@@ -12415,21 +12449,38 @@
 
       candidates.sort((a, b) => b.score - a.score);
 
+      // A shared grid-template-columns (see .mission-candidates-header/.mission-candidate-row
+      // in CSS) lines the header labels up with each row's own cells — the previous version
+      // joined age/wage/value into one middot-separated meta string inside a flex row, which
+      // left the three figures landing at different horizontal positions from one candidate
+      // to the next depending on how long each one's text happened to be. Real columns fix
+      // that: age/wage/value are now three separate cells, each its own fixed-width column.
+      const header = `
+        <div class="mission-candidates-header">
+          <span>Player</span>
+          <span>Fit</span>
+          <span>Age</span>
+          <span>Wage</span>
+          <span>Value</span>
+        </div>
+      `;
+
       const rows = candidates.map(({ p, i, score }) => {
         const label = fitScoreLabel(score);
-        const ageText = p.age != null ? `Age ${p.age}` : 'Age &mdash;';
-        const meta = [ageText, formatWage(p.wage), p.value ?? '&mdash;'].join(' &middot; ');
-
+        const wageText = formatWage(p.wage);
+        const valueText = p.value ?? '&mdash;';
         return `
           <div class="scout-tile-row mission-candidate-row" data-index="${i}">
-            <span class="scout-tile-name">${p.name}</span>
+            <span class="scout-tile-name" title="${p.name}">${p.name}</span>
             <span class="mission-candidate-fit scout-tactic-fit-highlight ${label.cls}">${label.text}</span>
-            <span class="scout-tile-meta">${meta}</span>
+            <span class="mission-candidate-cell" title="${p.age ?? ''}">${p.age ?? '&mdash;'}</span>
+            <span class="mission-candidate-cell" title="${wageText}">${wageText}</span>
+            <span class="mission-candidate-cell" title="${valueText}">${valueText}</span>
           </div>
         `;
       }).join('');
 
-      return `<div class="mission-candidates-list">${rows}</div>`;
+      return `<div class="mission-candidates-list">${header}${rows}</div>`;
     }
 
     // Opens the shared "view all" modal (see openGapsModal) with every real candidate for a
