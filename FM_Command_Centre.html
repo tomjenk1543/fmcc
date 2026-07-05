@@ -64,9 +64,17 @@
        comments there). Everything below only touches surface/elevation/radius — no layout,
        spacing-that-affects-JS-height-budgets, class names, or IDs, so it's safe to cherry-pick
        individual tokens back into dev without dragging the rest of this branch along. */
+    /* Added during the consistency-audit pass: the app had accumulated ~25 different ad
+       hoc border-radius values (3px/4px/5px/6px/10px, scattered with no real pattern)
+       alongside these three - the full scale is now xs/sm/md/lg/pill, covering everything
+       from a tiny decorative bullet bar up to a full modal, plus one dedicated tier for the
+       handful of pill-shaped badges (status-badge/depth-badge/value-pill) that were already
+       mutually consistent with each other at 10px. */
+    --radius-xs: 4px;
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 18px;
+    --radius-pill: 10px;
     /* A card surface one step lighter than --panel, for the soft-elevation look below —
        distinct from the flat gradient-tint treatment the hard-shadow cards used instead. */
     --panel-raised: color-mix(in srgb, white 5%, var(--panel));
@@ -98,7 +106,7 @@
   [tabindex]:focus-visible {
     outline: 2px solid var(--club-text, #f2f2f2);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
   }
 
   /* Respect the OS-level "reduce motion" preference — turn the app's hover/press transitions
@@ -772,7 +780,7 @@
     color: var(--text);
     font-size: 11px;
     padding: 4px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
   }
 
   .crest-status {
@@ -836,7 +844,7 @@
     font-size: 11px;
     line-height: 1.5;
     padding: 10px;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     resize: vertical;
     box-sizing: border-box;
   }
@@ -995,7 +1003,7 @@
   .hero-kit-img {
     height: 104px;
     width: auto;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
   }
 
   .hero-kit-label {
@@ -1292,7 +1300,7 @@
     font-size: 14px;
     font-weight: 700;
     padding: 10px 24px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     margin-top: 6px;
   }
 
@@ -1712,7 +1720,7 @@
   /* Empty state */
   .empty-state {
     border: 1px dashed var(--panel-border);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     padding: 48px 24px;
     text-align: center;
     color: var(--text-dim);
@@ -1860,7 +1868,7 @@
   .status-badge {
     display: inline-block;
     padding: 3px 9px;
-    border-radius: 10px;
+    border-radius: var(--radius-pill);
     font-size: 11px;
     font-weight: 600;
     font-style: normal;
@@ -1962,7 +1970,7 @@
     background: linear-gradient(135deg, var(--bg) 0%, color-mix(in srgb, var(--club-primary) 10%, var(--bg)) 100%);
     border: 1px solid var(--panel-border);
     border-left: 3px solid var(--club-primary);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     padding: 16px 18px;
   }
 
@@ -1995,7 +2003,7 @@
   .depth-badge {
     display: inline-block;
     padding: 3px 10px;
-    border-radius: 10px;
+    border-radius: var(--radius-pill);
     font-size: 11px;
     font-weight: 700;
   }
@@ -2231,7 +2239,7 @@
     justify-content: center;
     background: none;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     color: var(--text-dim);
     font-size: 22px;
     line-height: 1;
@@ -2280,7 +2288,7 @@
   .value-pill {
     display: inline-block;
     padding: 3px 10px;
-    border-radius: 10px;
+    border-radius: var(--radius-pill);
     font-size: 11px;
     font-weight: 700;
     background: color-mix(in srgb, var(--club-primary) 18%, transparent);
@@ -2312,7 +2320,7 @@
   .role-fit-select {
     background: var(--bg);
     border: 1px solid var(--panel-border);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     color: var(--text);
     font-size: 12px;
     padding: 4px 8px;
@@ -2414,7 +2422,7 @@
     box-shadow: inset 3px 0 0 #f0d666;
     padding-left: 7px;
     margin-left: -10px;
-    border-radius: 3px;
+    border-radius: var(--radius-xs);
   }
 
   .attribute-row.is-key-attr > span:first-child {
@@ -2427,7 +2435,7 @@
     box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.4);
     padding-left: 7px;
     margin-left: -10px;
-    border-radius: 3px;
+    border-radius: var(--radius-xs);
   }
 
   /* Tactics tab — formation summary strip + one card per role slot in the tactic. */
@@ -2649,7 +2657,7 @@
     height: 270px;
     background: linear-gradient(180deg, #163a24 0%, #102c1b 100%);
     border: 2px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     overflow: hidden;
   }
 
@@ -2911,7 +2919,7 @@
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--panel-border);
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     padding: 3px 8px;
     font-size: 12.5px;
     font-weight: 700;
@@ -2937,7 +2945,7 @@
     background: var(--bg);
     color: var(--text-dim);
     border: 1px solid var(--panel-border);
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     padding: 5px 12px;
     font-size: 12.5px;
     font-weight: 700;
@@ -2986,7 +2994,7 @@
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--panel-border);
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     padding: 5px 10px;
     font-size: 13px;
     font-weight: 700;
@@ -3058,7 +3066,7 @@
     background: var(--bg);
     color: var(--text);
     border: 1px solid var(--panel-border);
-    border-radius: 5px;
+    border-radius: var(--radius-sm);
     padding: 4px 8px;
     font-size: 13px;
     font-weight: 700;
@@ -3102,7 +3110,7 @@
     padding: 8px 10px;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--panel-border);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     /* flex:1 (see #tacticbuilder .tb-pitch-block, which makes the whole column a flex
        column) rather than a fixed max-height — the pitch's own height was deliberately
        shrunk to reserve room below it for this panel (see #tacticbuilder .tactic-pitch),
@@ -3240,7 +3248,7 @@
     margin: 0 2px;
     vertical-align: middle;
     background: var(--panel-border);
-    border-radius: 3px;
+    border-radius: var(--radius-xs);
   }
 
   .gap-bullet-fill {
@@ -3250,7 +3258,7 @@
     bottom: 0;
     width: var(--val, 0%);
     background: var(--negative, #ff8080);
-    border-radius: 3px;
+    border-radius: var(--radius-xs);
   }
 
   .gap-bullet-target {
@@ -3317,7 +3325,7 @@
     margin-top: 10px;
     background: none;
     border: 1px solid var(--panel-border);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     color: var(--club-text);
     font-size: 12px;
     font-weight: 600;
@@ -3362,7 +3370,7 @@
   .position-move-select {
     background: var(--bg);
     border: 1px solid var(--panel-border);
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     color: var(--text);
     font-size: 12px;
     padding: 4px 8px;
@@ -3446,7 +3454,7 @@
     flex: 0 0 auto;
     width: 84px;
     height: 84px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
   }
 
   .synergy-modal-text {
@@ -3715,7 +3723,7 @@
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--panel-border);
     border-left: 3px solid var(--club-primary);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     font-size: 12px;
     line-height: 1.6;
     color: var(--text-dim);
@@ -3776,7 +3784,7 @@
     line-height: 1;
     cursor: pointer;
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
   }
 
   .scout-remove-btn:hover {
