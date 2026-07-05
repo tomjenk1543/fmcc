@@ -3776,7 +3776,14 @@
      so an arbitrarily long mission list can never grow this panel unbounded either. */
   .recruitment-missions-panel {
     flex-shrink: 0;
+    margin-top: 20px;
     margin-bottom: 20px;
+    /* .dashboard-panel's shared min-height: 220px exists to keep tiles in the SAME row
+       visually aligned to each other (see .scout-tile-row's neighbours) — this panel is a
+       standalone full-width tile, not part of a row of same-height siblings, so that floor
+       just left visible empty space below its own (much shorter) real content. Overridden
+       to 0 so the box hugs whatever it actually contains. */
+    min-height: 0;
   }
 
   #recruitment-missions-list {
@@ -5947,7 +5954,11 @@
       const missionsPanelEl = document.getElementById('recruitment-missions-panel');
       if (!scrollAreaEl || !tablePanelEl || !rowEl) return 0;
       const tableChrome = tablePanelEl.offsetHeight + (parseFloat(getComputedStyle(tablePanelEl).marginBottom) || 0);
-      const missionsChrome = missionsPanelEl ? missionsPanelEl.offsetHeight + (parseFloat(getComputedStyle(missionsPanelEl).marginBottom) || 0) : 0;
+      const missionsChrome = missionsPanelEl
+        ? missionsPanelEl.offsetHeight
+          + (parseFloat(getComputedStyle(missionsPanelEl).marginTop) || 0)
+          + (parseFloat(getComputedStyle(missionsPanelEl).marginBottom) || 0)
+        : 0;
       return Math.max(0, scrollAreaEl.clientHeight - tableChrome - missionsChrome);
     }
 
