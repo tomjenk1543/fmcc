@@ -2992,12 +2992,23 @@
     cursor: pointer;
   }
 
+  /* Wraps .tactic-source-toggle (the FM/Custom pill switch) and the "Import Tactic Data"
+     button on one row — same space-between alignment .panel-title-row uses on every other
+     page's title bar (Squad List's "Import Squad Data", Performance Data's action row), kept
+     as a separate class rather than reusing .panel-title-row itself since this panel has no
+     <h3> of its own to sit on the left (the toggle group takes that spot instead). */
+  .tactics-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
   /* FM Tactic / Custom Tactic switch on the Tactical Analysis page. */
   .tactic-source-toggle {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 14px;
   }
 
   .tactic-source-toggle-label {
@@ -3610,16 +3621,19 @@
     margin-bottom: 20px;
   }
 
-  /* .squad-table-panel (shared with Squad) deliberately zeroes the panel's own right
-     padding — .squad-table-scroll supplies its own padding-right instead, as the gutter for
-     its scrollbar. But the title row sits above that scroll container, not inside it, so
-     without its own right padding here the "+ Add to Shortlist" button ends up flush
-     against the tile's edge. Matches .squad-table-scroll's own 20px padding-right (the same
-     value Squad's table uses too — see that rule's own comment) so the button's right edge
-     lines up with the table's right edge below it, and both tiles' margins actually match
-     each other now instead of Scouting using a narrower value. Scoped to #scout-table-panel
-     specifically since Squad's own table tile has no title row to worry about. */
-  #scout-table-panel .panel-title-row {
+  /* .squad-table-panel (shared with Squad, Scouting and Performance Data) deliberately
+     zeroes the panel's own right padding — .squad-table-scroll supplies its own
+     padding-right instead, as the gutter for its scrollbar. But each page's title row sits
+     above that scroll container, not inside it, so without its own right padding here
+     whatever action button lives in that title row ends up flush against the tile's edge
+     instead of lining up with the table's own right edge below it. Originally scoped to
+     just #scout-table-panel (back when Scouting was the only page with a title-row button);
+     now Squad List's own "Import Squad Data" and Performance Data's action row need the
+     exact same fix, so all three share it here rather than drifting out of sync again the
+     way Scouting once did on its own. */
+  #scout-table-panel .panel-title-row,
+  #squad-table-panel .panel-title-row,
+  #performance-table-panel .panel-title-row {
     padding-right: 20px;
   }
 
@@ -4886,11 +4900,20 @@
       </div>
       <div class="view-scroll-area">
         <div class="dashboard-panel tactics-main-panel">
-          <div class="tactic-source-toggle" id="tactic-source-toggle">
-            <span class="tactic-source-toggle-label">Tactic:</span>
-            <button type="button" class="tactic-source-btn" id="tactic-source-btn-fm" data-source="fm">FM Tactic</button>
-            <button type="button" class="tactic-source-btn" id="tactic-source-btn-builder" data-source="builder" disabled title="Build one on the Tactic Builder page first">Custom Tactic</button>
-            <button type="button" class="mini-btn" id="tactics-import-toggle-btn" style="margin-left:auto;">Import Tactic Data</button>
+          <!-- The FM/Custom toggle pills (.tactic-source-btn) are a visibly different, bolder
+               button style than .mini-btn (the one every other page's title-row action uses),
+               so Import Tactic Data gets its own row here rather than being crammed in beside
+               them — same panel-title-row-style space-between alignment as Squad List's
+               "Import Squad Data" and Performance Data's action row, just without a visible
+               <h3> on the left since this panel doesn't have one of its own (the page's <h1>
+               already names it). -->
+          <div class="tactics-header-row">
+            <div class="tactic-source-toggle" id="tactic-source-toggle">
+              <span class="tactic-source-toggle-label">Tactic:</span>
+              <button type="button" class="tactic-source-btn" id="tactic-source-btn-fm" data-source="fm">FM Tactic</button>
+              <button type="button" class="tactic-source-btn" id="tactic-source-btn-builder" data-source="builder" disabled title="Build one on the Tactic Builder page first">Custom Tactic</button>
+            </div>
+            <button type="button" class="mini-btn" id="tactics-import-toggle-btn">Import Tactic Data</button>
           </div>
           <div class="tactics-summary" id="tactics-summary"></div>
           <div class="tactics-pitches-row">
