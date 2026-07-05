@@ -6252,6 +6252,16 @@
     }
     let recruitmentMissions = loadRecruitmentMissions();
 
+    // FM shows a flat "£1" (occasionally already suffixed "£1 p/w") for a player whose wage
+    // demand hasn't actually been scouted/disclosed yet — it's a placeholder, not a genuine
+    // one-pound-a-week wage, but a bulk export carries it straight through unchanged (both
+    // ends of a {min, max} range collapse to "£1"/"£1" in that case — see formatWage below).
+    // Recognises that placeholder on a single figure so formatWage can show something
+    // self-explanatory instead of a number that reads as if it were real.
+    function isUndisclosedWageFigure(figure) {
+      return typeof figure === 'string' && /^£\s*1(\.0+)?\s*(p\/w)?$/i.test(figure.trim());
+    }
+
     // The schema (see SCOUT_EXAMPLE_TEMPLATE/the Setup Guide) expects wage as a plain string
     // like "£15K p/w", but hand-entered or screenshot-transcribed JSON sometimes ends up with
     // a small object instead. Two shapes have shown up in practice: {amount:'£15K',
@@ -6263,20 +6273,28 @@
     // stringifies it to the unhelpful literal text "[object Object]" (or, for a shape this
     // didn't recognise, just quietly showed a dash instead of the real range). This
     // normalises every shape seen so far into a real display string (or a plain dash if
-    // nothing usable is found) so neither of those can happen again. parseWageValue below
-    // routes through this first so a wage ceiling check still works no matter which shape the
-    // value arrived in.
+    // nothing usable is found) so neither of those can happen again — and separately swaps in
+    // "Undisclosed" wherever every real figure available turns out to be FM's own "£1"
+    // placeholder (see isUndisclosedWageFigure above), rather than showing a wage that reads
+    // as real but isn't. parseWageValue below routes through this first so a wage ceiling
+    // check still works no matter which shape the value arrived in.
     function formatWage(wage) {
-      if (typeof wage === 'string') return wage || '—';
+      if (typeof wage === 'string') {
+        if (!wage) return '—';
+        return isUndisclosedWageFigure(wage) ? 'Undisclosed' : wage;
+      }
       if (wage && typeof wage === 'object') {
-        if (typeof wage.text === 'string' && wage.text) return wage.text;
-        if (typeof wage.value === 'string' && wage.value) return wage.value;
+        if (typeof wage.text === 'string' && wage.text) return isUndisclosedWageFigure(wage.text) ? 'Undisclosed' : wage.text;
+        if (typeof wage.value === 'string' && wage.value) return isUndisclosedWageFigure(wage.value) ? 'Undisclosed' : wage.value;
         if (wage.min != null || wage.max != null) {
-          if (wage.min != null && wage.max != null && wage.min !== wage.max) return `${wage.min} - ${wage.max} p/w`;
-          const only = wage.min != null ? wage.min : wage.max;
-          return `${only} p/w`;
+          const minReal = wage.min != null && !isUndisclosedWageFigure(wage.min) ? wage.min : null;
+          const maxReal = wage.max != null && !isUndisclosedWageFigure(wage.max) ? wage.max : null;
+          if (!minReal && !maxReal) return 'Undisclosed';
+          if (minReal && maxReal && minReal !== maxReal) return `${minReal} - ${maxReal} p/w`;
+          return `${minReal || maxReal} p/w`;
         }
         if (wage.amount != null) {
+          if (isUndisclosedWageFigure(String(wage.amount))) return 'Undisclosed';
           const period = wage.period || wage.frequency || 'p/w';
           return `${wage.amount} ${period}`.trim();
         }
@@ -6289,13 +6307,16 @@
     // shape becomes "£6K - £8.27K p/w") this deliberately takes the HIGHEST figure in the
     // string rather than the first one — a ceiling check exists to answer "could this player
     // cost more than I want to pay", and the low end of a range understates that. Returns null
-    // for anything with no recognisable "£<number>K" figure at all (blank, "Free", a bare "£1"
-    // placeholder FM uses for a completely undisclosed wage, not yet captured, etc) rather
-    // than guessing — callers should treat null as "unknown, don't rule the candidate out on
-    // wage alone" rather than as a failed check.
+    // for anything with no recognisable "£<number>K" figure at all (blank, "Free", "Undisclosed"
+    // — see isUndisclosedWageFigure/formatWage above for FM's own "£1" placeholder, not yet
+    // captured, etc) rather than guessing — callers should treat null as "unknown, don't rule
+    // the candidate out on wage alone" rather than as a failed check. This is exactly what
+    // already keeps an Undisclosed-wage player eligible for a Recruitment Mission with a wage
+    // ceiling set: nothing here has to change for that, since there was never a real "£<N>K"
+    // figure to extract from a bare "£1" in the first place.
     function parseWageValue(wageStr) {
       const str = formatWage(wageStr);
-      if (str === '—') return null;
+      if (str === '—' || str === 'Undisclosed') return null;
       const matches = str.match(/£\s*[\d.]+\s*K/gi);
       if (!matches) return null;
       const last = matches[matches.length - 1];

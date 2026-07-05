@@ -140,9 +140,7 @@ check('the scouted-player modal also normalises an object-shaped wage instead of
 // (FM shows a wage range rather than one figure when the exact demand isn't known yet, and a
 // bulk export can carry that through as {min, max} rather than collapsing to one number) ----
 check('formatWage builds a "min - max" display string from a {min, max} shape', formatWage({ min: '£6K', max: '£8.27K' }) === '£6K - £8.27K p/w');
-check('formatWage collapses a {min, max} shape to one figure when min and max are equal', formatWage({ min: '£1', max: '£1' }) === '£1 p/w');
 check('parseWageValue on a {min, max} shape takes the HIGH end, not the low end', parseWageValue({ min: '£6K', max: '£8.27K' }) === 8.27);
-check('parseWageValue returns null for a {min, max} shape with no real "K" figure (FM\'s undisclosed-wage "£1" placeholder)', parseWageValue({ min: '£1', max: '£1' }) === null);
 
 const rangeWagePlayer = {
   name: 'Test Range Wage Target',
@@ -164,6 +162,68 @@ check('the Scouting table shows the full wage range, not a blank dash', /£6K - 
 const rangeWageIdx = scoutShortlist.findIndex(p => p.name === 'Test Range Wage Target');
 openScoutProfile(rangeWageIdx);
 check('the scouted-player modal shows the full wage range', document.getElementById('sm-wage').textContent === '£6K - £8.27K p/w');
+
+// --- FM's "£1"/"£1" undisclosed-wage placeholder: must read as "Undisclosed", not a real
+// one-pound wage, and must not affect Recruitment Missions matching -------------------------
+// FM shows a flat "£1" for a player whose wage demand hasn't actually been scouted yet - a
+// bulk export carries that straight through as {min:"£1", max:"£1"} rather than omitting the
+// field entirely, which used to render as the literal, misleading text "£1 p/w".
+check('isUndisclosedWageFigure recognises a bare "£1"', isUndisclosedWageFigure('£1'));
+check('isUndisclosedWageFigure recognises "£1" with the p/w suffix already on it', isUndisclosedWageFigure('£1 p/w'));
+check('isUndisclosedWageFigure does not flag a real low wage', !isUndisclosedWageFigure('£1.5K'));
+check('formatWage shows "Undisclosed" for a {min, max} shape that is FM\'s "£1"/"£1" placeholder', formatWage({ min: '£1', max: '£1' }) === 'Undisclosed');
+check('formatWage shows "Undisclosed" for a bare "£1" string', formatWage('£1') === 'Undisclosed');
+check('parseWageValue still returns null for the "£1" placeholder (unchanged from before)', parseWageValue({ min: '£1', max: '£1' }) === null);
+
+const undisclosedWagePlayer = {
+  name: 'Test Undisclosed Wage Target',
+  position: 'D (C)',
+  age: 21,
+  club: 'Test FC',
+  nation: 'BRA',
+  ability: '2★',
+  potential: '3★',
+  wage: { min: '£1', max: '£1' },
+  attributes: {
+    'First Touch': 10, Passing: 10, Technique: 10, Composure: 10, Decisions: 10, 'Off The Ball': 10, Teamwork: 10, Vision: 10,
+  },
+};
+addScoutedPlayers([undisclosedWagePlayer]);
+const undisclosedWageRowHtml = document.getElementById('scout-table-body').innerHTML;
+check('the Scouting table shows "Undisclosed" rather than the literal "£1 p/w"', /Undisclosed/.test(undisclosedWageRowHtml) && !/£1 p\/w/.test(undisclosedWageRowHtml));
+
+const undisclosedWageIdx = scoutShortlist.findIndex(p => p.name === 'Test Undisclosed Wage Target');
+openScoutProfile(undisclosedWageIdx);
+check('the scouted-player modal shows "Undisclosed" rather than "£1 p/w"', document.getElementById('sm-wage').textContent === 'Undisclosed');
+
+// A mission with a wage ceiling must still treat an Undisclosed-wage player as viable (same
+// "unknown, don't rule them out" logic as before this change) rather than excluding them just
+// because their wage reads as "Undisclosed" instead of a plain number.
+scoutShortlist.length = 0;
+const undisclosedButOtherwiseIdealCandidate = {
+  name: 'Test Undisclosed Wage Playmaker',
+  position: 'M (C)',
+  age: 24,
+  club: 'Test FC',
+  nation: 'ESP',
+  ability: '4★',
+  potential: '4★',
+  wage: { min: '£1', max: '£1' },
+  attributes: {
+    'First Touch': 18, Passing: 18, Technique: 18, Composure: 18, Decisions: 18, 'Off The Ball': 18, Teamwork: 18, Vision: 18,
+    Crossing: 16, Dribbling: 16, Anticipation: 16, Flair: 16, Acceleration: 16, Agility: 16,
+  },
+};
+addScoutedPlayers([undisclosedButOtherwiseIdealCandidate]);
+const undisclosedWageCeilingMission = { role: 'Advanced Playmaker', maxAge: null, maxWageK: 20, priority: 'high' };
+const undisclosedWageResult = evaluateMission(undisclosedWageCeilingMission);
+// An unknown wage against a set ceiling can't confirm "definitely within budget", so this
+// isn't promoted all the way to "Ready" (same "can't confirm either way" treatment a breached
+// ceiling gets — see the existing wage-ceiling-breach test above) — but the whole point is
+// that it must NOT be excluded ("Open"/no candidate) just because the wage reads as
+// "Undisclosed" instead of a plain number. It should still surface as the best candidate.
+check('an Undisclosed wage does not get the mission excluded outright ("Open"/critical)', undisclosedWageResult.status !== 'critical');
+check('an Undisclosed-wage candidate is still surfaced as the mission\'s best match', undisclosedWageResult.best && undisclosedWageResult.best.name === 'Test Undisclosed Wage Playmaker');
 
 // --- parseValueSortValue: a dash-separated Transfer Value range must use the HIGH end -------
 // FM's own "Estimated Transfer Value" is often a range ("£120K - £1.2M") rather than one
