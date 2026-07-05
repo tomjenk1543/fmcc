@@ -4860,7 +4860,7 @@
             </table>
           </div>
         </div>
-        <div class="dashboard-panel" id="performance-chart-panel" style="display:none;">
+        <div class="dashboard-panel gaps-clickable" id="performance-chart-panel" style="display:none;">
           <div class="panel-title-row">
             <h3 id="performance-chart-title">Chart</h3>
           </div>
@@ -12547,7 +12547,7 @@
         ],
         sortKey: 'tacklesAttempted',
         trendKey: 'foulsMade', trendDecimals: 0,
-        chart: { singleKey: 'foulsMade', singleLabel: 'Fouls Made', volumeKey: 'tacklesAttempted', volumeLabel: 'Tackles Att.', topN: 6, decimals: 0 },
+        chart: { singleKey: 'foulsMade', singleLabel: 'Fouls Made', topN: 6, decimals: 0 },
       },
       generalplay: {
         label: 'General Play',
@@ -12562,7 +12562,11 @@
         ],
         sortKey: 'passesAttempted',
         trendKey: 'passPct', trendDecimals: 1, trendSuffix: '%',
-        chart: { singleKey: 'passPct', singleLabel: 'Pass %', volumeKey: 'passesAttempted', volumeLabel: 'Passes Attempted', topN: 6, decimals: 0, suffix: '%' },
+        // No stored "passes completed" count (FM's own screen only exposes Pass % and Passes
+        // Attempted) — numeratorFromPct reconstructs it (rounded) from those two for display.
+        // minVolume of 100 matches the exact threshold computePerformanceInsights already
+        // uses to call someone a "regular passer" for this same stat.
+        chart: { singleKey: 'passPct', singleLabel: 'Pass %', denominatorKey: 'passesAttempted', numeratorFromPct: true, volumeLabel: 'Passes Attempted', minVolumeKey: 'passesAttempted', minVolume: 100, topN: 6, decimals: 0, suffix: '%' },
       },
       goalattempts: {
         label: 'Goal Attempts',
@@ -12576,7 +12580,11 @@
         ],
         sortKey: 'shots',
         trendKey: '__conversion', trendDecimals: 1, trendSuffix: '%',
-        chart: { singleKey: '__conversion', singleLabel: 'Conversion %', volumeKey: 'shots', volumeLabel: 'Shots', topN: 6, decimals: 0, suffix: '%' },
+        // goals/shots are both stored fields already, so the fraction shown next to the
+        // percentage (e.g. "45% (9/20)") uses them directly rather than reconstructing
+        // anything. minVolume of 5 matches the exact threshold computePerformanceInsights
+        // already uses for this same conversion-rate calculation.
+        chart: { singleKey: '__conversion', singleLabel: 'Conversion %', numeratorKey: 'goals', denominatorKey: 'shots', volumeLabel: 'Shots', minVolumeKey: 'shots', minVolume: 5, topN: 6, decimals: 0, suffix: '%' },
       },
     };
 
@@ -12858,12 +12866,18 @@
     function buildPerformanceChartCaption(cat, rowCount, isFull) {
       const chart = cat.chart;
       const scopeText = isFull ? `All ${rowCount} eligible player${rowCount === 1 ? '' : 's'}` : `Top ${rowCount}`;
+      const metricLabel = chart.actualLabel || chart.singleLabel;
+      // A qualifying-sample floor (e.g. "5+ shots") only shows up when the category's chart
+      // actually has one — Discipline's Fouls Made is an absolute count with no such floor.
+      const qualifier = (chart.minVolumeKey && chart.minVolume)
+        ? ` (${chart.minVolume}+ ${(chart.volumeLabel || '').toLowerCase()})`
+        : '';
       if (chart.actualKey && chart.expectedKey) {
         return `Bar length = ${chart.actualLabel}. White tick = ${chart.expectedLabel} (what the model expected). `
           + `Green bar = clearly ahead of ${chart.expectedLabel}, red = clearly behind. `
-          + `${scopeText}, ranked by ${chart.volumeLabel}.`;
+          + `${scopeText}, ranked highest to lowest by ${metricLabel}${qualifier}.`;
       }
-      return `Bar length = ${chart.singleLabel}. ${scopeText}, ranked by ${chart.volumeLabel}.`;
+      return `Bar length = ${chart.singleLabel}. ${scopeText}, ranked highest to lowest by ${metricLabel}${qualifier}.`;
     }
 
     // Renders the table + chart for whichever category is currently picked, against
@@ -12987,18 +13001,40 @@
           };
         });
       }
+      // Ranked by the metric itself (value), highest to lowest — same as the actual-vs-
+      // expected branch above. chart.minVolumeKey/minVolume (when set) is an eligibility
+      // floor only — e.g. Goal Attempts requires 5+ shots, General Play requires 100+ passes
+      // attempted, matching the exact thresholds computePerformanceInsights already uses for
+      // these same stats — so a tiny, unrepresentative sample (one sub's single 100%-completed
+      // pass) can't top the chart. Discipline's Fouls Made has no such threshold since it's
+      // already an absolute count, not a rate.
       const rows = players
         .map(p => {
           const derived = computeDerivedStats(p);
           const value = getColumnValue({ key: chart.singleKey }, p, derived);
-          const volumeRaw = chart.volumeKey ? p[chart.volumeKey] : value;
+          const volumeRaw = chart.minVolumeKey ? p[chart.minVolumeKey] : null;
           const volume = typeof volumeRaw === 'number' ? volumeRaw : parseAppsTotal(volumeRaw);
-          return { label: p.name, value, volume };
+          return { label: p.name, value, volume, raw: p };
         })
-        .filter(r => typeof r.value === 'number')
-        .sort((a, b) => b.volume - a.volume)
+        .filter(r => typeof r.value === 'number' && (!chart.minVolumeKey || r.volume >= (chart.minVolume || 0)))
+        .sort((a, b) => b.value - a.value)
         .slice(0, topN);
-      return rows.map(r => ({ label: r.label, value: r.value, displayValue: `${fmtNum(r.value, chart.decimals)}${chart.suffix || ''}` }));
+      return rows.map(r => {
+        // The raw numbers behind a rate metric, shown alongside the percentage itself — e.g.
+        // Goal Attempts shows "45% (9/20)" using the two stored fields directly
+        // (numeratorKey/denominatorKey); General Play's Pass % has no stored "completed"
+        // count, so numeratorFromPct reconstructs it from the percentage and Passes Attempted.
+        let fraction = '';
+        if (chart.numeratorKey && chart.denominatorKey) {
+          const num = r.raw[chart.numeratorKey];
+          const den = r.raw[chart.denominatorKey];
+          if (typeof num === 'number' && typeof den === 'number') fraction = ` (${num}/${den})`;
+        } else if (chart.numeratorFromPct && chart.denominatorKey) {
+          const den = r.raw[chart.denominatorKey];
+          if (typeof den === 'number') fraction = ` (${Math.round((r.value / 100) * den)}/${den})`;
+        }
+        return { label: r.label, value: r.value, displayValue: `${fmtNum(r.value, chart.decimals)}${chart.suffix || ''}${fraction}` };
+      });
     }
 
     // Hand-rolled horizontal bar chart — no external charting library, keeping this feature
@@ -13007,13 +13043,15 @@
     // `value`, and — when the category has a real "expected" stat — a thin white marker tick
     // showing where `expected` sits on the same scale, so over/underperformance is visible
     // as "bar past the tick" or "bar short of the tick" without needing a second offset bar.
-    function renderPerformanceBarChart(containerEl, rows) {
+    // Pulled out as a pure string builder (rather than folded into renderPerformanceBarChart)
+    // so openPerformanceChartModal() can build the same markup for the shared gaps-modal
+    // without needing a live container element to render into first.
+    function buildPerformanceBarChartHtml(rows) {
       if (!rows.length) {
-        containerEl.innerHTML = '<div class="scouting-focus-empty">Not enough data yet for this chart.</div>';
-        return;
+        return '<div class="scouting-focus-empty">Not enough data yet for this chart.</div>';
       }
       const maxVal = Math.max(...rows.map(r => Math.max(r.value || 0, r.expected || 0)), 0.0001) * 1.15;
-      containerEl.innerHTML = rows.map(r => {
+      return rows.map(r => {
         const barPct = Math.max(0, Math.min(100, (r.value / maxVal) * 100));
         const barClass = r.over === true ? 'is-over' : r.over === false ? 'is-under' : '';
         const markerHtml = (r.expected != null)
@@ -13028,6 +13066,10 @@
           <div class="perf-chart-value">${r.displayValue}</div>
         </div>`;
       }).join('');
+    }
+
+    function renderPerformanceBarChart(containerEl, rows) {
+      containerEl.innerHTML = buildPerformanceBarChartHtml(rows);
     }
 
     // ---- Analysis: assumptions / areas for improvement / over-underperformers ----
@@ -13404,6 +13446,22 @@
       attachScoutSuggestionHandlers(document.getElementById('gaps-modal-body'));
     }
 
+    // Opens the shared gaps-modal with the full, uncapped bar chart for whichever category
+    // the page is currently on — same "whole tile is a click target" pattern as the Analysis
+    // tile above (.gaps-clickable on #performance-chart-panel). Complementary to (not a
+    // replacement for) the "Full Overview" button/modal, which shows table+chart+insights
+    // together — this is a quicker way to see just the chart's full ranked list uncapped.
+    function openPerformanceChartModal() {
+      if (!performanceLatestSnapshot) return;
+      const cat = PERFORMANCE_CATEGORIES[performanceCategory];
+      const players = performanceLatestSnapshot.players;
+      const chartRows = computePerformanceChartRows(cat, players, players.length);
+      const captionHtml = chartRows.length
+        ? `<div class="perf-chart-caption">${buildPerformanceChartCaption(cat, chartRows.length, true)}</div>`
+        : '';
+      openGapsModal(`Chart — ${cat.label}`, `${captionHtml}${buildPerformanceBarChartHtml(chartRows)}`);
+    }
+
     function renderPerformanceHistory(snapshots) {
       const historyList = document.getElementById('performance-history-list');
       if (snapshots.length === 0) {
@@ -13584,6 +13642,10 @@
     // re-attached on every render since — unlike the conditional gap tiles elsewhere — this
     // tile always has more to show) that opens the full breakdown in the shared gaps-modal.
     document.getElementById('performance-insights-panel').addEventListener('click', openPerformanceInsightsModal);
+
+    // Chart tile — same always-clickable pattern as the Analysis tile above (it always has
+    // more to show once the inline view is capped to topN).
+    document.getElementById('performance-chart-panel').addEventListener('click', openPerformanceChartModal);
 
     renderPerformanceData();
     // ---- END Performance Data ----

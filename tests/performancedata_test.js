@@ -277,6 +277,13 @@ const discHeadHtml = document.getElementById('performance-table-head').innerHTML
 check('discipline table header includes Tackles Won and Fouls Made', /Tackles Won/.test(discHeadHtml) && /Fouls Made/.test(discHeadHtml));
 const discChartHtml = document.getElementById('performance-chart-container').innerHTML;
 check('discipline chart renders bars without an actual/expected marker requirement', /perf-chart-row/.test(discChartHtml));
+// Fouls Made is an absolute count with no volume-based eligibility floor — the chart is
+// ranked by the metric itself, so Zeki Uzunoğlu (60 fouls, fewer tackles attempted than
+// Botha) still outranks Michael Botha (47 fouls) here, unlike the old volume-sorted order
+// which would have put Botha first (30 tackles attempted vs Zeki's 20). The raw chart isn't
+// loan-filtered, so Zeki legitimately appears in it.
+check('discipline chart ranks by Fouls Made itself (Zeki 60 > Botha 47 > Musolino 45), not by volume',
+  discChartHtml.indexOf('Zeki') < discChartHtml.indexOf('Michael Botha') && discChartHtml.indexOf('Michael Botha') < discChartHtml.indexOf('Samuel Musolino'));
 // The raw Squad Performance table is a factual record of what was captured — it still shows
 // Zeki Uzunoğlu even though he's out on loan (only the Analysis panel excludes him below).
 check('the raw Squad Performance table still shows the loaned-out Zeki Uzunoğlu', /Zeki/.test(document.getElementById('performance-table-body').innerHTML));
@@ -301,6 +308,47 @@ check('discipline full breakdown does NOT show goalkeeping or attacking content'
 check('discipline full breakdown also excludes the loaned-out Zeki Uzunoğlu', !/Zeki/.test(discModalHtml));
 closeGapsModal();
 
+// ---- Switch to General Play category (rate metric with a volume-based eligibility floor,
+// and no stored "completed" count to build its fraction from) ----
+performanceCategory = 'generalplay';
+renderPerformanceCategoryView();
+const gpChartHtml = document.getElementById('performance-chart-container').innerHTML;
+// Ranked by Pass % itself: Ndo (91%) > Musolino (88%) > Botha (87%) > Zeki (65%) — all clear
+// the 100-passes-attempted floor (matching computePerformanceInsights' own "regular passer"
+// threshold), so none are excluded on volume grounds here.
+check('General Play chart ranks by Pass % itself (Ndo 91% > Musolino 88% > Botha 87% > Zeki 65%)',
+  gpChartHtml.indexOf('Arthur Ndo') < gpChartHtml.indexOf('Samuel Musolino')
+  && gpChartHtml.indexOf('Samuel Musolino') < gpChartHtml.indexOf('Michael Botha')
+  && gpChartHtml.indexOf('Michael Botha') < gpChartHtml.indexOf('Zeki'));
+// No stored "passes completed" field exists — the fraction is reconstructed from Pass % and
+// Passes Attempted (numeratorFromPct), so Botha's own Passes Attempted (1748) should still
+// show up exactly as the fraction's denominator.
+check('General Play chart shows a reconstructed completed/attempted fraction (denominator matches Passes Attempted)',
+  /\(\d+\/1748\)/.test(gpChartHtml));
+check('General Play chart caption reflects the 100+ passes attempted eligibility floor',
+  /100\+ Passes Attempted/i.test(document.getElementById('performance-chart-caption').textContent));
+
+// ---- Switch to Goal Attempts category (rate metric with stored goals/shots to build its
+// fraction from directly, no reconstruction needed) ----
+performanceCategory = 'goalattempts';
+renderPerformanceCategoryView();
+const gaChartHtml = document.getElementById('performance-chart-container').innerHTML;
+// Extra Player Three (2/6 = 33.3%) and Extra Player Six (3/9 = 33.3%) both convert at a
+// higher RATE than Samuel Musolino (26/134 = 19.4%) despite far fewer shots — under the old
+// volume-sorted behaviour Musolino (134 shots) would have ranked first; ranked by the
+// conversion rate itself, he now ranks behind both of them.
+check('Goal Attempts chart ranks by Conversion % itself, not by shot volume (a low-volume high-% player outranks Musolino)',
+  gaChartHtml.indexOf('Extra Player Three') < gaChartHtml.indexOf('Samuel Musolino'));
+// goals/shots are both stored fields already, so the fraction next to the percentage uses
+// them directly (numeratorKey/denominatorKey) — Musolino's is exactly 26/134.
+check('Goal Attempts chart shows the exact goals/shots fraction next to the percentage', /\(26\/134\)/.test(gaChartHtml));
+// Extra Player Two (1 goal from 3 shots) falls below the 5-shot eligibility floor
+// (computePerformanceInsights' own conversion-rate threshold) and should be excluded
+// entirely rather than showing up as a misleading small-sample percentage.
+check('Goal Attempts chart excludes a player below the 5-shot eligibility floor', !/Extra Player Two/.test(gaChartHtml));
+check('Goal Attempts chart caption reflects the 5+ shots eligibility floor',
+  /5\+ Shots/i.test(document.getElementById('performance-chart-caption').textContent));
+
 // Reset back to the default category so later checks aren't order-dependent.
 performanceCategory = 'attacking';
 renderPerformanceCategoryView();
@@ -313,6 +361,23 @@ check('inline attacking chart is capped to the category\'s topN (6), not showing
 check('inline chart caption explains bar length and the expected-value tick',
   /Bar length = Goals/.test(document.getElementById('performance-chart-caption').textContent)
   && /xG/.test(document.getElementById('performance-chart-caption').textContent));
+check('inline chart caption now says "ranked highest to lowest" rather than "ranked by" volume',
+  /ranked highest to lowest by Goals/.test(document.getElementById('performance-chart-caption').textContent));
+
+// ---- Chart tile is clickable (.gaps-clickable), opening the shared gaps-modal with the
+// full uncapped chart for whichever category is showing — same pattern as the Analysis tile,
+// complementary to the separate "Full Overview" button/modal. ----
+check('the Chart tile has the gaps-clickable affordance', document.getElementById('performance-chart-panel').classList.contains('gaps-clickable'));
+document.getElementById('performance-chart-panel').fire('click');
+check('clicking the Chart tile opens the shared gaps-modal', document.getElementById('gaps-modal-backdrop').classList.contains('open'));
+check('the Chart popup\'s title names the Attacking category', /Attacking/.test(document.getElementById('gaps-modal-title').textContent));
+const chartModalHtml = document.getElementById('gaps-modal-body').innerHTML;
+const chartModalBarCount = (chartModalHtml.match(/perf-chart-row/g) || []).length;
+check('the Chart popup shows every chart-eligible player, more than the inline topN cap',
+  chartModalBarCount === ATTACKING_CHART_ELIGIBLE_COUNT && chartModalBarCount > inlineBarCount);
+check('the Chart popup includes its own caption reflecting the full eligible-player count',
+  new RegExp(`All ${ATTACKING_CHART_ELIGIBLE_COUNT} eligible players`).test(chartModalHtml));
+closeGapsModal();
 
 // ---- Full Overview modal: uncapped table + chart for whichever category is selected ----
 renderPerformanceOverviewModal();
