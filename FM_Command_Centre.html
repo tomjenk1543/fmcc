@@ -2340,28 +2340,13 @@
     padding-bottom: 6px;
   }
 
-  /* Fixed height so the radar's own aspect ratio doesn't fight the attribute-col's
-     content-sized layout (see .attribute-groups' own comment above) - the SVG inside
-     is viewBox-scaled to fill this box regardless of the real modal width. */
-  .pm-radar {
-    width: 100%;
-    height: 190px;
-    margin-bottom: 12px;
-  }
-
-  .pm-radar svg {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-
-  /* Set Pieces used to live stacked under Physical in col-3, alongside the radar chart
-     added above — the two together made that one column (radar + 8 Physical rows + Set
-     Pieces' own 4) far taller than Technical (10 rows) or Mental (14), leaving a large
-     dead gap under those two shorter columns once the whole modal box grew to fit col-3.
-     Pulling Set Pieces out to its own full-width section below all three columns instead
-     keeps col-3 close to Mental's height, and lets Set Pieces lay its 4 attributes out
-     across the full modal width instead of squeezed into a single narrow column. */
+  /* Set Pieces used to live stacked under Physical in col-3 — for a while that column also
+     carried a radar chart (added, then removed again once it made the column noticeably
+     taller than Technical (10 rows) or Mental (14), leaving a dead gap under those two
+     shorter columns). Pulling Set Pieces out to its own full-width section below all three
+     columns instead keeps col-3 close to Mental's height, and lets Set Pieces lay its 4
+     attributes out across the full modal width instead of squeezed into a single narrow
+     column. */
   .attribute-group-set-pieces {
     margin-top: 20px;
     padding-top: 16px;
@@ -4698,15 +4683,11 @@
           <div class="attribute-col" id="pm-attr-col-3">
             <div class="attribute-group attribute-group-physical">
               <h4>Physical</h4>
-              <!-- redesign-explore: radar chart alongside the existing numbers list (not
-                   instead of it - the list is the accessible/precise-reading fallback the
-                   chart-pattern guidance calls for). Physical is exactly 8 attributes, which
-                   is the top of the recommended 5-8 axis range for a radar before it turns
-                   into unreadable noise - Technical/Mental (14 each) intentionally don't get
-                   one here for the same reason; a future role-fit radar (using just a role's
-                   4-8 key attributes, already selected via the picker below) is the natural
-                   next step instead of forcing all 14 onto one chart. -->
-              <div class="pm-radar" id="pm-physical-radar"></div>
+              <!-- redesign-explore had a radar chart here alongside the numbers list —
+                   removed again: on top of the existing Set Pieces dead-space issue (see
+                   .attribute-group-set-pieces' comment in the stylesheet), the chart itself
+                   was eating a lot of the modal's vertical room for a player pop-up that's
+                   meant to be a quick glance, not a dedicated analysis screen. -->
               <div id="pm-physical"></div>
             </div>
             <div class="attribute-group attribute-group-goalkeeping" id="pm-goalkeeping-group" style="display:none;">
@@ -10574,66 +10555,12 @@
     const TECHNICAL_CORE_ATTR_NAMES = ['Crossing', 'Dribbling', 'Finishing', 'First Touch', 'Heading', 'Long Shots', 'Marking', 'Passing', 'Tackling', 'Technique'];
     const SET_PIECES_ATTR_NAMES = ['Corners', 'Free Kick Taking', 'Long Throws', 'Penalty Taking'];
 
-    // Short axis labels for the Physical radar (see buildRadarSvg) — full attribute names
-    // ("Natural Fitness", "Jumping Reach") don't fit around an 8-axis chart at a readable
-    // size, so this is a display-only abbreviation map; nothing downstream reads these keys.
-    const PHYSICAL_ATTR_SHORT_LABELS = {
-      'Acceleration': 'Accel', 'Agility': 'Agility', 'Balance': 'Balance',
-      'Jumping Reach': 'Jump', 'Natural Fitness': 'Fitness', 'Pace': 'Pace',
-      'Stamina': 'Stamina', 'Strength': 'Strength'
-    };
-
-    // Hand-rolled inline SVG radar/spider chart — no charting library, to stay consistent
-    // with this app's own "no build step, no dependencies" principle (see README.md).
-    // Per the radar-chart guidance this is meant for (5-8 axes max before it turns into
-    // unreadable noise, 1-3 datasets, always paired with an exact-value fallback), so this
-    // is deliberately only ever called with the 8-attribute Physical group, and is added
-    // ALONGSIDE the existing attributeRowsHtml() list rather than replacing it - the list is
-    // the precise/accessible reading, the radar is the at-a-glance shape.
-    // labels/values must be the same length; maxValue is the attribute scale (20 for FM).
-    function buildRadarSvg(labels, values, maxValue) {
-      const size = 200;
-      const center = size / 2;
-      const radius = 78;
-      const n = labels.length;
-      // -90deg (Math.PI/2) so the first axis points straight up, then clockwise around.
-      const angleFor = i => (Math.PI * 2 * i / n) - Math.PI / 2;
-      const pointFor = (i, r) => {
-        const a = angleFor(i);
-        return [center + r * Math.cos(a), center + r * Math.sin(a)];
-      };
-
-      // Reference rings at 25/50/75/100% of the scale, plus one spoke per axis, so the data
-      // polygon has something to be read against instead of floating on a blank background.
-      const rings = [0.25, 0.5, 0.75, 1].map(frac => {
-        const pts = labels.map((_, i) => pointFor(i, radius * frac).join(',')).join(' ');
-        return `<polygon points="${pts}" fill="none" stroke="var(--panel-border)" stroke-width="1" />`;
-      }).join('');
-
-      const spokes = labels.map((_, i) => {
-        const [x, y] = pointFor(i, radius);
-        return `<line x1="${center}" y1="${center}" x2="${x}" y2="${y}" stroke="var(--panel-border)" stroke-width="1" />`;
-      }).join('');
-
-      const dataPts = values.map((v, i) => pointFor(i, radius * Math.max(0, Math.min(1, v / maxValue))).join(',')).join(' ');
-
-      const labelEls = labels.map((label, i) => {
-        const [x, y] = pointFor(i, radius + 14);
-        // Nudge horizontal anchor by which side of the circle the label sits on, so left-side
-        // labels don't run off the edge and right-side labels don't hug the polygon.
-        const anchor = Math.abs(x - center) < 4 ? 'middle' : (x > center ? 'start' : 'end');
-        return `<text x="${x}" y="${y}" text-anchor="${anchor}" dominant-baseline="middle" font-size="9" fill="var(--text-dim)">${label}</text>`;
-      }).join('');
-
-      return `
-        <svg viewBox="0 0 ${size} ${size}" role="img" aria-hidden="true">
-          ${rings}
-          ${spokes}
-          <polygon points="${dataPts}" fill="var(--club-primary)" fill-opacity="0.28" stroke="var(--club-text)" stroke-width="2" />
-          ${labelEls}
-        </svg>
-      `;
-    }
+    // redesign-explore tried a hand-rolled SVG radar chart here for Physical (buildRadarSvg,
+    // paired with PHYSICAL_ATTR_SHORT_LABELS for its axis labels) — removed again: it ate a
+    // lot of the player pop-up's vertical room for what's meant to be a quick glance, not a
+    // dedicated analysis screen, on top of the dead-space problem it created for Set Pieces
+    // (see .attribute-group-set-pieces' comment in the stylesheet). The plain
+    // attributeRowsHtml() list below remains the only Physical view.
 
     // Same strong/mid/weak colour banding as the Tactics tab (keyAttrClass), applied here
     // too so a glance at a player's profile reads the same way a glance at a role's
@@ -10679,15 +10606,6 @@
 
       document.getElementById('pm-mental').innerHTML = attributeRowsHtml(ATTRIBUTE_GROUPS.Mental, p.attributes);
       document.getElementById('pm-physical').innerHTML = attributeRowsHtml(ATTRIBUTE_GROUPS.Physical, p.attributes);
-      // redesign-explore: Physical radar, built from the same attribute data as the list
-      // just above - see buildRadarSvg's own comment for why only Physical gets one.
-      document.getElementById('pm-physical-radar').innerHTML = p.attributes
-        ? buildRadarSvg(
-            ATTRIBUTE_GROUPS.Physical.map(name => PHYSICAL_ATTR_SHORT_LABELS[name] || name),
-            ATTRIBUTE_GROUPS.Physical.map(name => p.attributes[name] ?? 0),
-            20
-          )
-        : '';
 
       // Goalkeeping attributes only mean anything for the two keepers — show that group,
       // and switch the whole panel to FM's own goalkeeper layout (Goalkeeping column +
