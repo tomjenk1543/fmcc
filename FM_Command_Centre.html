@@ -2355,6 +2355,25 @@
     display: block;
   }
 
+  /* Set Pieces used to live stacked under Physical in col-3, alongside the radar chart
+     added above — the two together made that one column (radar + 8 Physical rows + Set
+     Pieces' own 4) far taller than Technical (10 rows) or Mental (14), leaving a large
+     dead gap under those two shorter columns once the whole modal box grew to fit col-3.
+     Pulling Set Pieces out to its own full-width section below all three columns instead
+     keeps col-3 close to Mental's height, and lets Set Pieces lay its 4 attributes out
+     across the full modal width instead of squeezed into a single narrow column. */
+  .attribute-group-set-pieces {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--panel-border);
+  }
+
+  .set-pieces-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 4px 24px;
+  }
+
   .attribute-row {
     display: flex;
     justify-content: space-between;
@@ -4690,15 +4709,17 @@
               <div class="pm-radar" id="pm-physical-radar"></div>
               <div id="pm-physical"></div>
             </div>
-            <div class="attribute-group attribute-group-set-pieces" id="pm-set-pieces-group">
-              <h4>Set Pieces</h4>
-              <div id="pm-set-pieces"></div>
-            </div>
             <div class="attribute-group attribute-group-goalkeeping" id="pm-goalkeeping-group" style="display:none;">
               <h4>Goalkeeping</h4>
               <div id="pm-goalkeeping"></div>
             </div>
           </div>
+        </div>
+        <!-- Full-width row below the 3-column layout above, not stacked under Physical in
+             col-3 — see .attribute-group-set-pieces' own comment in the stylesheet for why. -->
+        <div class="attribute-group attribute-group-set-pieces" id="pm-set-pieces-group">
+          <h4>Set Pieces</h4>
+          <div id="pm-set-pieces" class="set-pieces-grid"></div>
         </div>
         <div class="attribute-note" id="pm-attribute-note" style="display:none;">
           Full attribute breakdown not captured yet for this player — ask to pull individual
@@ -4757,15 +4778,17 @@
               <h4>Physical</h4>
               <div id="sm-physical"></div>
             </div>
-            <div class="attribute-group attribute-group-set-pieces" id="sm-set-pieces-group">
-              <h4>Set Pieces</h4>
-              <div id="sm-set-pieces"></div>
-            </div>
             <div class="attribute-group attribute-group-goalkeeping" id="sm-goalkeeping-group" style="display:none;">
               <h4>Goalkeeping</h4>
               <div id="sm-goalkeeping"></div>
             </div>
           </div>
+        </div>
+        <!-- Full-width row below the 3-column layout above, not stacked under Physical in
+             col-3 — see .attribute-group-set-pieces' own comment in the stylesheet for why. -->
+        <div class="attribute-group attribute-group-set-pieces" id="sm-set-pieces-group">
+          <h4>Set Pieces</h4>
+          <div id="sm-set-pieces" class="set-pieces-grid"></div>
         </div>
         <div class="attribute-note" id="sm-attribute-note" style="display:none;">
           No attribute data captured for this player yet.
@@ -10679,10 +10702,9 @@
       // this player (see the .attribute-col comment above) — appendChild relocates an
       // existing node rather than cloning it, so #pm-technical/#pm-goalkeeping's contents
       // (set just below) always land in the right place regardless of which player was
-      // open last. Set Pieces lives permanently under Physical in col-3 and never moves;
-      // it just hides for a goalkeeper (appendChild-ing Technical into col-3 afterwards
-      // still lands it after the hidden Set Pieces box, so the visible order stays
-      // Physical → trimmed Technical either way).
+      // open last. Set Pieces itself now lives outside the 3-column grid entirely, as its
+      // own full-width row below it (see .attribute-group-set-pieces' comment in the
+      // stylesheet) — it just hides outright for a goalkeeper, same as before.
       const col1 = document.getElementById('pm-attr-col-1');
       const col3 = document.getElementById('pm-attr-col-3');
       const technicalGroup = document.getElementById('pm-technical-group');
@@ -10691,16 +10713,16 @@
       // FM doesn't show Set Pieces as its own group for keepers (their set-piece-relevant
       // attributes — Free Kick Taking, Penalty Taking — are folded into the trimmed
       // Technical group instead, via GOALKEEPER_TECHNICAL_ATTR_NAMES below), so hide it
-      // outright rather than leaving an empty/duplicate box in col-3.
+      // outright rather than leaving an empty/duplicate section below the columns.
       setPiecesGroup.style.display = hasGoalkeeping ? 'none' : '';
       if (hasGoalkeeping) {
         col1.appendChild(goalkeepingGroup); // col-1 becomes Goalkeeping-only
-        col3.appendChild(technicalGroup);   // col-3 becomes Physical, Set Pieces (hidden), then a trimmed Technical
+        col3.appendChild(technicalGroup);   // col-3 becomes Physical, then a trimmed Technical
         document.getElementById('pm-technical').innerHTML = attributeRowsHtml(GOALKEEPER_TECHNICAL_ATTR_NAMES, p.attributes);
         document.getElementById('pm-goalkeeping').innerHTML = attributeRowsHtml(GOALKEEPER_DISPLAY_ATTR_NAMES, p.attributes);
       } else {
         col1.appendChild(technicalGroup);   // col-1 back to Technical only
-        col3.appendChild(goalkeepingGroup); // col-3 back to Physical, Set Pieces (Goalkeeping hidden at the end)
+        col3.appendChild(goalkeepingGroup); // col-3 back to Physical, Goalkeeping hidden at the end
         document.getElementById('pm-technical').innerHTML = attributeRowsHtml(TECHNICAL_CORE_ATTR_NAMES, p.attributes);
         document.getElementById('pm-set-pieces').innerHTML = attributeRowsHtml(SET_PIECES_ATTR_NAMES, p.attributes);
       }
@@ -10760,9 +10782,18 @@
     // data-attr-name (set by attributeRowsHtml) appears in the given role profile's key or
     // preferred list — see the .is-key-attr/.is-preferred-attr CSS for the actual highlight.
     // Passing a falsy profile just clears every row back to unhighlighted, which is also
-    // exactly what's needed when the picker itself is reset to blank.
+    // exactly what's needed when the picker itself is reset to blank. Two separate
+    // querySelectorAll calls concatenated, rather than one comma-separated selector — covers
+    // #pm-set-pieces-group explicitly, since it now lives outside #pm-attribute-groups as its
+    // own full-width row (see .attribute-group-set-pieces' comment in the stylesheet) and so
+    // a role whose key/preferred list includes a set-piece attribute (e.g. Free Kick Taking)
+    // still gets it highlighted here rather than silently missing it.
     function highlightRoleAttributesInModal(profile) {
-      document.querySelectorAll('#pm-attribute-groups .attribute-row').forEach(row => {
+      const rows = [
+        ...document.querySelectorAll('#pm-attribute-groups .attribute-row'),
+        ...document.querySelectorAll('#pm-set-pieces-group .attribute-row'),
+      ];
+      rows.forEach(row => {
         row.classList.remove('is-key-attr', 'is-preferred-attr');
         if (!profile) return;
         const name = row.getAttribute('data-attr-name');
@@ -11377,10 +11408,11 @@
       document.getElementById('sm-goalkeeping-group').style.display = hasGoalkeeping ? '' : 'none';
 
       // Same column reparenting as openPlayerProfile() (see its own comment) — moves
-      // Technical/Goalkeeping between col-1/col-3. Set Pieces lives permanently under
-      // Physical in col-3 and never moves; it just hides outright for a keeper (FM folds
-      // its two relevant attributes into the trimmed Technical group instead, rather than
-      // showing an empty Set Pieces box alongside Goalkeeping).
+      // Technical/Goalkeeping between col-1/col-3. Set Pieces itself lives outside the
+      // 3-column grid entirely, as its own full-width row below it (see
+      // .attribute-group-set-pieces' comment in the stylesheet); it just hides outright
+      // for a keeper (FM folds its two relevant attributes into the trimmed Technical
+      // group instead, rather than showing an empty Set Pieces section for no reason).
       const smCol1 = document.getElementById('sm-attr-col-1');
       const smCol3 = document.getElementById('sm-attr-col-3');
       const smTechnicalGroup = document.getElementById('sm-technical-group');
@@ -11389,12 +11421,12 @@
       smSetPiecesGroup.style.display = hasGoalkeeping ? 'none' : '';
       if (hasGoalkeeping) {
         smCol1.appendChild(smGoalkeepingGroup);
-        smCol3.appendChild(smTechnicalGroup); // col-3 becomes Physical, Set Pieces (hidden), then a trimmed Technical
+        smCol3.appendChild(smTechnicalGroup); // col-3 becomes Physical, then a trimmed Technical
         document.getElementById('sm-technical').innerHTML = attributeRowsHtml(GOALKEEPER_TECHNICAL_ATTR_NAMES, p.attributes);
         document.getElementById('sm-goalkeeping').innerHTML = attributeRowsHtml(GOALKEEPER_DISPLAY_ATTR_NAMES, p.attributes);
       } else {
         smCol1.appendChild(smTechnicalGroup); // col-1 back to Technical only
-        smCol3.appendChild(smGoalkeepingGroup); // col-3 back to Physical, Set Pieces (Goalkeeping hidden at the end)
+        smCol3.appendChild(smGoalkeepingGroup); // col-3 back to Physical, Goalkeeping hidden at the end
         document.getElementById('sm-technical').innerHTML = attributeRowsHtml(TECHNICAL_CORE_ATTR_NAMES, p.attributes);
         document.getElementById('sm-set-pieces').innerHTML = attributeRowsHtml(SET_PIECES_ATTR_NAMES, p.attributes);
       }
