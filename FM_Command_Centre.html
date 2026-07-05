@@ -29,7 +29,12 @@
     --panel-border: #262626;
     --text: #f2f2f2;
     --text-dim: #9a9a9a;
-    --hotbar-h: 64px;
+    /* Sidebar badge size only now (see .corner-stripe) - used to also be the horizontal
+       hotbar's own height before the redesign-explore sidebar conversion, back when the
+       badge was sized to exactly fill the bar it sat in. Shrunk from 64px since a badge
+       that size was dominating a 232px-wide sidebar header once the layout became a
+       stacked badge-over-wordmark (see .sidebar-header's own comment). */
+    --hotbar-h: 44px;
     /* A lightened version of club-primary used specifically for text (see --club-text below,
        used in place of --club-primary anywhere text is coloured) — plain club-primary can
        be nearly unreadable against the near-black background when a club's colour is
@@ -190,13 +195,22 @@
     opacity: 0.6;
   }
 
-  /* Logo + brand name sit in a row at the top of the sidebar (rather than as two of the
-     sidebar's own top-to-bottom flex children, which would stack them instead of sitting
-     side by side) - see the sidebar-header wrapper in the markup. */
+  /* redesign-explore v2: badge stacked above the wordmark, both centered, rather than a
+     side-by-side row. The row layout was the actual cause of the "crammed" look flagged
+     after the first sidebar pass - at 232px wide, a 64px badge + 16px padding on both sides
+     + a 10px gap left only ~126px for "FM Command Centre" plus the club name underneath,
+     which wrapped onto 2-3 cramped lines. Stacking gives the wordmark the sidebar's full
+     width to lay out in instead of a squeezed leftover column, which is the more common
+     pattern for a narrow sidebar's own branding header anyway (icon mark on top, wordmark
+     below), and also shrinks the badge itself (see --hotbar-h's own comment below) so it
+     doesn't dominate a header this narrow. */
   .sidebar-header {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    padding: 14px 16px;
+    gap: 8px;
+    padding: 20px 16px 16px;
+    text-align: center;
     flex: 0 0 auto;
   }
 
@@ -231,18 +245,22 @@
     height: 86%;
   }
 
+  /* Column instead of a row (was side-by-side next to the badge - see .sidebar-header's
+     own comment for why that got squeezed) - centered under the badge, full sidebar width
+     to work with instead of a leftover sliver next to a 64px circle. */
   .brand {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
     min-width: 0;
+    width: 100%;
   }
 
   .brand .club-name {
     font-weight: 700;
-    font-size: 16px;
-    letter-spacing: 0.5px;
-    line-height: 1.2;
+    font-size: 14px;
+    letter-spacing: 0.4px;
+    line-height: 1.3;
     text-transform: uppercase;
   }
 
@@ -293,14 +311,19 @@
      this is a always-visible grouping label rather than a collapsible parent item (no new
      expand/collapse state to manage, lower risk, and the whole point - fewer, clearer
      top-level destinations - is achieved either way). Not a .nav-btn, so it's invisible to
-     querySelectorAll('.nav-btn')/switchToView() - purely a visual heading. */
+     querySelectorAll('.nav-btn')/switchToView() - purely a visual heading.
+     v2: lower opacity + tighter padding than the first pass - it read as a stray floating
+     caption rather than a real grouping, which is also why the sub-items below now get a
+     connecting guide line (see .nav-btn-sub::before) tying the label to its three items
+     as one visible unit instead of just indentation on its own. */
   .nav-group-label {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.8px;
     color: var(--text-dim);
-    padding: 14px 20px 4px;
+    opacity: 0.75;
+    padding: 16px 20px 6px;
   }
 
   .nav-links button {
@@ -311,7 +334,7 @@
     font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.3px;
-    padding: 10px 20px;
+    padding: 9px 20px;
     text-align: left;
     cursor: pointer;
     border-left: 3px solid transparent;
@@ -324,11 +347,28 @@
      (Squad / Squad Breakdown / Scouting) - visually subordinate to the primary
      Dashboard/Tactical Analysis/Tactic Builder/Settings items, per the "primary vs
      secondary nav should be clearly separated" guidance rather than seven flat equal-weight
-     tabs. */
+     tabs. position:relative so the ::before guide line below can anchor to this button's
+     own box rather than the shared .nav-links container. */
   .nav-links button.nav-btn-sub {
-    padding-left: 32px;
+    position: relative;
+    padding-left: 30px;
     font-size: 13px;
     font-weight: 500;
+  }
+
+  /* A single thin vertical line running through all three sub-items (each one draws its
+     own segment, top-to-bottom of its own row, so together they read as one continuous
+     line rather than three disconnected dashes) - visually ties "Players" to its three
+     items as one nested group, rather than leaving the indentation to imply that on its
+     own, which is what read as "just floating" before this pass. */
+  .nav-links button.nav-btn-sub::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--panel-border);
   }
 
   /* This rule's own "outline: none" above (same specificity as the global :focus-visible
