@@ -3591,10 +3591,17 @@
      --design-width/--design-height's own comment) — .squad-table-scroll inside is
      already flex:1/min-height:0/overflow:auto (see that rule), so it just fills whatever
      height is left inside this panel and scrolls internally rather than growing the page. */
+  /* padding-left overrides .squad-table-panel's inherited 20px down to 14px, matching
+     .squad-table-scroll's own 14px right-side gutter below (see that rule's own comment) —
+     without this the table sat 20px from the tile's left edge but only 14px from the right,
+     an uneven 6px mismatch between the two sides. Both 14px now so it reads as one
+     consistent margin all the way around, just narrower than Squad's roomier 20px/20px to
+     keep this table's extra columns fitting without a horizontal scrollbar. */
   .scout-table-panel {
     height: calc(var(--design-height) * 0.46);
     min-height: 260px;
     margin-bottom: 20px;
+    padding-left: 14px;
   }
 
   /* .squad-table-panel (shared with Squad) deliberately zeroes the panel's own right
