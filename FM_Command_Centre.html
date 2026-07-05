@@ -4793,6 +4793,13 @@
           <div class="panel-title-row">
             <h3>Squad Performance <span class="scout-tile-subtitle" id="performance-latest-label"></span></h3>
             <div class="performance-title-actions">
+              <!-- Options filled in by JS from getPerformanceSeasons() — rebuilt on every
+                   render (unlike the category select below) since the set of captured seasons
+                   can grow at any time. Selecting a season scopes the whole page (table, chart,
+                   Analysis, Snapshot History) to just that season's own snapshots, so a new
+                   season's first snapshot is never trend-compared against the previous
+                   season's final, much higher, cumulative totals. -->
+              <select id="performance-season-select" class="role-fit-select" title="Choose which season to view"></select>
               <!-- Options filled in by JS from PERFORMANCE_CATEGORIES so the dropdown and the
                    table/chart column config can never drift out of sync with each other. -->
               <select id="performance-category-select" class="role-fit-select" title="Choose which set of stats to view"></select>
@@ -4879,10 +4886,12 @@
           Screenshot the squad's stats screens in FM (the Squad view's own stat filter — Attacking,
           Goalkeeping, Discipline, General Play, Goal Attempts, etc.), hand them to Claude in a new
           chat, and ask for JSON matching the shape below — paste it here to add it. Every field
-          except a player's name is optional, so screenshots covering only some columns still work.
-          Position doesn't need to be included; it's looked up from the loaded squad automatically.
-          A snapshot already captured for the same date gets replaced with the new data instead of
-          being duplicated.
+          except a player's name, the date, and the season is optional, so screenshots covering
+          only some columns still work. Position doesn't need to be included; it's looked up from
+          the loaded squad automatically. A snapshot already captured for the same date gets
+          replaced with the new data instead of being duplicated. The season field (e.g. "2037/38")
+          keeps a new season's stats from being compared against last season's — use the same
+          season label for every snapshot within one season.
         </p>
         <textarea id="performance-json-textarea" class="import-json-textarea" placeholder="Paste a snapshot (or array of snapshots) as JSON here..." spellcheck="false"></textarea>
         <div class="import-actions">
@@ -12538,6 +12547,29 @@
       return performanceSnapshots.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     }
 
+    // Every distinct season currently captured, oldest first — ordered by each season's own
+    // most recent snapshot DATE rather than by sorting the season label string itself, so an
+    // inconsistently-formatted season label (or a legacy "Unspecified Season" bucket sitting
+    // alongside real ones) still lands in the right chronological spot.
+    function getPerformanceSeasons() {
+      const latestDateBySeason = new Map();
+      sortedPerformanceSnapshots().forEach(s => {
+        const season = getSnapshotSeason(s);
+        const existing = latestDateBySeason.get(season);
+        if (existing === undefined || (s.date || '') > existing) latestDateBySeason.set(season, s.date || '');
+      });
+      return Array.from(latestDateBySeason.keys())
+        .sort((a, b) => (latestDateBySeason.get(a) || '').localeCompare(latestDateBySeason.get(b) || ''));
+    }
+
+    // Same ordering as sortedPerformanceSnapshots(), filtered down to just one season — this
+    // (not the unfiltered list) is what determines performanceLatestSnapshot/
+    // performancePreviousSnapshot in renderPerformanceData(), so trend/insights/chart never
+    // compare across a season boundary.
+    function sortedPerformanceSnapshotsForSeason(season) {
+      return sortedPerformanceSnapshots().filter(s => getSnapshotSeason(s) === season);
+    }
+
     // Replaces (rather than duplicates) any existing snapshot for the same date, so
     // re-pasting a corrected or fuller screenshot for a date already captured updates it in
     // place — same upsert idea as addScoutedPlayers(), keyed on date instead of name.
@@ -12556,6 +12588,11 @@
         }
       });
       savePerformanceSnapshots(performanceSnapshots);
+      // Jump the view to whichever season this paste belongs to, so adding a snapshot always
+      // shows it immediately rather than leaving the page on whatever season happened to be
+      // selected before (matches the pre-season-filter behaviour, where there was only ever
+      // one list and adding to it always surfaced the new data).
+      if (newSnapshots.length) performanceSeason = getSnapshotSeason(newSnapshots[newSnapshots.length - 1]);
       renderPerformanceData();
       return { added, updated };
     }
@@ -12568,10 +12605,21 @@
       renderPerformanceData();
     }
 
+    // Falls back to a shared bucket label for snapshots captured before "season" existed in
+    // the schema (already-saved localStorage data from an older version of the app) — lets
+    // every season-aware function below (grouping, the season <select>, filtering) treat that
+    // old data as one more season entry instead of crashing on a missing field.
+    function getSnapshotSeason(s) {
+      return (s && s.season) || 'Unspecified Season';
+    }
+
     // Same lightweight shape-check approach as validateScoutedPlayers — accepts either one
     // snapshot object or an array of them (so a single screenshot's worth, or several
-    // backfilled dates at once, both work), each needing a "date" and a non-empty "players"
-    // array, each player needing at least a "name".
+    // backfilled dates at once, both work), each needing a "date", a "season", and a
+    // non-empty "players" array, each player needing at least a "name". "season" exists so
+    // FM's season-cumulative stats (Goals, Apps, Shots, etc., which reset to zero every new
+    // season) never get compared trend-wise against a different season's totals — see
+    // sortedPerformanceSnapshotsForSeason()/renderPerformanceData().
     function validatePerformanceSnapshots(data) {
       const errors = [];
       const list = Array.isArray(data) ? data : [data];
@@ -12579,6 +12627,7 @@
       list.forEach((s, i) => {
         const tag = `[${i}]${s && s.date ? ' (' + s.date + ')' : ''}`;
         if (!s || !s.date) { errors.push(`${tag} is missing "date".`); return; }
+        if (!s.season) { errors.push(`${tag} is missing "season" (e.g. "2037/38") — needed so stats from a new season are never compared against the last one's totals.`); return; }
         if (!Array.isArray(s.players) || s.players.length === 0) {
           errors.push(`${tag} "players" must be a non-empty array.`);
           return;
@@ -12591,12 +12640,14 @@
     }
 
     // A single trimmed example matching the schema exactly — shown via "Load Example
-    // Template", same idea as SCOUT_EXAMPLE_TEMPLATE above. Every field except "name" is
-    // optional (validatePerformanceSnapshots() only requires that), so a screenshot covering
-    // just one of the 5 stat views still imports fine — this example happens to show every
-    // field at once purely for reference, not because a real submission needs all of them.
+    // Template", same idea as SCOUT_EXAMPLE_TEMPLATE above. Every field except "name", "date",
+    // and "season" is optional (validatePerformanceSnapshots() only requires those), so a
+    // screenshot covering just one of the 5 stat views still imports fine — this example
+    // happens to show every field at once purely for reference, not because a real submission
+    // needs all of them.
     const PERFORMANCE_EXAMPLE_TEMPLATE = {
       date: '2037-04-11',
+      season: '2037/38',
       players: [
         {
           name: 'Example Player', apps: '12 (3)', goals: 8, shots: 40, xG: 6.2,
@@ -12780,7 +12831,7 @@
         : null;
 
       document.getElementById('performance-overview-modal-title').textContent =
-        `${cat.label} — Full Overview (${performanceLatestSnapshot.date})`;
+        `${cat.label} — Full Overview (${performanceSeason}, ${performanceLatestSnapshot.date})`;
 
       const { headHtml, bodyHtml } = buildPerformanceTableHtml(cat, players, prevByName);
       document.getElementById('performance-overview-table-head').innerHTML = headHtml;
@@ -13219,6 +13270,9 @@
     }
 
     let performanceCategory = 'attacking';
+    // null until renderPerformanceData() first resolves it to a real season — see there for
+    // how a stale/removed selection falls back to the most recent season automatically.
+    let performanceSeason = null;
     let performanceLatestSnapshot = null;
     let performancePreviousSnapshot = null;
 
@@ -13230,20 +13284,46 @@
     let performanceSortKey = null;
     let performanceSortDir = -1;
 
+    // The <option>s are rebuilt on every render (unlike ensurePerformanceCategorySelect's,
+    // which never change) since the set of captured seasons can grow at any time. The change
+    // listener, though, is attached only once — same "ready" guard as the category select —
+    // so repeated renders don't pile up duplicate listeners on the same persistent <select>
+    // element. Preserves whatever the user has selected as long as it still has data; only
+    // falls back to the most recent season when performanceSeason is unset or its data has
+    // all been removed (see renderPerformanceData).
+    let performanceSeasonSelectListenerAttached = false;
+    function ensurePerformanceSeasonSelect(seasons) {
+      const select = document.getElementById('performance-season-select');
+      select.innerHTML = seasons.map(season => `<option value="${season}">${season}</option>`).join('');
+      select.value = performanceSeason;
+      if (!performanceSeasonSelectListenerAttached) {
+        select.addEventListener('change', () => {
+          performanceSeason = select.value;
+          // A different season's snapshots are an entirely different ranking — same
+          // reasoning as the category reset above.
+          performanceSortKey = null;
+          performanceSortDir = -1;
+          renderPerformanceData();
+        });
+        performanceSeasonSelectListenerAttached = true;
+      }
+    }
+
     function renderPerformanceData() {
-      const snapshots = sortedPerformanceSnapshots();
+      const allSnapshots = sortedPerformanceSnapshots();
       const emptyState = document.getElementById('performance-empty-state');
       const tablePanel = document.getElementById('performance-table-panel');
       const chartPanel = document.getElementById('performance-chart-panel');
       const secondaryRow = document.getElementById('performance-secondary-row');
       const subtitle = document.getElementById('performance-subtitle');
 
-      if (snapshots.length === 0) {
+      if (allSnapshots.length === 0) {
         emptyState.style.display = '';
         tablePanel.style.display = 'none';
         chartPanel.style.display = 'none';
         secondaryRow.style.display = 'none';
         subtitle.textContent = 'No snapshots captured yet';
+        performanceSeason = null;
         performanceLatestSnapshot = null;
         performancePreviousSnapshot = null;
         return;
@@ -13254,10 +13334,26 @@
       chartPanel.style.display = '';
       secondaryRow.style.display = '';
 
+      // Resolve which season is showing: keep the current selection if it still has data,
+      // otherwise fall back to the most recent one — covers first load (performanceSeason
+      // starts null), and the selected season's last snapshot just having been removed.
+      const seasons = getPerformanceSeasons();
+      if (!performanceSeason || !seasons.includes(performanceSeason)) {
+        performanceSeason = seasons[seasons.length - 1];
+      }
+      ensurePerformanceSeasonSelect(seasons);
+
+      // Scoped to just this one season — this (not allSnapshots) is what feeds
+      // performanceLatestSnapshot/performancePreviousSnapshot, so a season's first snapshot
+      // always has performancePreviousSnapshot === null (the same "no trend yet" state a
+      // save's very first snapshot ever gets) rather than being compared against whatever the
+      // previous season's cumulative totals happened to end on.
+      const snapshots = sortedPerformanceSnapshotsForSeason(performanceSeason);
+
       performanceLatestSnapshot = snapshots[snapshots.length - 1];
       performancePreviousSnapshot = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
 
-      subtitle.textContent = `Latest snapshot: ${performanceLatestSnapshot.date} (${snapshots.length} snapshot${snapshots.length === 1 ? '' : 's'} captured, ${performanceLatestSnapshot.players.length} players)`;
+      subtitle.textContent = `${performanceSeason} — latest snapshot: ${performanceLatestSnapshot.date} (${snapshots.length} snapshot${snapshots.length === 1 ? '' : 's'} this season, ${performanceLatestSnapshot.players.length} players)`;
       document.getElementById('performance-latest-label').textContent = `- ${performanceLatestSnapshot.date}`;
 
       ensurePerformanceCategorySelect();

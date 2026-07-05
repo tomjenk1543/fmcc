@@ -2,9 +2,15 @@
 // multi-category squad performance tracker built from FM's own 5 Squad-screen stat filters
 // (Attacking/xG, Goalkeeping, Discipline, General Play, Goal Attempts), same screenshot ->
 // Claude -> paste-JSON import pattern as the Scouting shortlist. Covers:
-//   - validatePerformanceSnapshots(): unchanged shape checks (date + non-empty players array,
-//     each player needing "name"; every other field optional).
+//   - validatePerformanceSnapshots(): date + season + non-empty players array required, each
+//     player needing "name"; every other field optional.
 //   - addPerformanceSnapshots()/removePerformanceSnapshot(): unchanged upsert-by-date behaviour.
+//   - getPerformanceSeasons()/sortedPerformanceSnapshotsForSeason()/getSnapshotSeason(): season
+//     grouping, the season <select>, and a legacy snapshot missing "season" entirely falling
+//     back to a shared "Unspecified Season" bucket instead of crashing.
+//   - renderPerformanceData(): a new season's first snapshot never gets trend-compared against
+//     the previous season's final totals (performancePreviousSnapshot === null at a season's
+//     own start, same as a save's very first snapshot ever).
 //   - parseAppsTotal(): "39 (1)"-style FM appearance strings -> a single volume number.
 //   - normalizeNameForMatch()/findSquadPosition(): diacritic-insensitive name matching against
 //     the loaded squad, since position isn't part of the snapshot schema at all.
@@ -30,15 +36,21 @@ loadSaveData_MetaluBuzau();
 performanceSnapshots.length = 0;
 savePerformanceSnapshots(performanceSnapshots);
 
-// ---- validatePerformanceSnapshots (schema itself didn't change) ----
+// ---- validatePerformanceSnapshots ----
 check('rejects a snapshot missing "date"',
-  validatePerformanceSnapshots({ players: [{ name: 'A' }] }).some(e => /missing "date"/.test(e)));
+  validatePerformanceSnapshots({ season: '2037/38', players: [{ name: 'A' }] }).some(e => /missing "date"/.test(e)));
+check('rejects a snapshot missing "season"',
+  validatePerformanceSnapshots({ date: '2037-04-11', players: [{ name: 'A' }] }).some(e => /missing "season"/.test(e)));
 check('rejects a snapshot missing "players"',
-  validatePerformanceSnapshots({ date: '2037-04-11' }).some(e => /"players" must be a non-empty array/.test(e)));
+  validatePerformanceSnapshots({ date: '2037-04-11', season: '2037/38' }).some(e => /"players" must be a non-empty array/.test(e)));
 check('rejects a player missing "name"',
-  validatePerformanceSnapshots({ date: '2037-04-11', players: [{ goals: 1 }] }).some(e => /missing "name"/.test(e)));
+  validatePerformanceSnapshots({ date: '2037-04-11', season: '2037/38', players: [{ goals: 1 }] }).some(e => /missing "name"/.test(e)));
 check('accepts a snapshot with only name + a couple of stat fields (everything else optional)',
-  validatePerformanceSnapshots({ date: '2037-04-11', players: [{ name: 'Player A', goals: 3 }] }).length === 0);
+  validatePerformanceSnapshots({ date: '2037-04-11', season: '2037/38', players: [{ name: 'Player A', goals: 3 }] }).length === 0);
+
+// ---- getSnapshotSeason: legacy data captured before "season" existed falls back gracefully ----
+check('getSnapshotSeason returns the real season when present', getSnapshotSeason({ season: '2037/38' }) === '2037/38');
+check('getSnapshotSeason falls back to a shared bucket for legacy data with no season field', getSnapshotSeason({ date: '2037-04-11' }) === 'Unspecified Season');
 
 // ---- parseAppsTotal ----
 check('parseAppsTotal parses "39 (1)" as 40', parseAppsTotal('39 (1)') === 40);
@@ -66,9 +78,12 @@ check('computeDerivedStats computes __conversion (goals/shots*100)', Math.abs(de
 check('computeDerivedStats omits __conversion when shots is 0', computeDerivedStats({ goals: 0, shots: 0 }).__conversion === undefined);
 
 // ---- Build a small synthetic 2-snapshot history with clear over/underperformance signal ----
+// Both share season '2037/38' — the season-boundary behaviour itself (a NEW season's first
+// snapshot having no "previous" to trend against) gets its own dedicated block further below.
 addPerformanceSnapshots([
   {
     date: '2037-03-11',
+    season: '2037/38',
     players: [
       { name: 'Samuel Musolino', apps: '35 (1)', goals: 20, shots: 120, xG: 20, passPct: 88, passesAttempted: 1000, foulsMade: 40, tacklesWon: 5, tacklesAttempted: 8 },
       { name: 'Pol', apps: '40', cleanSheets: 20, goalsConceded: 28, svPct: 84, xSvPct: 84 },
@@ -76,6 +91,7 @@ addPerformanceSnapshots([
   },
   {
     date: '2037-04-11',
+    season: '2037/38',
     players: [
       // Clear overperformer: 6 more goals than xG suggests, on a real sample of shots.
       { name: 'Samuel Musolino', apps: '39 (1)', goals: 26, shots: 134, xG: 20, passPct: 88, passesAttempted: 1179, foulsMade: 45, tacklesWon: 5, tacklesAttempted: 8 },
@@ -241,8 +257,8 @@ check('inline chart caption explains bar length and the expected-value tick',
 // ---- Full Overview modal: uncapped table + chart for whichever category is selected ----
 renderPerformanceOverviewModal();
 check('Full Overview modal opens', document.getElementById('performance-overview-modal-backdrop').classList.contains('open'));
-check('Full Overview modal title names the category and latest date',
-  document.getElementById('performance-overview-modal-title').textContent === 'Attacking (xG) — Full Overview (2037-04-11)');
+check('Full Overview modal title names the category, season, and latest date',
+  document.getElementById('performance-overview-modal-title').textContent === 'Attacking (xG) — Full Overview (2037/38, 2037-04-11)');
 
 const overviewBodyHtml = document.getElementById('performance-overview-table-body').innerHTML;
 const overviewRowCount = (overviewBodyHtml.match(/<tr>/g) || []).length;
@@ -307,6 +323,56 @@ check('goalkeeping insights carry no attacking over/underperformers', goalkeepin
 
 const disciplineInsights = computePerformanceInsights(performanceLatestSnapshot, 'discipline');
 check('discipline insights have no over/underperformer ranking (no expected-value baseline for this category)', disciplineInsights.overUnderKind === null && disciplineInsights.overUnderOver.length === 0);
+
+// ---- Season handling: the whole point of tagging snapshots with a season — a new season's
+// first snapshot must never get trend-compared against the previous season's (much higher,
+// cumulative) final totals. ----
+const seasonSelect = document.getElementById('performance-season-select');
+check('season select starts with just the one captured season', seasonSelect.children.length === 1 && seasonSelect.value === '2037/38');
+
+// Add the new season's very first snapshot — low, just-reset cumulative stats, the same
+// shape FM itself shows right after a new season kicks off.
+addPerformanceSnapshots([{
+  date: '2038-08-20',
+  season: '2038/39',
+  players: [
+    { name: 'Samuel Musolino', apps: '3', goals: 1, shots: 8, xG: 0.9 },
+  ],
+}]);
+
+check('adding a new season\'s snapshot jumps the view to that season', performanceSeason === '2038/39');
+check('season select now offers both seasons', seasonSelect.children.length === 2);
+check('season select is set to the newly added season', seasonSelect.value === '2038/39');
+check('the new season\'s only snapshot has no previous snapshot to trend against', performancePreviousSnapshot === null);
+
+const newSeasonBodyHtml = document.getElementById('performance-table-body').innerHTML;
+check('the new season\'s table shows only its own (reset) players, not mixed with the old season', /Samuel Musolino/.test(newSeasonBodyHtml) && !/Arthur Ndo/.test(newSeasonBodyHtml));
+// With performancePreviousSnapshot === null, buildPerformanceTableHtml doesn't even render a
+// Trend column (same as a save's very first-ever snapshot) — no misleading down-arrow, and no
+// confusing dash column either.
+check('the new season\'s table has no Trend column at all (nothing to compare against yet)', !/perf-trend-down/.test(newSeasonBodyHtml) && !document.getElementById('performance-table-head').innerHTML.includes('Trend'));
+check('subtitle names the newly selected season', document.getElementById('performance-subtitle').textContent.startsWith('2038/39'));
+
+const newSeasonHistoryHtml = document.getElementById('performance-history-list').innerHTML;
+check('history list is scoped to the selected season only (2038/39 here, not last season\'s dates)',
+  /2038-08-20/.test(newSeasonHistoryHtml) && !/2037-03-11/.test(newSeasonHistoryHtml) && !/2037-04-11/.test(newSeasonHistoryHtml));
+
+// Switching back to the old season via the <select> restores its own table/history, untouched
+// by the new season's data sitting alongside it.
+seasonSelect.value = '2037/38';
+seasonSelect.fire('change');
+check('switching season via the select updates performanceSeason', performanceSeason === '2037/38');
+const oldSeasonBodyHtml = document.getElementById('performance-table-body').innerHTML;
+check('switching back to the old season shows its own players again', /Samuel Musolino/.test(oldSeasonBodyHtml) && /Arthur Ndo/.test(oldSeasonBodyHtml));
+check('switching back to the old season restores its own real trend comparison (2 snapshots)', /perf-trend-up/.test(oldSeasonBodyHtml));
+const oldSeasonHistoryHtml = document.getElementById('performance-history-list').innerHTML;
+check('history list for the old season shows its own 2 dates, not the new season\'s',
+  /2037-03-11/.test(oldSeasonHistoryHtml) && /2037-04-11/.test(oldSeasonHistoryHtml) && !/2038-08-20/.test(oldSeasonHistoryHtml));
+
+// Removing the new season's only snapshot should fall back to the remaining season automatically.
+removePerformanceSnapshot('2038-08-20');
+check('removing a season\'s only snapshot falls back to the remaining season', performanceSeason === '2037/38');
+check('season select drops back to one option once that season has no data left', document.getElementById('performance-season-select').children.length === 1);
 
 // ---- Snapshot history + removal (unchanged behaviour, still worth covering post-rewrite) ----
 const historyHtml = document.getElementById('performance-history-list').innerHTML;
