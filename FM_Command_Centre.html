@@ -74,6 +74,9 @@
        redesign work on this branch has a consistent pair to reach for. */
     --positive: #22c55e;
     --negative: #ef4444;
+    /* Sidebar width (redesign-explore's replacement for the old horizontal .hotbar) - see
+       .hotbar's own comment further down for why the class name itself stayed the same. */
+    --sidebar-w: 232px;
   }
 
   * { box-sizing: border-box; }
@@ -136,41 +139,68 @@
      case; transform-origin:top left keeps the math simple (scaling grows/shrinks from the
      box's own top-left corner, so left/top alone is enough to place it, without also having
      to account for the transform shifting that corner). */
+  /* redesign-explore: row instead of the implicit block stacking, so .hotbar (now a
+     sidebar - see its own comment below) and main sit side by side rather than one above
+     the other. This is the one change that actually turns a top tab bar into a sidebar;
+     everything below just adapts the two children to being flex row items instead of
+     stacked block ones. */
   #app-scale-root {
     position: fixed;
     width: var(--design-width);
     height: var(--design-height);
     transform-origin: top left;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
   }
 
-  /* ---------- HOTBAR ---------- */
-  /* No bar/box behind the row any more — background is transparent so the crest badge,
-     title, nav links and save label all sit directly on the page background (--bg) and
-     read as floating elements. The underline is a ::after pseudo-element rather than a
-     plain border-bottom, since it needs to fade out at both ends the same way
-     .hero-divider does on the dashboard (a plain border can't do a gradient). */
+  /* ---------- SIDEBAR (was HOTBAR - a horizontal top tab bar; see the redesign-explore
+     comment on #app-scale-root above) ---------- */
+  /* Kept the .hotbar/.hotbar-right/#hotbar-team-name names rather than renaming - they're
+     referenced from several JS getElementById/querySelector calls (setting the save-data
+     label, the team name under the logo, etc.) and from the .landing-mode hide rule below,
+     and renaming risked missing one of those call sites. Same transparent/floating
+     background as before, just laid out as a full-height column on the left instead of a
+     fixed-height row on top. No more position:sticky - it doesn't need to stick to
+     anything now that it's a flex sibling of main spanning the same fixed height, not a
+     row main scrolls underneath. */
   .hotbar {
-    position: sticky;
-    top: 0;
+    position: relative;
     z-index: 100;
-    height: var(--hotbar-h);
+    width: var(--sidebar-w, 232px);
+    height: var(--design-height);
+    flex: 0 0 auto;
     display: flex;
+    flex-direction: column;
     align-items: stretch;
+    padding-bottom: 16px;
     background: transparent;
   }
 
+  /* Was a bottom-edge horizontal fade; now a right-edge vertical one, same idea (fades out
+     at both ends rather than a flat border, matching .hero-divider's own gradient trick). */
   .hotbar::after {
     content: '';
     position: absolute;
-    left: 0;
-    right: 0;
+    top: 0;
     bottom: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent 0%, var(--club-primary) 20%, var(--club-primary) 80%, transparent 100%);
+    right: 0;
+    width: 2px;
+    background: linear-gradient(180deg, transparent 0%, var(--club-primary) 20%, var(--club-primary) 80%, transparent 100%);
     opacity: 0.6;
   }
 
-  /* Crest/initials now float directly on the hotbar's transparent background — no more
+  /* Logo + brand name sit in a row at the top of the sidebar (rather than as two of the
+     sidebar's own top-to-bottom flex children, which would stack them instead of sitting
+     side by side) - see the sidebar-header wrapper in the markup. */
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    flex: 0 0 auto;
+  }
+
+  /* Crest/initials now float directly on the sidebar's transparent background — no more
      solid club-colour square behind them. */
   .corner-stripe {
     width: var(--hotbar-h);
@@ -205,8 +235,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 0 20px;
-    white-space: nowrap;
+    min-width: 0;
   }
 
   .brand .club-name {
@@ -235,23 +264,43 @@
     text-transform: none;
   }
 
+  /* redesign-explore: vertical stack instead of a horizontal scrolling row - a sidebar has
+     the height to spare that a 64px top bar didn't, so every destination (including the
+     three Players sub-items just below) can just be its own row instead of competing for
+     horizontal space. Every .nav-btn keeps the exact same class/data-view contract the
+     original horizontal version used (see switchToView()/the click-listener loop further
+     down in the script), so nothing there needed to change - only the container's own
+     layout and the button's own visual treatment (left accent bar instead of bottom
+     underline, text-align:left instead of centered) changed. */
   .nav-links {
     display: flex;
+    flex-direction: column;
     align-items: stretch;
-    margin-left: 12px;
-    /* Seven nav buttons (as of the Scouting page) is tight on a narrower window — scroll
-       horizontally rather than wrapping or squeezing the hotbar's crest/right-hand info out
-       of place. min-width:0 is the actual fix (a flex item won't shrink below its content
-       size without it, which would make overflow-x a no-op and just blow out the hotbar
-       row instead) — scrollbar hidden since this is a short single row, not a real scroll area.
-       hotbar-right still keeps its own space since it isn't part of this flex item. */
-    min-width: 0;
-    overflow-x: auto;
+    margin-top: 8px;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
     scrollbar-width: none;
   }
 
   .nav-links::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Small uppercase label grouping Squad/Squad Breakdown/Scouting under one "Players"
+     heading - see the redesign-explore comment on the nav-links markup itself for why
+     this is a always-visible grouping label rather than a collapsible parent item (no new
+     expand/collapse state to manage, lower risk, and the whole point - fewer, clearer
+     top-level destinations - is achieved either way). Not a .nav-btn, so it's invisible to
+     querySelectorAll('.nav-btn')/switchToView() - purely a visual heading. */
+  .nav-group-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+    padding: 14px 20px 4px;
   }
 
   .nav-links button {
@@ -262,12 +311,24 @@
     font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.3px;
-    padding: 0 16px;
+    padding: 10px 20px;
+    text-align: left;
     cursor: pointer;
-    border-bottom: 3px solid transparent;
+    border-left: 3px solid transparent;
     white-space: nowrap;
     flex-shrink: 0;
     transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+
+  /* Indented, slightly smaller sub-items for the three consolidated Players destinations
+     (Squad / Squad Breakdown / Scouting) - visually subordinate to the primary
+     Dashboard/Tactical Analysis/Tactic Builder/Settings items, per the "primary vs
+     secondary nav should be clearly separated" guidance rather than seven flat equal-weight
+     tabs. */
+  .nav-links button.nav-btn-sub {
+    padding-left: 32px;
+    font-size: 13px;
+    font-weight: 500;
   }
 
   /* This rule's own "outline: none" above (same specificity as the global :focus-visible
@@ -286,29 +347,32 @@
 
   .nav-links button.active {
     color: var(--text);
-    border-bottom: 3px solid var(--club-primary);
+    border-left: 3px solid var(--club-primary);
     background: color-mix(in srgb, var(--club-primary) 14%, transparent);
   }
 
   .hotbar-right {
-    margin-left: auto;
+    margin-top: auto;
     display: flex;
     align-items: center;
-    padding: 0 20px;
+    padding: 16px 20px 0;
     color: var(--text-dim);
     font-size: 13px;
   }
 
   /* ---------- MAIN ---------- */
-  /* Fixed to exactly the design canvas (minus the hotbar) with its own scrollbar as a
-     fallback, rather than letting the whole document grow — tabs with more content than
-     fits just scroll inside main like before (nothing changes for them), but this also
-     lets a view like Squad stretch a tile to fill all the way to the bottom of the screen
-     instead of leaving dead space, since main's height is now a real, known number rather
-     than just a floor. Uses --design-height (not 100vh) since this whole box gets scaled
-     to the real viewport afterward — see --design-width/--design-height's own comment. */
+  /* redesign-explore: full design-height (the sidebar now takes width, not height, off the
+     canvas - see #app-scale-root's own comment) and flex:1 to take whatever width the
+     sidebar doesn't, instead of the old calc() that subtracted a horizontal bar's height.
+     min-width:0 is needed for the same reason it always is on a flex item with text/tables
+     inside (without it, a flex item won't shrink below its content's natural width, which
+     would let a wide table quietly blow main past its share of the row instead of scrolling
+     internally). Otherwise unchanged: still exactly the design canvas's own size (not real
+     vh/vw), still the one place with a real scrollbar as a fallback. */
   main {
-    height: calc(var(--design-height) - var(--hotbar-h));
+    flex: 1;
+    min-width: 0;
+    height: var(--design-height);
     overflow-y: auto;
     padding: 28px 32px;
   }
@@ -3626,6 +3690,7 @@
   <div id="app-scale-root">
 
   <div class="hotbar">
+    <div class="sidebar-header">
     <div class="corner-stripe">
       <svg class="fmcc-badge" viewBox="0 0 100 100" role="img" aria-label="FM Command Centre">
         <defs>
@@ -3675,13 +3740,21 @@
         <div class="brand-team-name" id="hotbar-team-name"></div>
       </div>
     </div>
+    </div>
+    <!-- redesign-explore: Squad / Squad Breakdown / Scouting consolidated under one
+         "Players" grouping label instead of sitting flat alongside Dashboard/Tactical
+         Analysis/Tactic Builder/Settings - see .nav-group-label's own CSS comment for why
+         this is a visual grouping rather than a collapsible parent, and switchToView()
+         further down in the script for why every button below still needed to keep its
+         exact class="nav-btn" + data-view value unchanged. -->
     <nav class="nav-links">
       <button class="nav-btn active" data-view="dashboard">Dashboard</button>
-      <button class="nav-btn" data-view="squad">Squad</button>
-      <button class="nav-btn" data-view="scouting">Squad Breakdown</button>
+      <div class="nav-group-label">Players</div>
+      <button class="nav-btn nav-btn-sub" data-view="squad">Squad</button>
+      <button class="nav-btn nav-btn-sub" data-view="scouting">Squad Breakdown</button>
+      <button class="nav-btn nav-btn-sub" data-view="scout">Scouting</button>
       <button class="nav-btn" data-view="tactics">Tactical Analysis</button>
       <button class="nav-btn" data-view="tacticbuilder">Tactic Builder</button>
-      <button class="nav-btn" data-view="scout">Scouting</button>
       <button class="nav-btn" data-view="settings">Settings</button>
     </nav>
     <div class="hotbar-right">Save not loaded</div>
