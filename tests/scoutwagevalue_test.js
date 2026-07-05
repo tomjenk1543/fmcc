@@ -101,5 +101,40 @@ const newMission = recruitmentMissions[0] || {};
 check('clicking "+ Add Mission" captures the Max Value field', newMission.maxValueM === 15);
 check('the Max Value input clears after adding', document.getElementById('mission-value-input').value === '');
 
+// --- formatWage: object-shaped wage values must never render as "[object Object]" -----------
+// Real-world scouting JSON is sometimes hand-built or screenshot-transcribed rather than
+// following SCOUT_EXAMPLE_TEMPLATE's flat "£15K p/w" string exactly, so a wage value can show
+// up as a small object instead. Before formatWage() existed, the table cell interpolated
+// p.wage directly into a template literal, which doesn't throw for an object — it just
+// silently stringifies it to "[object Object]".
+check('formatWage passes through a normal wage string unchanged', formatWage('£15K p/w') === '£15K p/w');
+check('formatWage falls back to a dash for undefined/null', formatWage(undefined) === '—' && formatWage(null) === '—');
+check('formatWage never returns the literal "[object Object]"', formatWage({ foo: 'bar' }) !== '[object Object]');
+check('formatWage extracts a {text: ...} shape', formatWage({ text: '£20K p/w' }) === '£20K p/w');
+check('formatWage extracts a {value: ...} shape', formatWage({ value: '£22K p/w' }) === '£22K p/w');
+check('formatWage builds a display string from a {amount, period} shape', formatWage({ amount: '£25K', period: 'p/w' }) === '£25K p/w');
+
+const objectWagePlayer = {
+  name: 'Test Object Wage Target',
+  position: 'M (C)',
+  age: 25,
+  club: 'Test FC',
+  nation: 'ESP',
+  ability: '3★',
+  potential: '3★',
+  wage: { amount: '£30K', period: 'p/w' },
+  attributes: {
+    'First Touch': 12, Passing: 12, Technique: 12, Composure: 12, Decisions: 12, 'Off The Ball': 12, Teamwork: 12, Vision: 12,
+  },
+};
+addScoutedPlayers([objectWagePlayer]);
+const objectWageRowHtml = document.getElementById('scout-table-body').innerHTML;
+check('the Scouting table never renders the literal "[object Object]" for an object-shaped wage', !/\[object Object\]/.test(objectWageRowHtml));
+check('the Scouting table row instead shows the extracted wage text', /£30K p\/w/.test(objectWageRowHtml));
+
+const objectWageIdx = scoutShortlist.findIndex(p => p.name === 'Test Object Wage Target');
+openScoutProfile(objectWageIdx);
+check('the scouted-player modal also normalises an object-shaped wage instead of showing "[object Object]"', document.getElementById('sm-wage').textContent === '£30K p/w');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exitCode = 1;

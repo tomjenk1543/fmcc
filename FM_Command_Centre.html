@@ -3680,25 +3680,23 @@
      on their margins. The overflow-x:auto fallback already on .squad-table-scroll still
      covers any window too narrow to fit every column at this wider gutter. */
 
-  /* flex:1/min-height:0 lets this row fill whatever's left below the (fixed-height, see
-     .scout-table-panel above) table instead of leaving dead space there — #scout is now in
-     the shared flex/height:100% view list (see main's stylesheet rule) and its
-     .view-scroll-area is a flex column, so this is the one child that actually grows. */
-  /* Fixed height (proportional to the design canvas, same idea as .scout-table-panel's own
-     "calc(var(--design-height) * 0.46)" above it) rather than flex:1 — the triage tiles used
-     to be the one element that stretched to fill whatever space was left below the table,
-     but that meant Recruitment Missions (added below this row) only ever got whatever
-     scraps were left over. Now this row takes a smaller, fixed share and
-     .recruitment-missions-panel is the flex:1 element that gets everything else — see its
-     own CSS comment. getScoutTilesRowBudget() reads this row's real rendered height
-     directly rather than computing it, since it's no longer flex-resolved. */
+  /* flex:1/min-height below lets this row and .recruitment-missions-panel (see its own CSS
+     comment) share whatever's left below the fixed-height .scout-table-panel above — #scout
+     is now in the shared flex/height:100% view list (see main's stylesheet rule) and its
+     .view-scroll-area is a flex column, so these are the two children that actually grow.
+     Both siblings carry the same flex:1 and the same min-height floor, so the browser
+     divides the leftover space between them equally — same visual height for the tiles row
+     and the missions panel below it, rather than one soaking up all the leftover space while
+     the other stays a fixed size (which is what made the tiles look small and Missions look
+     oversized right after Missions was made the sole elastic element). getScoutTilesRowBudget()
+     just reads this row's own real rendered height directly, which already reflects its
+     fair share once the browser lays things out. */
   .scout-tiles-row {
     display: flex;
     gap: 16px;
     flex-wrap: wrap;
-    height: calc(var(--design-height) * 0.2);
-    min-height: 180px;
-    flex-shrink: 0;
+    flex: 1;
+    min-height: 260px;
   }
 
   /* No more max-height cap — the tiles stretch to fill .scout-tiles-row's height (see
@@ -3771,18 +3769,21 @@
      .mini-input styling from Tactic Builder/the crest-ID field so this doesn't need its own
      input styles) plus the mission list rows below it.
 
-     This is now the ONE flex:1 element in the page's flex column (table panel and tiles row
-     above it are both fixed/proportional heights — see their own CSS), so it gets whatever
-     vertical space is left after those two, the same "fixed chrome above, one elastic
-     element that fills the rest" pattern .scout-tiles-row itself used to be before this tile
-     existed. Deliberately NOT given .scout-tile (flex: 1 1 280px) — that class is meant for
-     the three triage tiles sharing out .scout-tiles-row's own (now fixed) row height, a
-     different sizing question from this panel's own place in the outer column. Only one
-     element in the column may be flex:1 at a time — two competing flex:1 siblings was
-     exactly what caused this tile to visually overlap the triage tiles row before. */
+     Shares the space left below the table panel equally with .scout-tiles-row above (see its
+     own CSS comment) — same flex:1 and same min-height floor on both, so they render at the
+     same height and there's no dead space at the bottom (the two of them between them soak up
+     all the leftover room, just split evenly rather than one taking all of it). margin-top
+     is the visible gap between this panel and the tiles row above it.
+
+     Deliberately NOT given .scout-tile (flex: 1 1 280px) — that class is for the three triage
+     tiles sharing out .scout-tiles-row's own row height horizontally, a different sizing
+     question from this panel's own place in the outer column. Two flex:1 siblings sharing a
+     column IS safe here (unlike the earlier overlap bug) because nothing computes a budget by
+     assuming one of them owns 100% of the leftover space — getScoutTilesRowBudget() reads the
+     tiles row's own real rendered height directly, whatever the split ends up being. */
   .recruitment-missions-panel {
     flex: 1;
-    min-height: 0;
+    min-height: 260px;
     margin-top: 20px;
     margin-bottom: 20px;
   }
@@ -5953,18 +5954,18 @@
       return Math.max(0, (scrollAreaEl.clientHeight - focusMarginTop) * (2 / 5));
     }
 
-    // Scouting page's three triage tiles (.scout-tiles-row) now have a fixed, proportional-
-    // to-canvas height of their own (see its CSS: calc(var(--design-height) * 0.2)) rather
-    // than flex:1 filling whatever's left below the table panel — Recruitment Missions below
-    // it is the one flex:1 element now (see .recruitment-missions-panel's own CSS comment),
-    // so there's no more "remaining space" for this row to fill or compete over. That makes
-    // this function much simpler than it used to be: the row's real rendered height IS the
-    // budget, read directly, rather than derived by subtracting sibling chrome from the
-    // scroll area's total. All three tiles share this same row height (flex: 1 1 280px in a
-    // single row, default align-items:stretch — see .scout-tile), so one shared budget still
-    // works for all of them; renderScoutTiles() still runs each tile's own real height
-    // through panelContentBudget() individually to account for each tile's own title-row
-    // content differing in height.
+    // Scouting page's three triage tiles (.scout-tiles-row) and Recruitment Missions below
+    // it (.recruitment-missions-panel) are now equal flex:1 siblings — same flex-grow and
+    // min-height floor on both (see their own CSS comments), so the browser splits whatever
+    // space is left below the fixed-height .scout-table-panel evenly between the two, giving
+    // them matching heights instead of one soaking up all the leftover room. Since the row's
+    // own rendered height already reflects its fair share once the browser lays things out,
+    // this function just reads that directly rather than deriving anything from siblings —
+    // works the same regardless of exactly how the flex split lands. All three tiles share
+    // this same row height (flex: 1 1 280px in a single row, default align-items:stretch —
+    // see .scout-tile), so one shared budget still works for all of them; renderScoutTiles()
+    // still runs each tile's own real height through panelContentBudget() individually to
+    // account for each tile's own title-row content differing in height.
     function getScoutTilesRowBudget() {
       const rowEl = document.getElementById('scout-tiles-row');
       return rowEl ? rowEl.clientHeight : 0;
@@ -6240,14 +6241,37 @@
     }
     let recruitmentMissions = loadRecruitmentMissions();
 
+    // The schema (see SCOUT_EXAMPLE_TEMPLATE/the Setup Guide) expects wage as a plain string
+    // like "£15K p/w", but hand-entered or screenshot-transcribed JSON sometimes ends up with
+    // a small object instead (e.g. {amount:'£15K', period:'p/w'} or {text:'£15K p/w'}) — the
+    // Scouting table/modal used to interpolate p.wage straight into a template literal, which
+    // doesn't throw for an object, it just silently stringifies it to the unhelpful literal
+    // text "[object Object]". This normalises either shape into a real display string (or a
+    // plain dash if nothing usable is found) so that can't happen again. parseWageValue below
+    // routes through this first so a wage ceiling check still works even when the underlying
+    // value arrived as one of these object shapes rather than a flat string.
+    function formatWage(wage) {
+      if (typeof wage === 'string') return wage || '—';
+      if (wage && typeof wage === 'object') {
+        if (typeof wage.text === 'string' && wage.text) return wage.text;
+        if (typeof wage.value === 'string' && wage.value) return wage.value;
+        if (wage.amount != null) {
+          const period = wage.period || wage.frequency || 'p/w';
+          return `${wage.amount} ${period}`.trim();
+        }
+      }
+      return '—';
+    }
+
     // Turns FM's "£15.25K p/w" wage strings into a plain weekly-£K number (15.25), so a
     // mission's wage ceiling can be compared against it. Returns null for anything that isn't
     // a recognisable "£<number>K" wage (blank, "Free", not yet captured, etc) rather than
     // guessing — callers should treat null as "unknown, don't rule the candidate out on wage
     // alone" rather than as a failed check.
     function parseWageValue(wageStr) {
-      if (!wageStr || typeof wageStr !== 'string') return null;
-      const m = wageStr.match(/£\s*([\d.]+)\s*K/i);
+      const str = formatWage(wageStr);
+      if (str === '—') return null;
+      const m = str.match(/£\s*([\d.]+)\s*K/i);
       return m ? parseFloat(m[1]) : null;
     }
 
@@ -12185,7 +12209,7 @@
           <td style="font-style: normal;">${p.bestRole ?? '&mdash;'}</td>
           <td style="font-style: normal;">${starRatingHtml(p.ability)}</td>
           <td style="font-style: normal;">${starRatingHtml(p.potential)}</td>
-          <td style="font-style: normal;">${p.wage ?? '&mdash;'}</td>
+          <td style="font-style: normal;">${formatWage(p.wage)}</td>
           <td style="font-style: normal;">${p.value ?? '&mdash;'}</td>
           <td style="font-style: normal;">${p.contract ?? '&mdash;'}</td>
           <td style="font-style: normal;">${pct === null ? '&mdash;' : Math.round(pct * 100) + '%'}</td>
@@ -12576,7 +12600,7 @@
       document.getElementById('sm-nation').textContent = (`${nationFlag(p.nation)} ${p.nation || ''}`).trim() || '—';
       document.getElementById('sm-height').textContent = p.height || '—';
       document.getElementById('sm-club').textContent = p.club || '—';
-      document.getElementById('sm-wage').textContent = p.wage || '—';
+      document.getElementById('sm-wage').textContent = formatWage(p.wage);
       document.getElementById('sm-value').textContent = p.value || '—';
       document.getElementById('sm-ability').textContent = `Ability ${p.ability || '—'}`;
       document.getElementById('sm-potential').textContent = `Potential ${p.potential || '—'}`;
