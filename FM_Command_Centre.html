@@ -3765,9 +3765,9 @@
     min-width: 0;
   }
 
-  /* Performance Data page — the two smaller tiles (position averages + snapshot history)
-     sitting below the main table, side by side like .settings-grid's own 2-up rows rather
-     than full-width stacked, since neither list needs the full tile width to stay readable. */
+  /* Performance Data page — the two tiles sitting below the main table + chart (Analysis and
+     Snapshot History), side by side like .settings-grid's own 2-up rows rather than full-width
+     stacked, since neither needs the full tile width to stay readable. */
   .performance-secondary-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3781,10 +3781,9 @@
     }
   }
 
-  /* Row style for both secondary lists — matches .scouting-focus-row's own bordered-row
-     pattern (last row's border removed) but a plain label/value flex pair instead of a grid,
-     since there's no fixed-width badge column to line up here. */
-  .perf-position-row,
+  /* Snapshot history row style — matches .scouting-focus-row's own bordered-row pattern
+     (last row's border removed) but a plain label/value flex pair instead of a grid, since
+     there's no fixed-width badge column to line up here. */
   .perf-history-row {
     display: flex;
     justify-content: space-between;
@@ -3796,12 +3795,10 @@
     color: var(--text-dim);
   }
 
-  .perf-position-row:last-child,
   .perf-history-row:last-child {
     border-bottom: none;
   }
 
-  .perf-position-row strong,
   .perf-history-row strong {
     color: var(--text);
   }
@@ -3832,11 +3829,11 @@
     color: var(--text-dim);
   }
 
-  /* Average-rating colour coding in the main table and the position-averages list — same
-     four hex values as .attribute-row .attr-value's own strong/mid/weak/very-weak (see
-     keyAttrClass()), defined again here under their own selector rather than reusing
-     .attr-value directly, since that class is scoped under .attribute-row and a rating
-     isn't rendered inside one. */
+  /* Colour coding for rating-like table values — same four hex values as
+     .attribute-row .attr-value's own strong/mid/weak/very-weak (see keyAttrClass()),
+     defined again here under their own selector rather than reusing .attr-value directly,
+     since that class is scoped under .attribute-row and these values aren't rendered
+     inside one. */
   .perf-rating.strong { color: #7bdc7b; }
   .perf-rating.mid { color: #f0d666; }
   .perf-rating.weak { color: #ff8080; }
@@ -3844,6 +3841,113 @@
 
   .perf-rating {
     font-weight: 700;
+  }
+
+  /* Holds the category picker + Add Snapshot button together on the right of the table
+     tile's title row — .role-fit-select already supplies the dropdown's own look. */
+  .performance-title-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Derived "actual vs expected" columns (Goals − xG, Sv% − xSv%) in the main table — green
+     for outperforming the model, red for underperforming, dim for negligible difference,
+     same colour language as .perf-trend above rather than a third convention. */
+  .perf-diff-positive { color: #7bdc7b; font-weight: 700; }
+  .perf-diff-negative { color: #ff8080; font-weight: 700; }
+  .perf-diff-neutral { color: var(--text-dim); }
+
+  /* ---- Performance Data bar charts (hand-rolled SVG, no external chart library — keeps
+     the single-file/no-dependency principle every other chart-like visual in this app
+     already follows, e.g. the Tactic Builder pitch markers). One horizontal bar per player;
+     an optional "expected value" marker (thin vertical tick) overlays the bar so goals vs
+     xG (or Sv% vs xSv%) over/underperformance is visible at a glance without a second bar
+     needing its own offset math. ---- */
+  .perf-chart-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+  }
+
+  .perf-chart-label {
+    flex: 0 0 130px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .perf-chart-track {
+    flex: 1;
+    position: relative;
+    height: 14px;
+    background: rgba(255,255,255,0.04);
+    border-radius: var(--radius-xs);
+    overflow: visible;
+  }
+
+  .perf-chart-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: var(--radius-xs);
+    background: var(--club-primary);
+  }
+
+  .perf-chart-bar.is-over { background: #7bdc7b; }
+  .perf-chart-bar.is-under { background: #ff8080; }
+
+  .perf-chart-marker {
+    position: absolute;
+    top: -3px;
+    width: 2px;
+    height: 20px;
+    background: #fff;
+    opacity: 0.85;
+  }
+
+  .perf-chart-value {
+    flex: 0 0 68px;
+    text-align: right;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* ---- Analysis panel (Assumptions / Areas for Improvement / Over-Underperformers) ---- */
+  .perf-insight-section {
+    margin-bottom: 16px;
+  }
+
+  .perf-insight-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .perf-insight-heading {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .perf-insight-section p {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin: 0 0 6px 0;
+  }
+
+  .perf-insight-section p:last-child {
+    margin-bottom: 0;
+  }
+
+  .perf-insight-section strong {
+    color: var(--text);
   }
 
   .scout-fit-summary {
@@ -4550,31 +4654,34 @@
         <div class="dashboard-panel squad-table-panel" id="performance-table-panel" style="display:none;">
           <div class="panel-title-row">
             <h3>Squad Performance <span class="scout-tile-subtitle" id="performance-latest-label"></span></h3>
-            <button class="mini-btn" id="performance-add-toggle-btn">+ Add Snapshot</button>
+            <div class="performance-title-actions">
+              <!-- Options filled in by JS from PERFORMANCE_CATEGORIES so the dropdown and the
+                   table/chart column config can never drift out of sync with each other. -->
+              <select id="performance-category-select" class="role-fit-select" title="Choose which set of stats to view"></select>
+              <button class="mini-btn" id="performance-add-toggle-btn">+ Add Snapshot</button>
+            </div>
           </div>
           <div class="squad-table-scroll">
             <table class="squad-table" id="performance-table">
               <thead>
-                <tr>
-                  <th>Player</th>
-                  <th>Position</th>
-                  <th>Apps</th>
-                  <th>Goals</th>
-                  <th>Assists</th>
-                  <th>Avg Rating</th>
-                  <th>Trend</th>
-                </tr>
+                <tr id="performance-table-head"></tr>
               </thead>
               <tbody id="performance-table-body"></tbody>
             </table>
           </div>
         </div>
+        <div class="dashboard-panel" id="performance-chart-panel" style="display:none; margin-top:20px;">
+          <div class="panel-title-row">
+            <h3 id="performance-chart-title">Chart</h3>
+          </div>
+          <div id="performance-chart-container"></div>
+        </div>
         <div class="performance-secondary-row" id="performance-secondary-row" style="display:none;">
-          <div class="dashboard-panel" id="performance-positions-panel">
+          <div class="dashboard-panel" id="performance-insights-panel">
             <div class="panel-title-row">
-              <h3>Average Rating by Position</h3>
+              <h3>Analysis</h3>
             </div>
-            <div id="performance-positions-list"></div>
+            <div id="performance-insights-content"></div>
           </div>
           <div class="dashboard-panel" id="performance-history-panel">
             <div class="panel-title-row">
@@ -4596,10 +4703,13 @@
           <div class="player-modal-name">Add Performance Snapshot</div>
         </div>
         <p class="settings-help">
-          Screenshot the squad's stats screen in FM (Player Stats or Match Stats — whichever
-          columns you have), hand it to Claude in a new chat, and ask for JSON matching the
-          shape below — paste it here to add it. A snapshot already captured for the same date
-          gets replaced with the new data instead of being duplicated.
+          Screenshot the squad's stats screens in FM (the Squad view's own stat filter — Attacking,
+          Goalkeeping, Discipline, General Play, Goal Attempts, etc.), hand them to Claude in a new
+          chat, and ask for JSON matching the shape below — paste it here to add it. Every field
+          except a player's name is optional, so screenshots covering only some columns still work.
+          Position doesn't need to be included; it's looked up from the loaded squad automatically.
+          A snapshot already captured for the same date gets replaced with the new data instead of
+          being duplicated.
         </p>
         <textarea id="performance-json-textarea" class="import-json-textarea" placeholder="Paste a snapshot (or array of snapshots) as JSON here..." spellcheck="false"></textarea>
         <div class="import-actions">
@@ -11778,21 +11888,172 @@
     // comment for why. Standalone for now — informational only, not read by Scouting's gap
     // analysis or Tactics' suitability scoring (that's a deliberate later step).
 
-    // FM's match rating scale runs roughly 0-10, with 6.0-6.9 read as "average" in-game —
-    // these thresholds are deliberately different from keyAttrClass()'s 1-20 attribute scale
-    // and fitScoreLabel()'s fit-score scale, since a rating is a different kind of number.
-    // Reuses the same strong/mid/weak/very-weak naming as those two (see .perf-rating CSS)
-    // purely so the colour language stays consistent app-wide.
-    function ratingClass(rating) {
-      if (typeof rating !== 'number' || isNaN(rating)) return '';
-      if (rating >= 7.0) return 'strong';
-      if (rating >= 6.5) return 'mid';
-      if (rating >= 6.0) return 'weak';
-      return 'very-weak';
+    function fmtNum(v, decimals) {
+      return (typeof v === 'number' && !isNaN(v)) ? v.toFixed(decimals || 0) : '—';
     }
 
-    function fmtRating(r) {
-      return (typeof r === 'number' && !isNaN(r)) ? r.toFixed(2) : '—';
+    // FM shows appearances as "starts (sub appearances)", e.g. "39 (1)" — kept as that exact
+    // string wherever it's just displayed (matches every other apps field in the app), but
+    // sorting/volume-filtering (deciding who has played enough to belong in a chart) needs a
+    // single number, so this adds the two parts together. Accepts a bare number too (a
+    // screenshot/manual entry with no sub appearances at all), and treats anything
+    // unparseable as 0 rather than throwing.
+    function parseAppsTotal(apps) {
+      if (typeof apps === 'number') return apps;
+      if (typeof apps !== 'string') return 0;
+      const m = apps.match(/(\d+)\s*(?:\((\d+)\))?/);
+      if (!m) return 0;
+      return parseInt(m[1], 10) + (m[2] ? parseInt(m[2], 10) : 0);
+    }
+
+    // Strips accents/diacritics for name matching only (never for display) — the stats
+    // screenshots' names don't always match currentSquad's own spelling exactly (e.g.
+    // "Manuel Carabalí" here vs "Manuel Caraballi" as originally captured, "Aurelio Eguía"
+    // vs "Aurelio Eguia"), so a plain === comparison would silently fail to find a position
+    // for those players.
+    function normalizeNameForMatch(name) {
+      return (name || '').normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]', 'g'), '').toLowerCase().trim();
+    }
+
+    // Performance snapshots deliberately don't carry a "position" field (it isn't visible on
+    // any of FM's own stat-filter screens this feature is built around) — looked up from the
+    // squad already loaded elsewhere in the app instead. Returns null (not a placeholder
+    // string) when no match is found, so callers can tell "unknown" apart from a real
+    // position string.
+    function findSquadPosition(name) {
+      const target = normalizeNameForMatch(name);
+      if (!target) return null;
+      const match = currentSquad.find(p => normalizeNameForMatch(p.name) === target);
+      return match ? match.position : null;
+    }
+
+    // Derived (computed-on-read, never stored) stats shared between the table and the charts
+    // — kept in one place so a table cell and its matching chart bar can never disagree about
+    // how "Goals − xG" or shot conversion is calculated.
+    function computeDerivedStats(p) {
+      const d = {};
+      if (typeof p.goals === 'number' && typeof p.xG === 'number') d.__xgDiff = p.goals - p.xG;
+      if (typeof p.svPct === 'number' && typeof p.xSvPct === 'number') d.__svDiff = p.svPct - p.xSvPct;
+      if (typeof p.goals === 'number' && typeof p.shots === 'number' && p.shots > 0) {
+        d.__conversion = (p.goals / p.shots) * 100;
+      }
+      return d;
+    }
+
+    // FM's own Goalkeeping stat view shows literal 0s (not blanks) for every outfield
+    // player's Clean Sheets/Sv%/xSv%, since it's just running the same 5 columns down every
+    // row in the squad regardless of position — a snapshot built from that screenshot
+    // therefore has svPct: 0 on 25+ outfield players, not undefined. Plain
+    // `typeof p.svPct === 'number'` would treat all of those as "a keeper's data", so
+    // anything comparing goalkeepers specifically needs this instead: real save involvement
+    // means svPct or goalsConceded is actually above zero, not just present as a number.
+    function isGoalkeeperRecord(p) {
+      return typeof p.svPct === 'number' && typeof p.xSvPct === 'number'
+        && (p.svPct > 0 || p.goalsConceded > 0);
+    }
+
+    // One entry per stat-filter view FM itself offers on the Squad screen (Attacking/xG,
+    // Goalkeeping, Discipline, General Play, Goal Attempts) — the category picker's options,
+    // the main table's columns, and the chart all read from this ONE config per category, so
+    // adding a 6th view later (e.g. Average Rating, once a screenshot of that view is
+    // captured) only means adding one more entry here rather than touching four separate
+    // places. Column "type" drives cell formatting: 'raw' prints the value as-is (apps'
+    // "39 (1)" string), 'num'/'pct' format a plain number (pct appends %), 'diff' colour-codes
+    // a signed value using .perf-diff-positive/negative/neutral (an "epsilon" band around zero
+    // counts as neutral rather than a barely-there +0.1 reading looking like a real signal).
+    // A column key starting with "__" is computed by computeDerivedStats() above rather than
+    // read directly off the player object.
+    const PERFORMANCE_CATEGORIES = {
+      attacking: {
+        label: 'Attacking (xG)',
+        columns: [
+          { key: 'apps', label: 'Apps', type: 'raw' },
+          { key: 'goals', label: 'Goals', type: 'num' },
+          { key: 'shots', label: 'Shots', type: 'num' },
+          { key: 'xG', label: 'xG', type: 'num', decimals: 2 },
+          { key: '__xgDiff', label: 'Goals − xG', type: 'diff', decimals: 2, epsilon: 0.5 },
+        ],
+        sortKey: 'goals',
+        trendKey: 'goals', trendDecimals: 0,
+        chart: { actualKey: 'goals', expectedKey: 'xG', expectedLabel: 'xG', minVolumeKey: 'shots', minVolume: 1, topN: 10, decimals: 0, epsilon: 1 },
+      },
+      goalkeeping: {
+        label: 'Goalkeeping',
+        columns: [
+          { key: 'apps', label: 'Apps', type: 'raw' },
+          { key: 'cleanSheets', label: 'Clean Sheets', type: 'num' },
+          { key: 'goalsConceded', label: 'Goals Conceded', type: 'num' },
+          { key: 'svPct', label: 'Sv%', type: 'pct' },
+          { key: 'xSvPct', label: 'xSv%', type: 'pct' },
+          { key: '__svDiff', label: 'Sv% − xSv%', type: 'diff', decimals: 1, suffix: '%', epsilon: 1.5 },
+        ],
+        sortKey: 'apps',
+        trendKey: 'svPct', trendDecimals: 1, trendSuffix: '%',
+        chart: { actualKey: 'svPct', expectedKey: 'xSvPct', expectedLabel: 'xSv%', minVolumeKey: 'apps', minVolume: 1, topN: 10, decimals: 0, suffix: '%', epsilon: 1.5 },
+      },
+      discipline: {
+        label: 'Discipline',
+        columns: [
+          { key: 'apps', label: 'Apps', type: 'raw' },
+          { key: 'tacklesWon', label: 'Tackles Won', type: 'num' },
+          { key: 'foulsMade', label: 'Fouls Made', type: 'num' },
+          { key: 'tacklesAttempted', label: 'Tackles Att.', type: 'num' },
+          { key: 'yellow', label: 'Yellow', type: 'num' },
+          { key: 'red', label: 'Red', type: 'num' },
+        ],
+        sortKey: 'tacklesAttempted',
+        trendKey: 'foulsMade', trendDecimals: 0,
+        chart: { singleKey: 'foulsMade', volumeKey: 'tacklesAttempted', topN: 10, decimals: 0 },
+      },
+      generalplay: {
+        label: 'General Play',
+        columns: [
+          { key: 'passPct', label: 'Pass %', type: 'pct' },
+          { key: 'passesAttempted', label: 'Passes', type: 'num' },
+          { key: 'mistakesLeadingToGoal', label: 'Mistakes → Goal', type: 'num' },
+          { key: 'headersWon', label: 'Headers Won', type: 'num' },
+          { key: 'headersAttempted', label: 'Headers Att.', type: 'num' },
+          { key: 'crossesCompleted', label: 'Crosses Comp.', type: 'num' },
+          { key: 'crossesAttempted', label: 'Crosses Att.', type: 'num' },
+        ],
+        sortKey: 'passesAttempted',
+        trendKey: 'passPct', trendDecimals: 1, trendSuffix: '%',
+        chart: { singleKey: 'passPct', volumeKey: 'passesAttempted', topN: 10, decimals: 0, suffix: '%' },
+      },
+      goalattempts: {
+        label: 'Goal Attempts',
+        columns: [
+          { key: 'goals', label: 'Goals', type: 'num' },
+          { key: 'shots', label: 'Shots', type: 'num' },
+          { key: '__conversion', label: 'Conversion', type: 'pct' },
+          { key: 'pensScored', label: 'Pens Scored', type: 'num' },
+          { key: 'pensTaken', label: 'Pens Taken', type: 'num' },
+          { key: 'minsSinceLastGoal', label: 'Mins Since Goal', type: 'num' },
+        ],
+        sortKey: 'shots',
+        trendKey: '__conversion', trendDecimals: 1, trendSuffix: '%',
+        chart: { singleKey: '__conversion', volumeKey: 'shots', topN: 10, decimals: 0, suffix: '%' },
+      },
+    };
+
+    function getColumnValue(col, p, derived) {
+      return col.key.indexOf('__') === 0 ? derived[col.key] : p[col.key];
+    }
+
+    function formatColumnCell(col, p, derived) {
+      const raw = getColumnValue(col, p, derived);
+      if (raw === undefined || raw === null) return '—';
+      if (col.type === 'raw') return String(raw);
+      if (typeof raw !== 'number' || isNaN(raw)) return '—';
+      const decimals = col.decimals != null ? col.decimals : 0;
+      if (col.type === 'pct') return raw.toFixed(decimals) + '%';
+      if (col.type === 'diff') {
+        const epsilon = col.epsilon != null ? col.epsilon : 0.5;
+        const cls = raw >= epsilon ? 'perf-diff-positive' : raw <= -epsilon ? 'perf-diff-negative' : 'perf-diff-neutral';
+        const sign = raw > 0 ? '+' : '';
+        return `<span class="${cls}">${sign}${raw.toFixed(decimals)}${col.suffix || ''}</span>`;
+      }
+      return raw.toFixed(decimals);
     }
 
     // Oldest first — a "YYYY-MM-DD" date string sorts correctly as plain text, so no need to
@@ -11855,110 +12116,374 @@
     }
 
     // A single trimmed example matching the schema exactly — shown via "Load Example
-    // Template", same idea as SCOUT_EXAMPLE_TEMPLATE above. Deliberately just the handful of
-    // columns FM's own stats screens show (apps/goals/assists/avg rating) rather than a fixed
-    // exhaustive list — validatePerformanceSnapshots() only requires "name", so a screenshot
-    // with more or fewer visible columns still imports fine.
+    // Template", same idea as SCOUT_EXAMPLE_TEMPLATE above. Every field except "name" is
+    // optional (validatePerformanceSnapshots() only requires that), so a screenshot covering
+    // just one of the 5 stat views still imports fine — this example happens to show every
+    // field at once purely for reference, not because a real submission needs all of them.
     const PERFORMANCE_EXAMPLE_TEMPLATE = {
-      date: '2026-07-05',
+      date: '2037-04-11',
       players: [
-        { name: 'Example Player', position: 'ST (C)', apps: 12, goals: 8, assists: 3, avgRating: 7.24 },
-        { name: 'Another Player', position: 'M (C)', apps: 14, goals: 2, assists: 6, avgRating: 6.81 }
-      ]
+        {
+          name: 'Example Player', apps: '12 (3)', goals: 8, shots: 40, xG: 6.2,
+          cleanSheets: 0, goalsConceded: 0, svPct: 0, xSvPct: 0,
+          tacklesWon: 17, foulsMade: 17, tacklesAttempted: 25, yellow: 1, red: 0,
+          passPct: 91, passesAttempted: 634, mistakesLeadingToGoal: 0,
+          headersWon: 11, headersAttempted: 52, crossesCompleted: 8, crossesAttempted: 18,
+          pensScored: 1, pensTaken: 1, minsSinceLastGoal: 220,
+        },
+      ],
     };
+
+    // Fills the category <select> once from PERFORMANCE_CATEGORIES (so the dropdown can
+    // never list an option the render code doesn't know how to handle) and wires its change
+    // handler. Re-running this after the select already has options is a harmless no-op —
+    // guarded so repeat calls from renderPerformanceData() don't pile up duplicate listeners.
+    let performanceCategorySelectReady = false;
+    function ensurePerformanceCategorySelect() {
+      if (performanceCategorySelectReady) return;
+      const select = document.getElementById('performance-category-select');
+      select.innerHTML = Object.keys(PERFORMANCE_CATEGORIES)
+        .map(key => `<option value="${key}">${PERFORMANCE_CATEGORIES[key].label}</option>`).join('');
+      select.value = performanceCategory;
+      select.addEventListener('change', () => {
+        performanceCategory = select.value;
+        renderPerformanceCategoryView();
+      });
+      performanceCategorySelectReady = true;
+    }
+
+    // Renders just the table + chart for whichever category is currently picked, against
+    // whatever snapshot renderPerformanceData() last resolved as "latest" — kept separate
+    // from the full render so switching the dropdown doesn't need to re-touch the empty
+    // state, insights, or history list at all.
+    function renderPerformanceCategoryView() {
+      if (!performanceLatestSnapshot) return;
+      const cat = PERFORMANCE_CATEGORIES[performanceCategory];
+      const players = performanceLatestSnapshot.players;
+      const prevByName = performancePreviousSnapshot
+        ? new Map(performancePreviousSnapshot.players.map(p => [normalizeNameForMatch(p.name), p]))
+        : null;
+
+      const headCells = ['<th>Player</th>', '<th>Position</th>']
+        .concat(cat.columns.map(c => `<th>${c.label}</th>`));
+      if (prevByName) headCells.push('<th>Trend</th>');
+      document.getElementById('performance-table-head').innerHTML = headCells.join('');
+
+      const sortedPlayers = players.slice().sort((a, b) => {
+        const av = typeof a[cat.sortKey] === 'number' ? a[cat.sortKey] : parseAppsTotal(a[cat.sortKey]);
+        const bv = typeof b[cat.sortKey] === 'number' ? b[cat.sortKey] : parseAppsTotal(b[cat.sortKey]);
+        return bv - av;
+      });
+
+      document.getElementById('performance-table-body').innerHTML = sortedPlayers.map(p => {
+        const derived = computeDerivedStats(p);
+        const position = findSquadPosition(p.name) || '—';
+        const cells = cat.columns.map(c => `<td>${formatColumnCell(c, p, derived)}</td>`).join('');
+        let trendCell = '';
+        if (prevByName) {
+          const prev = prevByName.get(normalizeNameForMatch(p.name));
+          trendCell = `<td>${renderPerformanceTrendCell(cat, p, derived, prev)}</td>`;
+        }
+        return `<tr><td>${p.name}</td><td>${position}</td>${cells}${trendCell}</tr>`;
+      }).join('');
+
+      document.getElementById('performance-chart-title').innerHTML = `Chart <span class="scout-tile-subtitle">- ${cat.label}</span>`;
+      renderPerformanceBarChart(document.getElementById('performance-chart-container'), computePerformanceChartRows(cat, players));
+    }
+
+    // Trend cell compares the category's own "headline" stat (cat.trendKey — a raw field or
+    // a computeDerivedStats() key) against the previous snapshot's value for the same
+    // player, matched by name the same diacritic-insensitive way findSquadPosition() does.
+    function renderPerformanceTrendCell(cat, p, derived, prev) {
+      if (!prev) return '<span class="perf-trend perf-trend-flat">&mdash;</span>';
+      const current = getColumnValue({ key: cat.trendKey }, p, derived);
+      const prevDerived = computeDerivedStats(prev);
+      const prior = getColumnValue({ key: cat.trendKey }, prev, prevDerived);
+      if (typeof current !== 'number' || typeof prior !== 'number') {
+        return '<span class="perf-trend perf-trend-flat">&mdash;</span>';
+      }
+      const diff = current - prior;
+      const decimals = cat.trendDecimals != null ? cat.trendDecimals : 0;
+      const suffix = cat.trendSuffix || '';
+      if (Math.abs(diff) < Math.pow(10, -decimals) / 2) {
+        return '<span class="perf-trend perf-trend-flat">flat</span>';
+      }
+      if (diff > 0) {
+        return `<span class="perf-trend perf-trend-up">&#9650; ${diff.toFixed(decimals)}${suffix}</span>`;
+      }
+      return `<span class="perf-trend perf-trend-down">&#9660; ${Math.abs(diff).toFixed(decimals)}${suffix}</span>`;
+    }
+
+    // Builds the rows for computePerformanceChartRows's caller (renderPerformanceBarChart) —
+    // two shapes depending on the category: an actual-vs-expected pair (Attacking/Goalkeeping,
+    // which both have a real xG-style "expected" stat to compare against) or a single ranked
+    // metric (Discipline/General Play/Goal Attempts, which don't). Ranked/filtered by a
+    // "volume" stat (shots, apps, passes attempted...) rather than the metric itself, so e.g.
+    // one sub's lone 100%-pass-completion cameo doesn't outrank the actual first-choice
+    // players on the Pass % chart.
+    function computePerformanceChartRows(cat, players) {
+      const chart = cat.chart;
+      if (chart.actualKey && chart.expectedKey) {
+        const rows = players
+          .map(p => {
+            const volumeRaw = chart.minVolumeKey ? p[chart.minVolumeKey] : null;
+            const volume = typeof volumeRaw === 'number' ? volumeRaw : parseAppsTotal(volumeRaw);
+            return { label: p.name, value: p[chart.actualKey], expected: p[chart.expectedKey], volume };
+          })
+          .filter(r => typeof r.value === 'number' && typeof r.expected === 'number' && r.volume >= (chart.minVolume || 0))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, chart.topN || 10);
+        return rows.map(r => {
+          const diff = r.value - r.expected;
+          const over = diff >= (chart.epsilon || 0.5) ? true : diff <= -(chart.epsilon || 0.5) ? false : null;
+          return {
+            label: r.label, value: r.value, expected: r.expected, over,
+            displayValue: `${fmtNum(r.value, chart.decimals)}${chart.suffix || ''} (xp ${fmtNum(r.expected, chart.decimals)}${chart.suffix || ''})`,
+          };
+        });
+      }
+      const rows = players
+        .map(p => {
+          const derived = computeDerivedStats(p);
+          const value = getColumnValue({ key: chart.singleKey }, p, derived);
+          const volumeRaw = chart.volumeKey ? p[chart.volumeKey] : value;
+          const volume = typeof volumeRaw === 'number' ? volumeRaw : parseAppsTotal(volumeRaw);
+          return { label: p.name, value, volume };
+        })
+        .filter(r => typeof r.value === 'number')
+        .sort((a, b) => b.volume - a.volume)
+        .slice(0, chart.topN || 10);
+      return rows.map(r => ({ label: r.label, value: r.value, displayValue: `${fmtNum(r.value, chart.decimals)}${chart.suffix || ''}` }));
+    }
+
+    // Hand-rolled horizontal bar chart — no external charting library, keeping this feature
+    // in line with the app's own single-file/no-dependency principle (same reasoning as the
+    // Tactic Builder's own hand-drawn pitch markers). One row per player: a bar sized to
+    // `value`, and — when the category has a real "expected" stat — a thin white marker tick
+    // showing where `expected` sits on the same scale, so over/underperformance is visible
+    // as "bar past the tick" or "bar short of the tick" without needing a second offset bar.
+    function renderPerformanceBarChart(containerEl, rows) {
+      if (!rows.length) {
+        containerEl.innerHTML = '<div class="scouting-focus-empty">Not enough data yet for this chart.</div>';
+        return;
+      }
+      const maxVal = Math.max(...rows.map(r => Math.max(r.value || 0, r.expected || 0)), 0.0001) * 1.15;
+      containerEl.innerHTML = rows.map(r => {
+        const barPct = Math.max(0, Math.min(100, (r.value / maxVal) * 100));
+        const barClass = r.over === true ? 'is-over' : r.over === false ? 'is-under' : '';
+        const markerHtml = (r.expected != null)
+          ? `<div class="perf-chart-marker" style="left:${Math.max(0, Math.min(100, (r.expected / maxVal) * 100))}%"></div>`
+          : '';
+        return `<div class="perf-chart-row">
+          <div class="perf-chart-label" title="${r.label}">${r.label}</div>
+          <div class="perf-chart-track">
+            <div class="perf-chart-bar ${barClass}" style="width:${barPct}%"></div>
+            ${markerHtml}
+          </div>
+          <div class="perf-chart-value">${r.displayValue}</div>
+        </div>`;
+      }).join('');
+    }
+
+    // ---- Analysis: assumptions / areas for improvement / over-underperformers ----
+    // Always computed off the LATEST snapshot regardless of which category tab is open — the
+    // user asked for this to read as one persistent "what does the data suggest" view, not
+    // something that resets every time the picker changes. Every observation is generated
+    // from thresholds against whatever's actually in the snapshot (not hardcoded to any one
+    // save), and every list gracefully falls back to a "not enough data yet" line rather than
+    // guessing when a required field wasn't captured in this particular batch of screenshots.
+    function computePerformanceInsights(latest) {
+      const players = latest.players;
+      const assumptions = [];
+      const improvements = [];
+
+      // ---- Attacking over/underperformers: Goals vs xG, for anyone with a meaningful
+      // sample of shots (>=5) so one lucky/unlucky strike from a bit-part player doesn't
+      // dominate the list. ----
+      const withShots = players.filter(p => typeof p.goals === 'number' && typeof p.xG === 'number' && (p.shots || 0) >= 5)
+        .map(p => ({ name: p.name, diff: p.goals - p.xG, goals: p.goals, xG: p.xG }));
+      const overperformers = withShots.filter(p => p.diff >= 1).sort((a, b) => b.diff - a.diff).slice(0, 3);
+      const underperformers = withShots.filter(p => p.diff <= -1).sort((a, b) => a.diff - b.diff).slice(0, 3);
+
+      // ---- Goalkeeping over/underperformers: Sv% vs xSv%, for keepers with a real sample
+      // of appearances (>=3). ----
+      const keeperDiffs = players.filter(p => isGoalkeeperRecord(p) && parseAppsTotal(p.apps) >= 3)
+        .map(p => ({ name: p.name, diff: p.svPct - p.xSvPct }));
+      const gkOver = keeperDiffs.filter(p => p.diff >= 1.5).sort((a, b) => b.diff - a.diff);
+      const gkUnder = keeperDiffs.filter(p => p.diff <= -1.5).sort((a, b) => a.diff - b.diff);
+
+      // ---- Assumptions: squad-wide passing tendency ----
+      const passers = players.filter(p => typeof p.passPct === 'number' && typeof p.passesAttempted === 'number' && p.passesAttempted > 0);
+      if (passers.length) {
+        const totalAttempted = passers.reduce((sum, p) => sum + p.passesAttempted, 0);
+        const weightedPassPct = passers.reduce((sum, p) => sum + p.passPct * p.passesAttempted, 0) / totalAttempted;
+        const style = weightedPassPct >= 89 ? 'a controlled, possession-based build-up'
+          : weightedPassPct >= 85 ? 'a fairly balanced mix of control and directness'
+          : 'a more direct, higher-risk passing approach';
+        assumptions.push(`Weighted average pass completion across the squad is <strong>${weightedPassPct.toFixed(1)}%</strong>, which suggests ${style}.`);
+      }
+
+      // ---- Assumptions: wide play / crossing reliance ----
+      const crossers = players.filter(p => typeof p.crossesAttempted === 'number' && p.crossesAttempted > 0);
+      if (crossers.length) {
+        const topCrosser = crossers.slice().sort((a, b) => b.crossesAttempted - a.crossesAttempted)[0];
+        const totalCrosses = crossers.reduce((sum, p) => sum + p.crossesAttempted, 0);
+        if (topCrosser.crossesAttempted >= 100) {
+          assumptions.push(`${topCrosser.name} has attempted <strong>${topCrosser.crossesAttempted}</strong> crosses, well ahead of the rest of the squad — this suggests attacks are being funnelled through them on the flank fairly heavily.`);
+        } else if (totalCrosses < 50) {
+          assumptions.push(`Cross attempts are low across the board (highest is ${topCrosser.name} with ${topCrosser.crossesAttempted}), suggesting the team builds attacks through the middle rather than from wide areas.`);
+        }
+      }
+
+      // ---- Assumptions: goal-scoring concentration ----
+      const scorers = players.filter(p => typeof p.goals === 'number' && p.goals > 0);
+      if (scorers.length) {
+        const totalGoals = scorers.reduce((sum, p) => sum + p.goals, 0);
+        const topScorer = scorers.slice().sort((a, b) => b.goals - a.goals)[0];
+        const share = totalGoals > 0 ? (topScorer.goals / totalGoals) * 100 : 0;
+        if (share >= 30) {
+          assumptions.push(`${topScorer.name} accounts for <strong>${share.toFixed(0)}%</strong> of the squad's captured goals (${topScorer.goals} of ${totalGoals}) — the team may be over-reliant on one source of goals.`);
+        }
+      }
+
+      // ---- Assumptions: discipline / pressing intensity ----
+      const disciplined = players.filter(p => typeof p.foulsMade === 'number' && typeof p.tacklesAttempted === 'number' && p.tacklesAttempted > 0);
+      if (disciplined.length) {
+        const totalFouls = disciplined.reduce((sum, p) => sum + p.foulsMade, 0);
+        const totalTackles = disciplined.reduce((sum, p) => sum + p.tacklesAttempted, 0);
+        const foulRate = totalTackles > 0 ? (totalFouls / totalTackles) * 100 : 0;
+        const tone = foulRate >= 40 ? 'a physical, aggressive pressing style that is picking up a lot of fouls along with it'
+          : foulRate <= 20 ? 'a fairly clean, well-timed approach to tackling'
+          : 'a moderately physical approach to winning the ball back';
+        assumptions.push(`Fouls made are running at roughly <strong>${foulRate.toFixed(0)}%</strong> of tackles attempted, suggesting ${tone}.`);
+      }
+
+      if (!assumptions.length) {
+        assumptions.push('Not enough data captured yet to draw squad-wide assumptions — add a snapshot with passing, crossing, or discipline columns filled in to see observations here.');
+      }
+
+      // ---- Areas for improvement ----
+      if (underperformers.length) {
+        const names = underperformers.map(p => `${p.name} (${p.goals} goals from ${p.xG.toFixed(1)} xG)`).join(', ');
+        improvements.push(`Finishing looks like a coaching priority for: <strong>${names}</strong> — each is scoring meaningfully below the chances they're getting.`);
+      }
+      if (gkUnder.length) {
+        const names = gkUnder.map(p => `${p.name} (${p.diff.toFixed(1)}pts below expected)`).join(', ');
+        improvements.push(`Shot-stopping is underperforming the model for: <strong>${names}</strong> — worth a look at goalkeeping coaching or confidence.`);
+      }
+      const dirtyTacklers = players.filter(p => typeof p.foulsMade === 'number' && typeof p.tacklesWon === 'number' && p.tacklesAttempted >= 10 && p.foulsMade > p.tacklesWon)
+        .sort((a, b) => (b.foulsMade - b.tacklesWon) - (a.foulsMade - a.tacklesWon));
+      if (dirtyTacklers.length) {
+        const worst = dirtyTacklers[0];
+        improvements.push(`<strong>${worst.name}</strong> commits more fouls (${worst.foulsMade}) than successful tackles (${worst.tacklesWon}) — their tackle timing/discipline looks like a training focus.`);
+      }
+      if (passers.length) {
+        const worstPasser = passers.filter(p => p.passesAttempted >= 100).sort((a, b) => a.passPct - b.passPct)[0];
+        if (worstPasser && worstPasser.passPct < 85) {
+          improvements.push(`<strong>${worstPasser.name}</strong>'s pass completion (${worstPasser.passPct.toFixed(0)}%) is the weakest among regular passers — distribution under pressure may be worth targeting in training.`);
+        }
+      }
+      const keepersWithApps = players.filter(p => isGoalkeeperRecord(p) && parseAppsTotal(p.apps) >= 1)
+        .sort((a, b) => parseAppsTotal(b.apps) - parseAppsTotal(a.apps));
+      if (keepersWithApps.length >= 2) {
+        const starter = keepersWithApps[0];
+        const backup = keepersWithApps[1];
+        if (typeof backup.svPct === 'number' && typeof starter.svPct === 'number' && (starter.svPct - backup.svPct) >= 8) {
+          improvements.push(`There's a meaningful save-percentage gap between ${starter.name} (${starter.svPct}%) and backup ${backup.name} (${backup.svPct}%) — goalkeeping depth looks like a squad-building priority if ${starter.name} picks up an injury or suspension.`);
+        }
+      }
+      if (!improvements.length) {
+        improvements.push('No clear improvement areas stood out from this snapshot — add more snapshots over time to spot developing trends.');
+      }
+
+      return { assumptions, improvements, overperformers, underperformers, gkOver, gkUnder };
+    }
+
+    function renderPerformanceInsights(latest) {
+      const insights = computePerformanceInsights(latest);
+      const container = document.getElementById('performance-insights-content');
+
+      const overUnderRows = [];
+      insights.overperformers.forEach(p => overUnderRows.push(
+        `<div class="perf-history-row"><span>${p.name} <span class="scout-tile-subtitle">- overperforming xG</span></span><span class="perf-diff-positive">+${p.diff.toFixed(1)}</span></div>`));
+      insights.underperformers.forEach(p => overUnderRows.push(
+        `<div class="perf-history-row"><span>${p.name} <span class="scout-tile-subtitle">- underperforming xG</span></span><span class="perf-diff-negative">${p.diff.toFixed(1)}</span></div>`));
+      insights.gkOver.forEach(p => overUnderRows.push(
+        `<div class="perf-history-row"><span>${p.name} <span class="scout-tile-subtitle">- overperforming xSv%</span></span><span class="perf-diff-positive">+${p.diff.toFixed(1)}</span></div>`));
+      insights.gkUnder.forEach(p => overUnderRows.push(
+        `<div class="perf-history-row"><span>${p.name} <span class="scout-tile-subtitle">- underperforming xSv%</span></span><span class="perf-diff-negative">${p.diff.toFixed(1)}</span></div>`));
+
+      container.innerHTML = `
+        <div class="perf-insight-section">
+          <div class="perf-insight-heading">Assumptions</div>
+          ${insights.assumptions.map(a => `<p>${a}</p>`).join('')}
+        </div>
+        <div class="perf-insight-section">
+          <div class="perf-insight-heading">Areas for Improvement</div>
+          ${insights.improvements.map(i => `<p>${i}</p>`).join('')}
+        </div>
+        <div class="perf-insight-section">
+          <div class="perf-insight-heading">Over / Underperforming Players</div>
+          ${overUnderRows.length ? overUnderRows.join('') : '<p>Not enough shot or save data yet to rank over/underperformers.</p>'}
+        </div>
+      `;
+    }
+
+    function renderPerformanceHistory(snapshots) {
+      const historyList = document.getElementById('performance-history-list');
+      if (snapshots.length === 0) {
+        historyList.innerHTML = '<div class="scouting-focus-empty">No snapshots yet.</div>';
+        return;
+      }
+      historyList.innerHTML = snapshots.slice().reverse().map(s => `
+        <div class="perf-history-row">
+          <span class="perf-history-date"><strong>${s.date}</strong> &mdash; ${s.players.length} player${s.players.length === 1 ? '' : 's'}</span>
+          <button class="mini-btn" data-perf-remove-date="${s.date}">Remove</button>
+        </div>
+      `).join('');
+      historyList.querySelectorAll('[data-perf-remove-date]').forEach(btn => {
+        btn.addEventListener('click', () => removePerformanceSnapshot(btn.dataset.perfRemoveDate));
+      });
+    }
+
+    let performanceCategory = 'attacking';
+    let performanceLatestSnapshot = null;
+    let performancePreviousSnapshot = null;
 
     function renderPerformanceData() {
       const snapshots = sortedPerformanceSnapshots();
       const emptyState = document.getElementById('performance-empty-state');
       const tablePanel = document.getElementById('performance-table-panel');
+      const chartPanel = document.getElementById('performance-chart-panel');
       const secondaryRow = document.getElementById('performance-secondary-row');
       const subtitle = document.getElementById('performance-subtitle');
 
       if (snapshots.length === 0) {
         emptyState.style.display = '';
         tablePanel.style.display = 'none';
+        chartPanel.style.display = 'none';
         secondaryRow.style.display = 'none';
         subtitle.textContent = 'No snapshots captured yet';
+        performanceLatestSnapshot = null;
+        performancePreviousSnapshot = null;
         return;
       }
 
       emptyState.style.display = 'none';
       tablePanel.style.display = '';
+      chartPanel.style.display = '';
       secondaryRow.style.display = '';
 
-      const latest = snapshots[snapshots.length - 1];
-      const previous = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
-      const prevByName = new Map((previous ? previous.players : []).map(p => [(p.name || '').toLowerCase(), p]));
+      performanceLatestSnapshot = snapshots[snapshots.length - 1];
+      performancePreviousSnapshot = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
 
-      subtitle.textContent = `Latest snapshot: ${latest.date} (${snapshots.length} snapshot${snapshots.length === 1 ? '' : 's'} captured)`;
-      document.getElementById('performance-latest-label').textContent = `- ${latest.date}`;
+      subtitle.textContent = `Latest snapshot: ${performanceLatestSnapshot.date} (${snapshots.length} snapshot${snapshots.length === 1 ? '' : 's'} captured, ${performanceLatestSnapshot.players.length} players)`;
+      document.getElementById('performance-latest-label').textContent = `- ${performanceLatestSnapshot.date}`;
 
-      document.getElementById('performance-table-body').innerHTML = latest.players.map(p => {
-        const prev = prevByName.get((p.name || '').toLowerCase());
-        let trendHtml = '<span class="perf-trend perf-trend-flat">&mdash;</span>';
-        if (prev && typeof prev.avgRating === 'number' && typeof p.avgRating === 'number') {
-          const diff = p.avgRating - prev.avgRating;
-          if (Math.abs(diff) < 0.05) {
-            trendHtml = '<span class="perf-trend perf-trend-flat">flat</span>';
-          } else if (diff > 0) {
-            trendHtml = `<span class="perf-trend perf-trend-up">&#9650; ${diff.toFixed(2)}</span>`;
-          } else {
-            trendHtml = `<span class="perf-trend perf-trend-down">&#9660; ${Math.abs(diff).toFixed(2)}</span>`;
-          }
-        }
-        return `<tr>
-          <td>${p.name}</td>
-          <td>${p.position || '—'}</td>
-          <td>${p.apps ?? '—'}</td>
-          <td>${p.goals ?? '—'}</td>
-          <td>${p.assists ?? '—'}</td>
-          <td><span class="perf-rating ${ratingClass(p.avgRating)}">${fmtRating(p.avgRating)}</span></td>
-          <td>${trendHtml}</td>
-        </tr>`;
-      }).join('');
-
-      // Average rating by position group — reuses classifyPositions()/POSITION_GROUP_ORDER
-      // (already built for Squad Breakdown's own gap analysis) so a player's group here is
-      // determined exactly the same way as everywhere else in the app, rather than a second,
-      // possibly-inconsistent classification of the same position string.
-      const byGroup = new Map();
-      latest.players.forEach(p => {
-        if (typeof p.avgRating !== 'number') return;
-        const group = classifyPositions(p.position || '')[0] || null;
-        if (!group) return;
-        if (!byGroup.has(group)) byGroup.set(group, []);
-        byGroup.get(group).push(p.avgRating);
-      });
-      const positionsList = document.getElementById('performance-positions-list');
-      if (byGroup.size === 0) {
-        positionsList.innerHTML = '<div class="scouting-focus-empty">No positions with rating data in the latest snapshot.</div>';
-      } else {
-        positionsList.innerHTML = POSITION_GROUP_ORDER
-          .filter(group => byGroup.has(group))
-          .map(group => {
-            const ratings = byGroup.get(group);
-            const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
-            return `<div class="perf-position-row"><strong>${group}</strong><span class="perf-rating ${ratingClass(avg)}">${fmtRating(avg)}</span></div>`;
-          }).join('');
-      }
-
-      // Snapshot history — newest first, with a small remove control per row so a
-      // mis-captured snapshot can be discarded without clearing everything via Settings'
-      // Clear All Data.
-      const historyList = document.getElementById('performance-history-list');
-      if (snapshots.length === 0) {
-        historyList.innerHTML = '<div class="scouting-focus-empty">No snapshots yet.</div>';
-      } else {
-        historyList.innerHTML = snapshots.slice().reverse().map(s => `
-          <div class="perf-history-row">
-            <span class="perf-history-date"><strong>${s.date}</strong> &mdash; ${s.players.length} player${s.players.length === 1 ? '' : 's'}</span>
-            <button class="mini-btn" data-perf-remove-date="${s.date}">Remove</button>
-          </div>
-        `).join('');
-        historyList.querySelectorAll('[data-perf-remove-date]').forEach(btn => {
-          btn.addEventListener('click', () => removePerformanceSnapshot(btn.dataset.perfRemoveDate));
-        });
-      }
+      ensurePerformanceCategorySelect();
+      renderPerformanceCategoryView();
+      renderPerformanceInsights(performanceLatestSnapshot);
+      renderPerformanceHistory(snapshots);
     }
 
     const performanceTextarea = document.getElementById('performance-json-textarea');

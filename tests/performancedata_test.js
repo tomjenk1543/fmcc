@@ -1,14 +1,19 @@
-// Regression/coverage test for the new Performance Data feature (Squad section) — a
-// standalone, screenshot -> Claude -> paste-JSON page for tracking squad performance stats
-// over time, mirroring the Scouting shortlist's own import pattern. Covers:
-//   - validatePerformanceSnapshots(): accepts a single snapshot object OR an array of them,
-//     requires "date" + a non-empty "players" array, requires each player to have "name".
-//   - addPerformanceSnapshots(): upserts by date (same date replaces, not duplicates).
-//   - ratingClass(): FM rating-scale thresholds (deliberately different from the 1-20
-//     attribute/fit-score scales elsewhere in the app).
-//   - renderPerformanceData(): empty-state toggle, table rows, trend-vs-previous-snapshot
-//     calculation, position-group averages via the app's own classifyPositions().
-//   - removePerformanceSnapshot(): drops one snapshot from history without touching others.
+// Regression/coverage test for the Performance Data feature v2 (Squad section) — a
+// multi-category squad performance tracker built from FM's own 5 Squad-screen stat filters
+// (Attacking/xG, Goalkeeping, Discipline, General Play, Goal Attempts), same screenshot ->
+// Claude -> paste-JSON import pattern as the Scouting shortlist. Covers:
+//   - validatePerformanceSnapshots(): unchanged shape checks (date + non-empty players array,
+//     each player needing "name"; every other field optional).
+//   - addPerformanceSnapshots()/removePerformanceSnapshot(): unchanged upsert-by-date behaviour.
+//   - parseAppsTotal(): "39 (1)"-style FM appearance strings -> a single volume number.
+//   - normalizeNameForMatch()/findSquadPosition(): diacritic-insensitive name matching against
+//     the loaded squad, since position isn't part of the snapshot schema at all.
+//   - computeDerivedStats(): Goals-xG, Sv%-xSv%, shot conversion %.
+//   - renderPerformanceCategoryView(): category-driven table columns, sorting, and trend cells.
+//   - computePerformanceChartRows()/renderPerformanceBarChart(): both chart shapes (actual-vs-
+//     expected pair, and single ranked metric).
+//   - computePerformanceInsights(): assumptions, improvement flags, and over/underperformer
+//     ranking, all against a small synthetic snapshot with obvious signal.
 
 let pass = 0, fail = 0;
 function check(name, cond) {
@@ -16,119 +21,146 @@ function check(name, cond) {
   else { fail++; console.error('FAIL:', name); }
 }
 
-// ---- Start from a clean slate regardless of whatever the bundled save/localStorage left
-// performanceSnapshots holding, so this test's assertions are self-contained. ----
+// The app now boots to a blank landing state by default (no auto-loaded save) — this test
+// needs a real currentSquad to exercise findSquadPosition()'s name lookup, so it loads the
+// bundled Metalul Buzau save explicitly, same as leaguetable_test.js/snapshot_test.js do.
+loadSaveData_MetaluBuzau();
+
+// ---- Start from a clean slate ----
 performanceSnapshots.length = 0;
 savePerformanceSnapshots(performanceSnapshots);
 
-// ---- validatePerformanceSnapshots ----
+// ---- validatePerformanceSnapshots (schema itself didn't change) ----
 check('rejects a snapshot missing "date"',
   validatePerformanceSnapshots({ players: [{ name: 'A' }] }).some(e => /missing "date"/.test(e)));
-
 check('rejects a snapshot missing "players"',
-  validatePerformanceSnapshots({ date: '2026-01-01' }).some(e => /"players" must be a non-empty array/.test(e)));
-
-check('rejects a snapshot with an empty "players" array',
-  validatePerformanceSnapshots({ date: '2026-01-01', players: [] }).some(e => /"players" must be a non-empty array/.test(e)));
-
+  validatePerformanceSnapshots({ date: '2037-04-11' }).some(e => /"players" must be a non-empty array/.test(e)));
 check('rejects a player missing "name"',
-  validatePerformanceSnapshots({ date: '2026-01-01', players: [{ apps: 1 }] }).some(e => /missing "name"/.test(e)));
+  validatePerformanceSnapshots({ date: '2037-04-11', players: [{ goals: 1 }] }).some(e => /missing "name"/.test(e)));
+check('accepts a snapshot with only name + a couple of stat fields (everything else optional)',
+  validatePerformanceSnapshots({ date: '2037-04-11', players: [{ name: 'Player A', goals: 3 }] }).length === 0);
 
-check('accepts a single well-formed snapshot object (no errors)',
-  validatePerformanceSnapshots({ date: '2026-01-01', players: [{ name: 'Player A' }] }).length === 0);
+// ---- parseAppsTotal ----
+check('parseAppsTotal parses "39 (1)" as 40', parseAppsTotal('39 (1)') === 40);
+check('parseAppsTotal parses a bare "44" as 44', parseAppsTotal('44') === 44);
+check('parseAppsTotal accepts a plain number', parseAppsTotal(7) === 7);
+check('parseAppsTotal returns 0 for missing/unparseable input', parseAppsTotal(undefined) === 0 && parseAppsTotal('') === 0);
 
-check('accepts an array of well-formed snapshots (no errors)',
-  validatePerformanceSnapshots([
-    { date: '2026-01-01', players: [{ name: 'Player A' }] },
-    { date: '2026-02-01', players: [{ name: 'Player A' }] },
-  ]).length === 0);
+// ---- normalizeNameForMatch / findSquadPosition (currentSquad is whatever the bundled save
+// loaded at boot — Samuel Musolino is one of its real players, per FM_Command_Centre.html's
+// own renderSquad() call). ----
+check('normalizeNameForMatch lowercases and strips accents',
+  normalizeNameForMatch('Aurelio Eguía') === normalizeNameForMatch('AURELIO EGUIA'));
+check('findSquadPosition resolves an exact-name match from currentSquad',
+  !!findSquadPosition('Samuel Musolino'));
+check('findSquadPosition resolves a name differing only by accent',
+  findSquadPosition('Aurelio Eguía') === findSquadPosition('Aurelio Eguia'));
+check('findSquadPosition returns null for a name not in the squad',
+  findSquadPosition('Totally Made Up Player') === null);
 
-// ---- ratingClass ----
-check('ratingClass(7.5) is strong', ratingClass(7.5) === 'strong');
-check('ratingClass(7.0) is strong (boundary)', ratingClass(7.0) === 'strong');
-check('ratingClass(6.8) is mid', ratingClass(6.8) === 'mid');
-check('ratingClass(6.2) is weak', ratingClass(6.2) === 'weak');
-check('ratingClass(5.5) is very-weak', ratingClass(5.5) === 'very-weak');
-check('ratingClass(null) is empty string (no data)', ratingClass(null) === '');
-check('ratingClass(NaN) is empty string', ratingClass(NaN) === '');
+// ---- computeDerivedStats ----
+const derived1 = computeDerivedStats({ goals: 26, xG: 23, svPct: 84, xSvPct: 90, shots: 134 });
+check('computeDerivedStats computes __xgDiff', Math.abs(derived1.__xgDiff - 3) < 0.001);
+check('computeDerivedStats computes __svDiff', Math.abs(derived1.__svDiff - (-6)) < 0.001);
+check('computeDerivedStats computes __conversion (goals/shots*100)', Math.abs(derived1.__conversion - (26 / 134 * 100)) < 0.001);
+check('computeDerivedStats omits __conversion when shots is 0', computeDerivedStats({ goals: 0, shots: 0 }).__conversion === undefined);
 
-// ---- addPerformanceSnapshots: add, then upsert-by-date ----
-const r1 = addPerformanceSnapshots([{
-  date: '2026-05-01',
-  players: [
-    { name: 'Striker One', position: 'ST (C)', apps: 10, goals: 6, assists: 1, avgRating: 6.90 },
-    { name: 'Mid One', position: 'M (C)', apps: 12, goals: 1, assists: 4, avgRating: 6.60 },
-  ],
-}]);
-check('first add reports the date as newly added', r1.added.includes('2026-05-01') && r1.updated.length === 0);
-check('performanceSnapshots has 1 entry after first add', performanceSnapshots.length === 1);
-check('first add persisted to localStorage under PERFORMANCE_STORAGE_KEY',
-  JSON.parse(localStorage.getItem(PERFORMANCE_STORAGE_KEY)).length === 1);
-
-const r2 = addPerformanceSnapshots([{
-  date: '2026-06-01',
-  players: [
-    { name: 'Striker One', position: 'ST (C)', apps: 12, goals: 9, assists: 2, avgRating: 7.30 },
-    { name: 'Mid One', position: 'M (C)', apps: 14, goals: 1, assists: 5, avgRating: 6.55 },
-  ],
-}]);
-check('second (different-date) add reports newly added, not updated', r2.added.includes('2026-06-01') && r2.updated.length === 0);
-check('performanceSnapshots has 2 entries after second add', performanceSnapshots.length === 2);
-
-const r3 = addPerformanceSnapshots([{
-  date: '2026-06-01',
-  players: [
-    { name: 'Striker One', position: 'ST (C)', apps: 13, goals: 10, assists: 2, avgRating: 7.35 },
-  ],
-}]);
-check('re-adding the same date reports it as updated, not added', r3.updated.includes('2026-06-01') && r3.added.length === 0);
-check('upsert-by-date replaces, does not duplicate (still 2 entries)', performanceSnapshots.length === 2);
-check('upsert-by-date fully replaced the snapshot contents (only 1 player now)',
-  performanceSnapshots.find(s => s.date === '2026-06-01').players.length === 1);
-
-// ---- renderPerformanceData: rebuild proper 2-snapshot history for render checks ----
-performanceSnapshots.length = 0;
+// ---- Build a small synthetic 2-snapshot history with clear over/underperformance signal ----
 addPerformanceSnapshots([
   {
-    date: '2026-05-01',
+    date: '2037-03-11',
     players: [
-      { name: 'Striker One', position: 'ST (C)', apps: 10, goals: 6, assists: 1, avgRating: 6.50 },
-      { name: 'Mid One', position: 'M (C)', apps: 12, goals: 1, assists: 4, avgRating: 6.80 },
+      { name: 'Samuel Musolino', apps: '35 (1)', goals: 20, shots: 120, xG: 20, passPct: 88, passesAttempted: 1000, foulsMade: 40, tacklesWon: 5, tacklesAttempted: 8 },
+      { name: 'Pol', apps: '40', cleanSheets: 20, goalsConceded: 28, svPct: 84, xSvPct: 84 },
     ],
   },
   {
-    date: '2026-06-01',
+    date: '2037-04-11',
     players: [
-      { name: 'Striker One', position: 'ST (C)', apps: 12, goals: 9, assists: 2, avgRating: 7.30 }, // up
-      { name: 'Mid One', position: 'M (C)', apps: 14, goals: 1, assists: 5, avgRating: 6.55 },        // down
+      // Clear overperformer: 6 more goals than xG suggests, on a real sample of shots.
+      { name: 'Samuel Musolino', apps: '39 (1)', goals: 26, shots: 134, xG: 20, passPct: 88, passesAttempted: 1179, foulsMade: 45, tacklesWon: 5, tacklesAttempted: 8 },
+      // Clear underperformer: 8 fewer goals than xG on a real sample of shots.
+      { name: 'Arthur Ndo', apps: '30 (6)', goals: 3, shots: 74, xG: 11, passPct: 91, passesAttempted: 1024 },
+      // Starting keeper performing almost exactly to expectation.
+      { name: 'Pol', apps: '44', cleanSheets: 23, goalsConceded: 31, svPct: 84, xSvPct: 84.5 },
+      // Backup keeper meaningfully worse than the starter, on a real sample of apps.
+      { name: 'Sergio Acosta', apps: '7', cleanSheets: 4, goalsConceded: 5, svPct: 72, xSvPct: 78 },
+      // A dirty tackler: more fouls made than successful tackles won, on real volume.
+      { name: 'Michael Botha', apps: '35 (6)', foulsMade: 47, tacklesWon: 20, tacklesAttempted: 30, passPct: 87, passesAttempted: 1748 },
     ],
   },
 ]);
 
+check('two snapshots recorded', performanceSnapshots.length === 2);
+check('table panel visible once snapshots exist', document.getElementById('performance-table-panel').style.display === '');
+check('chart panel visible once snapshots exist', document.getElementById('performance-chart-panel').style.display === '');
 check('empty state hidden once snapshots exist', document.getElementById('performance-empty-state').style.display === 'none');
-check('table panel shown once snapshots exist', document.getElementById('performance-table-panel').style.display === '');
-check('secondary row (position averages + history) shown once snapshots exist', document.getElementById('performance-secondary-row').style.display === '');
-check('subtitle reflects the latest date and snapshot count', /2026-06-01/.test(document.getElementById('performance-subtitle').textContent) && /2 snapshots/.test(document.getElementById('performance-subtitle').textContent));
 
-const tableHtml = document.getElementById('performance-table-body').innerHTML;
-check('table body renders both players from the latest snapshot', /Striker One/.test(tableHtml) && /Mid One/.test(tableHtml));
-check('rising rating gets an up-trend badge', /perf-trend-up/.test(tableHtml));
-check('falling rating gets a down-trend badge', /perf-trend-down/.test(tableHtml));
-check('latest avg rating is colour-classed via perf-rating', /perf-rating strong/.test(tableHtml) || /perf-rating mid/.test(tableHtml));
+// ---- Category select is populated from PERFORMANCE_CATEGORIES ----
+const categorySelect = document.getElementById('performance-category-select');
+check('category select has one option per PERFORMANCE_CATEGORIES entry',
+  categorySelect.children.length === Object.keys(PERFORMANCE_CATEGORIES).length);
 
-const positionsHtml = document.getElementById('performance-positions-list').innerHTML;
-check('position-averages list shows the Striker group (via classifyPositions)', /Striker/.test(positionsHtml));
-check('position-averages list shows the Central Mid group (via classifyPositions)', /Central Mid/.test(positionsHtml));
+// ---- Default (attacking) category view ----
+const headHtml = document.getElementById('performance-table-head').innerHTML;
+check('attacking table header includes Goals and xG columns', /Goals/.test(headHtml) && />xG</.test(headHtml));
+check('attacking table header includes a Trend column (2 snapshots exist)', /Trend/.test(headHtml));
 
+const bodyHtml = document.getElementById('performance-table-body').innerHTML;
+check('table body renders both attacking-relevant players', /Samuel Musolino/.test(bodyHtml) && /Arthur Ndo/.test(bodyHtml));
+check('Musolino\'s position is resolved from currentSquad, not left blank', bodyHtml.indexOf('Samuel Musolino') < bodyHtml.indexOf('AM (RC)/ST (C)'));
+check('Goals − xG diff is colour-classed positive for the overperformer', /perf-diff-positive/.test(bodyHtml));
+check('rising goal count vs previous snapshot shows an up-trend badge', /perf-trend-up/.test(bodyHtml));
+
+const chartHtmlAttacking = document.getElementById('performance-chart-container').innerHTML;
+check('attacking chart renders at least one bar row', /perf-chart-row/.test(chartHtmlAttacking));
+check('attacking chart marks the clear overperformer\'s bar as over', /is-over/.test(chartHtmlAttacking));
+
+// ---- Switch to goalkeeping category ----
+performanceCategory = 'goalkeeping';
+renderPerformanceCategoryView();
+const gkHeadHtml = document.getElementById('performance-table-head').innerHTML;
+check('goalkeeping table header includes Sv% and xSv% columns', /Sv%/.test(gkHeadHtml) && /xSv%/.test(gkHeadHtml));
+const gkBodyHtml = document.getElementById('performance-table-body').innerHTML;
+check('goalkeeping table includes both keepers', /Pol/.test(gkBodyHtml) && /Sergio Acosta/.test(gkBodyHtml));
+check('backup keeper\'s Sv%-xSv% diff is colour-classed negative', /perf-diff-negative/.test(gkBodyHtml));
+
+// ---- Switch to discipline category (single-metric chart, no actual/expected pair) ----
+performanceCategory = 'discipline';
+renderPerformanceCategoryView();
+const discHeadHtml = document.getElementById('performance-table-head').innerHTML;
+check('discipline table header includes Tackles Won and Fouls Made', /Tackles Won/.test(discHeadHtml) && /Fouls Made/.test(discHeadHtml));
+const discChartHtml = document.getElementById('performance-chart-container').innerHTML;
+check('discipline chart renders bars without an actual/expected marker requirement', /perf-chart-row/.test(discChartHtml));
+
+// Reset back to the default category so later checks aren't order-dependent.
+performanceCategory = 'attacking';
+renderPerformanceCategoryView();
+
+// ---- Insights: assumptions / improvements / over-underperformers ----
+const insightsHtml = document.getElementById('performance-insights-content').innerHTML;
+check('insights panel has an Assumptions section', /Assumptions/.test(insightsHtml));
+check('insights panel has an Areas for Improvement section', /Areas for Improvement/.test(insightsHtml));
+check('insights panel has an Over\/Underperforming Players section', /Over \/ Underperforming Players/.test(insightsHtml));
+check('Musolino listed as an overperformer', /Samuel Musolino/.test(insightsHtml) && /overperforming xG/.test(insightsHtml));
+check('Ndo listed as an underperformer', /Arthur Ndo/.test(insightsHtml) && /underperforming xG/.test(insightsHtml));
+check('goalkeeping depth gap improvement flag mentions both keepers', /Pol/.test(insightsHtml) && /Sergio Acosta/.test(insightsHtml));
+check('dirty-tackler improvement flag names Michael Botha', /Michael Botha/.test(insightsHtml));
+
+const insights = computePerformanceInsights(performanceLatestSnapshot);
+check('computePerformanceInsights ranks Musolino as the top overperformer', insights.overperformers[0] && insights.overperformers[0].name === 'Samuel Musolino');
+check('computePerformanceInsights ranks Ndo as the top underperformer', insights.underperformers[0] && insights.underperformers[0].name === 'Arthur Ndo');
+check('computePerformanceInsights flags Sergio Acosta as a goalkeeping underperformer', insights.gkUnder.some(p => p.name === 'Sergio Acosta'));
+
+// ---- Snapshot history + removal (unchanged behaviour, still worth covering post-rewrite) ----
 const historyHtml = document.getElementById('performance-history-list').innerHTML;
-check('history list shows both captured dates', /2026-05-01/.test(historyHtml) && /2026-06-01/.test(historyHtml));
-check('history list shows newest snapshot first', historyHtml.indexOf('2026-06-01') < historyHtml.indexOf('2026-05-01'));
+check('history list shows both captured dates', /2037-03-11/.test(historyHtml) && /2037-04-11/.test(historyHtml));
+check('history list shows newest snapshot first', historyHtml.indexOf('2037-04-11') < historyHtml.indexOf('2037-03-11'));
 
-// ---- removePerformanceSnapshot ----
-removePerformanceSnapshot('2026-05-01');
-check('removePerformanceSnapshot drops just that one snapshot', performanceSnapshots.length === 1 && performanceSnapshots[0].date === '2026-06-01');
+removePerformanceSnapshot('2037-03-11');
+check('removePerformanceSnapshot drops just that one snapshot', performanceSnapshots.length === 1 && performanceSnapshots[0].date === '2037-04-11');
 
-removePerformanceSnapshot('2026-06-01');
+removePerformanceSnapshot('2037-04-11');
 check('removing the last snapshot brings back the empty state', document.getElementById('performance-empty-state').style.display === '');
 check('subtitle reverts to the no-snapshots message', document.getElementById('performance-subtitle').textContent === 'No snapshots captured yet');
 
