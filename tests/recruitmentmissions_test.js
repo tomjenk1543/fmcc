@@ -123,5 +123,16 @@ check('the mission role select offers real IP roles (e.g. Advanced Playmaker)', 
 check('the mission role select is grouped into optgroups', /<optgroup/.test(roleSelectHtml));
 check('the mission role select does NOT offer generic OOP-only stub roles', !/Pressing Central Midfielder/.test(roleSelectHtml));
 
+// --- Layout regression guard -----------------------------------------------------------
+// The panel was originally given the .scout-tile class (flex: 1 1 280px), the same sizing
+// the three triage tiles inside .scout-tiles-row use to share THAT row's own flex:1 budget
+// (see getScoutTilesRowBudget()). Giving this panel — a separate sibling of .scout-tiles-row
+// in the page's flex column, not a child of it — that same competing flex sizing corrupted
+// the tiles' own budget math and made them visually overlap this panel. Guards against that
+// class creeping back in, and confirms the dedicated non-competing class is present instead.
+const missionsPanelEl = document.getElementById('recruitment-missions-panel');
+check('the Recruitment Missions panel does NOT carry .scout-tile (which caused the overlap bug)', !missionsPanelEl.className.split(/\s+/).includes('scout-tile'));
+check('the Recruitment Missions panel carries its own non-competing layout class', missionsPanelEl.className.split(/\s+/).includes('recruitment-missions-panel'));
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exitCode = 1;

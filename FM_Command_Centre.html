@@ -3760,7 +3760,30 @@
 
   /* Recruitment Missions tile — the add-mission form row (reuses .tb-control-group/select and
      .mini-input styling from Tactic Builder/the crest-ID field so this doesn't need its own
-     input styles) plus the mission list rows below it. */
+     input styles) plus the mission list rows below it.
+
+     Deliberately NOT given .scout-tile (flex: 1 1 280px) — that class is meant for the three
+     triage tiles that live INSIDE .scout-tiles-row's own flex ROW, sharing out that row's
+     single flex:1 budget (see getScoutTilesRowBudget()). This panel instead sits as a normal
+     sibling of .scout-tiles-row in the page's flex COLUMN; giving it the same flex:1-ish
+     sizing made it compete with .scout-tiles-row for the same vertical space that
+     getScoutTilesRowBudget() assumes belongs to .scout-tiles-row alone, which pushed the
+     three triage tiles' own JS-computed row budget past what they actually had left —
+     exactly what caused them to visually overlap this new tile. flex-shrink:0 here sizes it
+     to its own natural content height instead (like #scout-table-panel above it, a fixed
+     "chrome" element the tiles row's budget is measured around), and the mission list below
+     gets its own internal scrollbar (rather than the tiles' JS-clipped "View all" pattern)
+     so an arbitrarily long mission list can never grow this panel unbounded either. */
+  .recruitment-missions-panel {
+    flex-shrink: 0;
+    margin-bottom: 20px;
+  }
+
+  #recruitment-missions-list {
+    max-height: 130px;
+    overflow-y: auto;
+  }
+
   .mission-form-row {
     display: flex;
     align-items: center;
@@ -4852,7 +4875,7 @@
              mind. Always visible (unlike .scout-tiles-row above, which only appears once
              something's shortlisted) since missions are useful to set up before any
              shortlisting has happened — see renderRecruitmentMissions()/evaluateMission(). -->
-        <div class="dashboard-panel scout-tile" id="recruitment-missions-panel">
+        <div class="dashboard-panel recruitment-missions-panel" id="recruitment-missions-panel">
           <div class="panel-title-row">
             <h3>Recruitment Missions <span class="scout-tile-subtitle">- structured scouting targets</span></h3>
           </div>
@@ -5916,9 +5939,16 @@
       const scrollAreaEl = document.querySelector('#scout .view-scroll-area');
       const tablePanelEl = document.getElementById('scout-table-panel');
       const rowEl = document.getElementById('scout-tiles-row');
+      // Recruitment Missions (see .recruitment-missions-panel's own CSS comment) is another
+      // fixed-height sibling below .scout-tiles-row, same idea as the table panel above it —
+      // both need subtracting from the scroll area's total height, or this function hands
+      // .scout-tiles-row a budget as if the missions panel didn't exist, which is exactly
+      // what made the tiles overflow into it.
+      const missionsPanelEl = document.getElementById('recruitment-missions-panel');
       if (!scrollAreaEl || !tablePanelEl || !rowEl) return 0;
       const tableChrome = tablePanelEl.offsetHeight + (parseFloat(getComputedStyle(tablePanelEl).marginBottom) || 0);
-      return Math.max(0, scrollAreaEl.clientHeight - tableChrome);
+      const missionsChrome = missionsPanelEl ? missionsPanelEl.offsetHeight + (parseFloat(getComputedStyle(missionsPanelEl).marginBottom) || 0) : 0;
+      return Math.max(0, scrollAreaEl.clientHeight - tableChrome - missionsChrome);
     }
 
     // How much a headcount shortage (Critical/Thin) counts toward a position group's
