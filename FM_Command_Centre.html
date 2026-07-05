@@ -4838,6 +4838,30 @@
       return { w, h };
     }
 
+    // redesign-explore: --design-width used to be a fixed 1680px, which only avoided
+    // letterboxing for a window whose own aspect ratio happened to match 1680:1000 (1.68).
+    // Anything wider (most real monitors are 16:9 = 1.78, ultrawides go past 2.3) got
+    // letterboxed on the sides even though nothing about the app actually needs a fixed
+    // width — .dashboard-panels-grid, .attribute-groups, the squad table etc. are all
+    // flex/grid already and just reflow into whatever width they're given. So instead of
+    // treating 1680 as fixed, recompute it on every load/resize to match the CURRENT
+    // window's own aspect ratio at the existing fixed design-height (still 1000, untouched -
+    // see the comment below for why only width flexes here), clamped to a sane range so a
+    // very narrow or very wide window doesn't push spacing/type to an unreadable extreme.
+    // This doesn't chase every possible aspect ratio perfectly (the clamp bounds still
+    // letterbox outside that range), but it removes it entirely for the common cases
+    // (16:9, 16:10, most ultrawides) that a single fixed ratio never could.
+    const DESIGN_WIDTH_MIN = 1400;
+    const DESIGN_WIDTH_MAX = 2400;
+
+    function updateDesignWidthForViewport() {
+      const { h } = getAppDesignSize();
+      const targetRatio = window.innerWidth / window.innerHeight;
+      const fitted = h * targetRatio;
+      const clamped = Math.max(DESIGN_WIDTH_MIN, Math.min(DESIGN_WIDTH_MAX, fitted));
+      document.documentElement.style.setProperty('--design-width', `${Math.round(clamped)}px`);
+    }
+
     function applyScaleToFit() {
       const root = document.getElementById('app-scale-root');
       if (!root) return;
@@ -4847,8 +4871,14 @@
       // (the hero tile's top, "View all" buttons near the bottom, etc.) rather than
       // trimming empty margin — there isn't any dead space around the UI to sacrifice here,
       // so "cover" always cost real content. Math.min guarantees every pixel of the app is
-      // visible, at the cost of a thin letterboxed strip of background on two edges when
-      // the window's aspect ratio doesn't match the design canvas's own (1680:1000).
+      // visible. redesign-explore: since updateDesignWidthForViewport() (called right
+      // before this) already sets w to match the window's own aspect ratio whenever
+      // that's within DESIGN_WIDTH_MIN/MAX, window.innerWidth/w and window.innerHeight/h
+      // come out equal in that common case — Math.min just happens to pick between two
+      // identical numbers, and neither edge letterboxes. Outside the clamp range (a very
+      // narrow or very wide window) w hits its floor/ceiling instead of matching, and
+      // Math.min falls back to the original behaviour: whichever dimension is tighter
+      // wins, the other one letterboxes.
       const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
       const scaledW = w * scale;
       const scaledH = h * scale;
@@ -4862,8 +4892,17 @@
       root.style.transform = `scale(${scale})`;
     }
 
-    applyScaleToFit();
-    window.addEventListener('resize', applyScaleToFit);
+    // updateDesignWidthForViewport() first, every time - it sets --design-width, which
+    // applyScaleToFit() then reads back out via getAppDesignSize() to compute the scale.
+    // Wrapped in one function so the load call and the resize listener can't drift apart
+    // and accidentally call these in the wrong order.
+    function refreshAppLayout() {
+      updateDesignWidthForViewport();
+      applyScaleToFit();
+    }
+
+    refreshAppLayout();
+    window.addEventListener('resize', refreshAppLayout);
 
     // Holds the last-rendered squad so the player modal can look players up by index.
     // Declared up front since renderSquad() is invoked as soon as save data loads below.
