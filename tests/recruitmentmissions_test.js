@@ -169,8 +169,10 @@ check('.recruitment-missions-panel keeps a margin-top for spacing below the tile
 // --- Clicking a mission opens every fitting candidate, not just the single best one --------
 // evaluateMission()/the mission row itself only ever surface the single best match — clicking
 // the row should open the shared gaps-modal listing every shortlisted player who's at least a
-// "Suited" fit for the role (the same 10-point roleFitScore bar evaluateMission itself uses),
-// ranked strongest first, each one clickable through to their own profile.
+// "Suited" fit for the role (the same 10-point roleFitScore bar evaluateMission itself uses)
+// AND who actually meets the mission's own age/wage/value ceilings — a player who's a good
+// fit for the role but breaches a ceiling the mission set is excluded from this list entirely
+// (not just flagged), since the point of the list is "who could I realistically go and sign".
 scoutShortlist.length = 0;
 recruitmentMissions.length = 0;
 
@@ -181,9 +183,7 @@ recruitmentMissions.length = 0;
 // the weighted score down further than "key attrs alone" would suggest. Key 18 + preferred 16
 // gives a weighted score of (18*2+16)/3 ≈ 17.3 — comfortably "Very Suited" (>=15). Key 13 +
 // preferred 8 gives (13*2+8)/3 ≈ 11.3 — solidly "Suited" (10-14), clearly weaker than the
-// first candidate but still a real fit for the role. A goalkeeper with none of these
-// attributes filled in stays well under the 10-point bar and must NOT appear in the
-// candidates list at all.
+// first candidate but still a real fit for the role.
 const strongCandidate = {
   name: 'Test Strong Candidate', position: 'M (C)', age: 23, club: 'Test FC', nation: 'ESP',
   ability: '4★', potential: '4★', wage: '£12K p/w', value: '£5M',
@@ -192,9 +192,34 @@ const strongCandidate = {
     Crossing: 16, Dribbling: 16, Anticipation: 16, Flair: 16, Acceleration: 16, Agility: 16,
   },
 };
-const suitedCandidate = {
-  name: 'Test Suited Candidate', position: 'M (C)', age: 29, club: 'Test FC', nation: 'ARG',
+// Suited (same shape as strongCandidate but weaker attrs), and deliberately within every
+// ceiling the mission below sets — proves a weaker-but-still-real fit stays in the list as
+// long as they're actually affordable, not just that the strongest candidate shows up alone.
+const affordableSuitedCandidate = {
+  name: 'Test Affordable Suited Candidate', position: 'M (C)', age: 22, club: 'Test FC', nation: 'BRA',
+  ability: '3★', potential: '3★', wage: '£8K p/w', value: '£2M',
+  attributes: {
+    'First Touch': 13, Passing: 13, Technique: 13, Composure: 13, Decisions: 13, 'Off The Ball': 13, Teamwork: 13, Vision: 13,
+    Crossing: 8, Dribbling: 8, Anticipation: 8, Flair: 8, Acceleration: 8, Agility: 8,
+  },
+};
+// Same Suited-level attrs as the affordable candidate above, but breaches both the age and
+// wage ceilings the mission sets below (29 > 25, £40K > £20K) — must be excluded entirely.
+const tooOldTooExpensiveCandidate = {
+  name: 'Test Too Old Too Expensive Candidate', position: 'M (C)', age: 29, club: 'Test FC', nation: 'ARG',
   ability: '3★', potential: '3★', wage: '£40K p/w', value: '£50M',
+  attributes: {
+    'First Touch': 13, Passing: 13, Technique: 13, Composure: 13, Decisions: 13, 'Off The Ball': 13, Teamwork: 13, Vision: 13,
+    Crossing: 8, Dribbling: 8, Anticipation: 8, Flair: 8, Acceleration: 8, Agility: 8,
+  },
+};
+// Suited-level attrs, comfortably within the mission's age/value ceilings, but with an
+// undisclosed (FM's "£1" placeholder) wage — must still be INCLUDED, since an unknown wage
+// can't confirm a breach any more than it could for evaluateMission's own "Close" vs
+// exclusion logic (see the Undisclosed-wage tests in scoutwagevalue_test.js).
+const undisclosedWageStillIncludedCandidate = {
+  name: 'Test Undisclosed Wage Still Included Candidate', position: 'M (C)', age: 24, club: 'Test FC', nation: 'FRA',
+  ability: '3★', potential: '3★', wage: { min: '£1', max: '£1' }, value: '£3M',
   attributes: {
     'First Touch': 13, Passing: 13, Technique: 13, Composure: 13, Decisions: 13, 'Off The Ball': 13, Teamwork: 13, Vision: 13,
     Crossing: 8, Dribbling: 8, Anticipation: 8, Flair: 8, Acceleration: 8, Agility: 8,
@@ -205,7 +230,7 @@ const unrelatedGoalkeeper = {
   ability: '3★', potential: '3★',
   attributes: { Reflexes: 4, Handling: 4, 'One on Ones': 4, Communication: 4, Kicking: 4 },
 };
-addScoutedPlayers([strongCandidate, suitedCandidate, unrelatedGoalkeeper]);
+addScoutedPlayers([strongCandidate, affordableSuitedCandidate, tooOldTooExpensiveCandidate, undisclosedWageStillIncludedCandidate, unrelatedGoalkeeper]);
 
 const clickableMission = { role: 'Advanced Playmaker', maxAge: 25, maxWageK: 20, maxValueM: 10, priority: 'high' };
 recruitmentMissions.push(clickableMission);
@@ -220,17 +245,13 @@ check('the modal title names the mission\'s role', document.getElementById('gaps
 check('the modal title includes the mission\'s ceiling text', /Age 25-.*£20K-.*£10M-/.test(document.getElementById('gaps-modal-title').textContent));
 
 const candidatesModalHtml = document.getElementById('gaps-modal-body').innerHTML;
-check('the candidates list includes the Very Suited candidate', /Test Strong Candidate/.test(candidatesModalHtml));
-check('the candidates list includes the merely-Suited candidate too', /Test Suited Candidate/.test(candidatesModalHtml));
+check('the candidates list includes the Very Suited, in-budget candidate', /Test Strong Candidate/.test(candidatesModalHtml));
+check('the candidates list includes the weaker-but-affordable Suited candidate too', /Test Affordable Suited Candidate/.test(candidatesModalHtml));
+check('the candidates list includes a Suited candidate whose wage is undisclosed (can\'t be confirmed over budget)', /Test Undisclosed Wage Still Included Candidate/.test(candidatesModalHtml));
+check('the candidates list EXCLUDES a same-quality Suited candidate who breaches the age AND wage ceilings', !/Test Too Old Too Expensive Candidate/.test(candidatesModalHtml));
 check('the candidates list excludes a shortlisted player who is not a fit for the role at all', !/Test Unrelated Goalkeeper/.test(candidatesModalHtml));
 check('the Very Suited candidate is ranked ahead of the merely-Suited one',
-  candidatesModalHtml.indexOf('Test Strong Candidate') < candidatesModalHtml.indexOf('Test Suited Candidate'));
-check('the merely-Suited candidate has their age flagged as breaching the mission\'s ceiling (29 > 25)',
-  /scout-tactic-fit-highlight weak">Age 29/.test(candidatesModalHtml));
-check('the merely-Suited candidate has their wage flagged as breaching the mission\'s ceiling (£40K > £20K)',
-  /scout-tactic-fit-highlight weak">£40K p\/w/.test(candidatesModalHtml));
-check('the Very Suited candidate\'s age is NOT flagged (23 is within the 25 ceiling)',
-  !/scout-tactic-fit-highlight weak">Age 23/.test(candidatesModalHtml));
+  candidatesModalHtml.indexOf('Test Strong Candidate') < candidatesModalHtml.indexOf('Test Affordable Suited Candidate'));
 
 // Clicking a candidate row inside the modal opens that player's own profile.
 const candidateRowEl = document.querySelector('#gaps-modal-body .mission-candidate-row');
@@ -243,7 +264,13 @@ check('the opened profile is for the top-ranked candidate (Very Suited, shown fi
 scoutShortlist.length = 0;
 addScoutedPlayers([unrelatedGoalkeeper]);
 const noFitHtml = buildMissionCandidatesHtml({ role: 'Advanced Playmaker', maxAge: null, maxWageK: null, maxValueM: null, priority: 'low' });
-check('buildMissionCandidatesHtml explains when nobody shortlisted is even Suited for the role', /No shortlisted player is currently a Suited/.test(noFitHtml));
+check('buildMissionCandidatesHtml explains when nobody shortlisted is even Suited for the role within its ceilings', /No shortlisted player is currently a Suited/.test(noFitHtml));
+
+// --- Empty state: real fits exist for the role, but every one of them breaches a ceiling ----
+scoutShortlist.length = 0;
+addScoutedPlayers([tooOldTooExpensiveCandidate]);
+const allBreachedHtml = buildMissionCandidatesHtml(clickableMission);
+check('buildMissionCandidatesHtml shows the empty state when every real fit breaches a ceiling (rather than an empty candidates-list div)', /No shortlisted player is currently a Suited/.test(allBreachedHtml));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exitCode = 1;

@@ -12377,15 +12377,17 @@
     // Builds the "who fits this mission" list for the modal a mission row opens into (see
     // openMissionCandidatesModal below) — every shortlisted player with a real fit for the
     // mission's role (Suited or better, same roleFitScore/fitScoreLabel 10-point bar
-    // evaluateMission itself uses to ever call someone a candidate at all), ranked strongest
-    // first. evaluateMission only ever surfaces the single BEST candidate for the mission
-    // row's own status badge — this shows the whole pool behind that one name, so "is there
-    // actually a backup option if my first choice falls through" has a real answer.
-    //
-    // Age/wage/value are shown per candidate with whichever figures breach the mission's own
-    // ceiling highlighted the same "weak" red used for an under-par attribute elsewhere in
-    // Scouting, so it's obvious at a glance who's realistically affordable and who's a stretch
-    // — rather than making the user cross-reference the ceiling text in the mission row above.
+    // evaluateMission itself uses to ever call someone a candidate at all) who ALSO actually
+    // meets the mission's own age/wage/value ceilings, ranked strongest first. evaluateMission
+    // only ever surfaces the single BEST candidate for the mission row's own status badge —
+    // this shows the whole pool behind that one name, so "is there actually a backup option if
+    // my first choice falls through" has a real answer, without cluttering that answer with
+    // players who look great on paper but are ruled out by the mission's own specs (too old,
+    // too expensive to buy or to pay). The age/wage/value ok-checks below are deliberately the
+    // exact same formulas evaluateMission uses for its own ageOk/wageOk/valueOk — a player
+    // whose age/wage/value simply hasn't been captured yet still passes (same "unknown, don't
+    // rule them out" treatment as everywhere else in Recruitment Missions, e.g. FM's own "£1"
+    // undisclosed-wage placeholder), only a CONFIRMED breach removes someone from this list.
     function buildMissionCandidatesHtml(mission) {
       const profile = ROLE_ATTRIBUTES[mission.role];
       if (!profile) return '<div class="scout-tile-empty">Unknown role.</div>';
@@ -12395,32 +12397,28 @@
         if (!p.attributes) return;
         const score = roleFitScore(p, profile);
         if (score < 10) return; // below "Suited" — not a real candidate for this role
+
+        const ageOk = !mission.maxAge || p.age == null || p.age <= mission.maxAge;
+        const wageValue = parseWageValue(p.wage);
+        const wageOk = !mission.maxWageK || wageValue == null || wageValue <= mission.maxWageK;
+        const rawValue = parseValueSortValue(p.value);
+        const valueM = rawValue >= 0 ? rawValue / 1000000 : null;
+        const valueOk = !mission.maxValueM || valueM == null || valueM <= mission.maxValueM;
+        if (!ageOk || !wageOk || !valueOk) return; // confirmed breach of a ceiling the mission actually set
+
         candidates.push({ p, i, score });
       });
 
       if (!candidates.length) {
-        return `<div class="scout-tile-empty">No shortlisted player is currently a Suited (or better) fit for ${mission.role}.</div>`;
+        return `<div class="scout-tile-empty">No shortlisted player is currently a Suited (or better) fit for ${mission.role} within its age/wage/value ceilings.</div>`;
       }
 
       candidates.sort((a, b) => b.score - a.score);
 
       const rows = candidates.map(({ p, i, score }) => {
         const label = fitScoreLabel(score);
-
         const ageText = p.age != null ? `Age ${p.age}` : 'Age &mdash;';
-        const ageBreach = !!mission.maxAge && p.age != null && p.age > mission.maxAge;
-
-        const wageText = formatWage(p.wage);
-        const wageValue = parseWageValue(p.wage);
-        const wageBreach = !!mission.maxWageK && wageValue != null && wageValue > mission.maxWageK;
-
-        const valueText = p.value ?? '&mdash;';
-        const rawValue = parseValueSortValue(p.value);
-        const valueM = rawValue >= 0 ? rawValue / 1000000 : null;
-        const valueBreach = !!mission.maxValueM && valueM != null && valueM > mission.maxValueM;
-
-        const flag = (text, breach) => breach ? `<span class="scout-tactic-fit-highlight weak">${text}</span>` : text;
-        const meta = [flag(ageText, ageBreach), flag(wageText, wageBreach), flag(valueText, valueBreach)].join(' &middot; ');
+        const meta = [ageText, formatWage(p.wage), p.value ?? '&mdash;'].join(' &middot; ');
 
         return `
           <div class="scout-tile-row mission-candidate-row" data-index="${i}">
