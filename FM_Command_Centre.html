@@ -2087,10 +2087,57 @@
      with two open at once the one later in the DOM (gaps-modal-backdrop, which comes after
      scout-modal-backdrop) painted on top — leaving the player/scout detail popup stuck
      behind the list it was opened from. Bump the two detail popups above the two list/import
-     popups so a detail popup always wins regardless of DOM order. */
+     popups so a detail popup always wins regardless of DOM order.
+
+     redesign-explore: this z-index bump was a patch on top of the real problem - two
+     modals fighting over the same centered position. Converting these same two detail
+     popups into a right-side slide-over drawer (below) fixes the actual layering question
+     instead of just winning it: a drawer and a centered list dialog occupy different space,
+     so there's no stacking fight to referee regardless of which opened first. The z-index
+     bump stays too - belt and braces, and harmless either way. */
   #player-modal-backdrop,
   #scout-modal-backdrop {
     z-index: 210;
+  }
+
+  /* Anchor to the right edge and stretch full height instead of centering a fixed-size
+     box - this is what actually turns these two into a drawer rather than a modal. Lighter
+     overlay than the base .player-modal-backdrop's 0.65 alpha, since keeping whatever's
+     behind (e.g. an open gaps list) legible is the whole point of a drawer over a modal. */
+  #player-modal-backdrop,
+  #scout-modal-backdrop {
+    justify-content: flex-end;
+    align-items: stretch;
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  /* Full-height panel instead of a centered card: no vertical centering (align-items above
+     already stretches it), no top accent bar (a left border reads better on a vertical
+     edge), square outer corner against the screen edge but keep the inner ones rounded.
+     Deliberately no slide-in transition - the base .player-modal-backdrop/.open pair
+     toggles display:none -> flex with no existing open/close animation either, and
+     animating a display:none->flex swap needs a bigger rework of the show/hide mechanism
+     across all five modals sharing that pair; instant is at least consistent with what
+     every other modal in the app already does today. */
+  #player-modal-backdrop .player-modal,
+  #scout-modal-backdrop .player-modal {
+    width: min(460px, calc(var(--design-width) * 0.32));
+    max-height: none;
+    height: 100%;
+    border-radius: 0;
+    border-top: none;
+    border-left: 3px solid var(--club-primary);
+    box-shadow: -8px 0 28px rgba(0, 0, 0, 0.45);
+  }
+
+  /* The attribute-groups three-column layout (see its own comment further up) was sized
+     for a 640px+ centered modal - at the drawer's ~460px width that's too cramped to read,
+     so stack the three groups vertically instead, same treatment the base layout already
+     falls back to at real narrow viewports (see the existing 600px media query) just
+     applied unconditionally here since the drawer is narrow regardless of window size. */
+  #player-modal-backdrop .attribute-groups,
+  #scout-modal-backdrop .attribute-groups {
+    flex-direction: column;
   }
 
   /* redesign-explore: same soft-elevation card language as .hero-tile/.dashboard-panel,
