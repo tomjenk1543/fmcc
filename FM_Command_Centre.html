@@ -4259,6 +4259,15 @@
         No squad data loaded yet.<br>Player list, positions, and stats will appear here once data is connected.
       </div>
       <div class="dashboard-panel squad-table-panel" id="squad-table-panel" style="display:none;">
+        <!-- Every other tile in the app (Scouted Players, Save Overview, Best Players, etc)
+             carries its own in-tile title via .panel-title-row — Squad List's table tile was
+             the one exception, relying on the page's own <h1>Squad List</h1> above it instead.
+             Added for consistency with that pattern, and to name this specific list ("First
+             Team") in case the app ever grows a second squad grouping (reserves/youth) that
+             would need distinguishing from it. -->
+        <div class="panel-title-row">
+          <h3>First Team</h3>
+        </div>
         <div class="squad-table-scroll">
           <table class="squad-table" id="squad-table">
             <thead>
