@@ -134,15 +134,17 @@ const missionsPanelEl = document.getElementById('recruitment-missions-panel');
 check('the Recruitment Missions panel does NOT carry .scout-tile (which caused the overlap bug)', !missionsPanelEl.className.split(/\s+/).includes('scout-tile'));
 check('the Recruitment Missions panel carries its own non-competing layout class', missionsPanelEl.className.split(/\s+/).includes('recruitment-missions-panel'));
 
-// --- Equal-height guard: .scout-tiles-row and .recruitment-missions-panel must share the
-// same flex-grow and min-height floor -----------------------------------------------------
+// --- Equal-height guard: all three Scouting page panels (the Scouted Players table, the
+// triage tiles row, and Recruitment Missions) must share the same flex-grow and min-height
+// floor -------------------------------------------------------------------------------------
 // mockdom doesn't run a real layout engine, so this can't check actual rendered pixel
 // heights (see getScoutTilesRowBudget()'s own comments on that limitation) — instead this
-// reads the app's own CSS source and checks the two rules declare matching flex/min-height,
-// which is what actually makes the browser split the leftover space between them evenly.
-// Guards against the two drifting apart again (e.g. one going back to a fixed height while
-// the other stays flex:1), which is what caused Missions to look oversized relative to the
-// triage tiles right after Missions was first made the sole elastic element.
+// reads the app's own CSS source and checks all three rules declare matching flex/min-height,
+// which is what actually makes the browser split the view-scroll-area's height three ways
+// evenly. Guards against any one of them drifting apart again (e.g. going back to a fixed
+// height while the others stay flex:1), which is what caused Missions to look oversized
+// relative to the triage tiles right after Missions was first made the sole elastic element,
+// and separately what left the table panel out of the equal-height split entirely.
 const fs = require('fs');
 const appHtml = fs.readFileSync(process.env.FMCC_APP_HTML, 'utf8');
 const styleBlock = appHtml.match(/<style>([\s\S]*?)<\/style>/)[1];
@@ -151,14 +153,17 @@ function ruleBodyFor(selector) {
   const m = styleBlock.match(re);
   return m ? m[1] : '';
 }
+const tablePanelRule = ruleBodyFor('.scout-table-panel');
 const tilesRowRule = ruleBodyFor('.scout-tiles-row');
 const missionsPanelRule = ruleBodyFor('.recruitment-missions-panel');
+check('.scout-table-panel is flex:1', /flex:\s*1\s*;/.test(tablePanelRule));
 check('.scout-tiles-row is flex:1', /flex:\s*1\s*;/.test(tilesRowRule));
 check('.recruitment-missions-panel is flex:1', /flex:\s*1\s*;/.test(missionsPanelRule));
+const tableMinHeight = (tablePanelRule.match(/min-height:\s*([\d.]+)px/) || [])[1];
 const tilesMinHeight = (tilesRowRule.match(/min-height:\s*([\d.]+)px/) || [])[1];
 const missionsMinHeight = (missionsPanelRule.match(/min-height:\s*([\d.]+)px/) || [])[1];
-check('.scout-tiles-row and .recruitment-missions-panel share the same min-height floor',
-  !!tilesMinHeight && tilesMinHeight === missionsMinHeight);
+check('.scout-table-panel, .scout-tiles-row and .recruitment-missions-panel all share the same min-height floor',
+  !!tableMinHeight && tableMinHeight === tilesMinHeight && tilesMinHeight === missionsMinHeight);
 check('.recruitment-missions-panel keeps a margin-top for spacing below the tiles row', /margin-top:\s*\d+px/.test(missionsPanelRule));
 
 console.log(`\n${pass} passed, ${fail} failed`);
