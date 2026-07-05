@@ -1038,11 +1038,23 @@
     background: color-mix(in srgb, var(--club-primary) 16%, var(--panel));
     border: 1px solid var(--panel-border);
     border-left: 3px solid var(--club-primary);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
   }
 
   .league-slot.placeholder {
     opacity: 0.6;
+  }
+
+  /* redesign-explore: same "physically lifts" hover language as .best-players-panel,
+     scaled down for a chip this size (1px instead of 2px, .shadow-card instead of the
+     deeper -hover variant) rather than a background tint - #league-slot is the only
+     clickable instance of this class (see the JS click handler on that id further down);
+     .save-overview-season-stats' own .league-slot:hover further up is a plain position
+     display, not clickable, and keeps its separate background-tint treatment untouched. */
+  #league-slot:hover {
+    box-shadow: var(--shadow-card);
+    transform: translateY(-1px);
   }
 
   .league-slot-pos {
@@ -3455,11 +3467,16 @@
      Tactics gap row is clicked. Reuses .attribute-row/.attr-value and .position-detail-
      section for the attribute list itself, these just handle the position line, any
      baseline-fallback note, and the closing how-to line. */
+  /* redesign-explore: a translateY lift (the tile-level hover language elsewhere on this
+     branch) would misalign a row against its neighbours' shared borders/dashed dividers,
+     so list rows get this tint-only treatment instead - same colour/timing language
+     (--club-primary, 0.15s ease, matching every other hover in the app now), just without
+     the movement that only makes sense on a standalone card. */
   .scouting-focus-row.cheat-sheet-clickable,
   .gap-row.cheat-sheet-clickable {
     cursor: pointer;
-    border-radius: 4px;
-    transition: background 0.12s ease;
+    border-radius: var(--radius-sm);
+    transition: background 0.15s ease;
   }
 
   .scouting-focus-row.cheat-sheet-clickable:hover,
