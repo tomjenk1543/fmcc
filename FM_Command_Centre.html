@@ -1972,15 +1972,16 @@
     border-left: 3px solid var(--club-primary);
     border-radius: var(--radius-sm);
     padding: 16px 18px;
-    transition: background 0.15s ease, transform 0.15s ease;
+    transition: border-left-color 0.15s ease, transform 0.15s ease;
   }
 
-  /* Same lift motion as every other clickable tile, minus the box-shadow — still nested
-     inside "Current Squad Breakdown"'s own shadow (see this card's own comment above), so
-     adding a second shadow on top would look heavy, but the translateY on its own gives
-     the same tactile hover feedback as the rest of the app. */
+  /* Matches the dashboard tiles' hover language — a border accent shift + lift, no
+     background tint (see .best-players-panel:hover) — just on border-left-color instead of
+     border-top-color since this card uses a left accent bar, not a top one. Still no
+     box-shadow: nested inside "Current Squad Breakdown"'s own shadow (see this card's own
+     comment above), so stacking a second one on top would look heavy. */
   .position-card.gaps-clickable:hover {
-    background: linear-gradient(135deg, var(--bg) 0%, color-mix(in srgb, var(--club-primary) 22%, var(--bg)) 100%);
+    border-left-color: var(--club-text);
     transform: translateY(-2px);
   }
 
@@ -3095,14 +3096,14 @@
      the click handler itself is attached/removed in renderRoleSynergyPanel(). */
   .tb-synergy-panel.clickable {
     cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+    transition: border-color 0.15s ease, transform 0.15s ease;
   }
 
-  /* Same lift motion as every other clickable tile (see .position-card's own comment for
-     why this one skips the box-shadow too — a recessed nested panel, not a raised card). */
+  /* Matches the dashboard tiles' hover language — border accent + lift, no background tint
+     (see .best-players-panel:hover / .gaps-clickable:hover). Still no box-shadow (see
+     .position-card's own comment for why - a recessed nested panel, not a raised card). */
   .tb-synergy-panel.clickable:hover {
     border-color: var(--club-primary);
-    background: rgba(255,255,255,0.05);
     transform: translateY(-2px);
   }
 
@@ -3276,19 +3277,20 @@
   /* Generic — not Tactics-specific — so any dashboard-panel with hidden content behind a
      "View all" can reuse the same clickable-tile treatment (Scouting's own Recommended
      Focus panel included). */
-  /* Same hover-lift as .best-players-panel/#league-slot (transform + --shadow-card-hover)
-     — this is a top-level .dashboard-panel tile like those two, just with its own
-     tint+border treatment layered on top rather than replacing it. .position-card's own
-     more specific .position-card.gaps-clickable:hover rule (above) still wins for that one
-     nested case and deliberately skips the lift, per its own comment. */
+  /* Same hover treatment as .best-players-panel/#league-slot — shadow + lift + a border
+     accent shift, no background tint. This is a top-level .dashboard-panel tile like those
+     two (see .best-players-panel:hover's own comment for why a tint was dropped in favour
+     of the border-top-colour shift), so it now matches exactly rather than having its own
+     tint-based hover style. .position-card's own more specific
+     .position-card.gaps-clickable:hover rule (above) still wins for that one nested case
+     and deliberately skips the shadow, per its own comment. */
   .gaps-clickable {
     cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    transition: border-top-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   }
 
   .gaps-clickable:hover {
-    background: linear-gradient(135deg, var(--panel) 0%, color-mix(in srgb, var(--club-primary) 22%, var(--panel)) 100%);
-    border-left-color: var(--club-primary);
+    border-top-color: var(--club-text);
     box-shadow: var(--shadow-card-hover);
     transform: translateY(-2px);
   }
