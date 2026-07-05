@@ -4213,20 +4213,23 @@
          Settings - see .nav-group-label's own CSS comment for why this is a visual
          grouping rather than a collapsible parent (the rule is generic, so a second group
          just reuses it — each group draws its own connecting guide line independently).
-         Scouting sits top-level after the Tactics group rather than nested under either one —
-         it's its own shortlist/recruitment workflow, not a view onto the current squad or
-         tactic. See switchToView() further down in the script for why every button below
-         still needed to keep its exact class="nav-btn" + data-view value unchanged
-         regardless of which group it sits in. -->
+         Performance Data moved out of the Squad group to sit after the Tactics group —
+         it's a standalone stats-review page rather than a squad-management view, and
+         reads more naturally alongside Tactics/Scouting as its own top-level item.
+         Scouting sits top-level after Performance Data rather than nested under either
+         group — it's its own shortlist/recruitment workflow, not a view onto the current
+         squad or tactic. See switchToView() further down in the script for why every
+         button below still needed to keep its exact class="nav-btn" + data-view value
+         unchanged regardless of which group it sits in. -->
     <nav class="nav-links">
       <button class="nav-btn active" data-view="dashboard">Dashboard</button>
       <div class="nav-group-label">Squad</div>
       <button class="nav-btn nav-btn-sub" data-view="squad">Squad List</button>
       <button class="nav-btn nav-btn-sub" data-view="scouting">Squad Breakdown</button>
-      <button class="nav-btn nav-btn-sub" data-view="performance">Performance Data</button>
       <div class="nav-group-label">Tactics</div>
       <button class="nav-btn nav-btn-sub" data-view="tactics">Tactical Analysis</button>
       <button class="nav-btn nav-btn-sub" data-view="tacticbuilder">Tactic Builder</button>
+      <button class="nav-btn" data-view="performance">Performance Data</button>
       <button class="nav-btn" data-view="scout">Scouting</button>
       <button class="nav-btn" data-view="settings">Settings</button>
     </nav>
