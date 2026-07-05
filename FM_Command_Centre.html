@@ -11779,10 +11779,29 @@
         const profile = getRoleAttrProfile(r);
         const score = roleFitScore(player, profile);
         if (!best || score > best.score) {
-          best = { position: r.position, roleName: r.ipRole || r.role, score };
+          best = { position: r.position, roleName: r.ipRole || r.role, score, profile };
         }
       });
+      if (best) {
+        best.weakKeyAttrs = weakestKeyAttrsForRole(player, best.profile);
+      }
       return { best };
+    }
+
+    // Returns up to `max` of a role's own Key attributes where the player is weakest (value
+    // under 10 — "weak"/"very-weak" on the same keyAttrClass scale used everywhere else in the
+    // app), sorted lowest first. Turns a bare "Not Suited"/"Very Unsuited" fit label into a
+    // concrete, system-specific reason (e.g. "held back by Marking, Tackling for this role")
+    // instead of just a fit score — mirrors how a real scout report names the actual attribute
+    // holding a player back for a specific system rather than a generic weakness.
+    function weakestKeyAttrsForRole(player, profile, max = 2) {
+      if (!profile || !profile.key.length) return [];
+      return profile.key
+        .map(name => ({ name, value: player.attributes[name] || 0 }))
+        .filter(a => a.value > 0 && a.value < 10)
+        .sort((a, b) => a.value - b.value)
+        .slice(0, max)
+        .map(a => a.name);
     }
 
     // ---- Potential tile: projected attribute growth ----
@@ -12300,7 +12319,14 @@
         tacticFitInner = `No slot in the active tactic (<strong>${formationLabel}</strong>) matches their listed position.`;
       } else {
         const label = fitScoreLabel(tacticFit.best.score);
-        tacticFitInner = `In the active tactic (<strong>${formationLabel}</strong>), best fits <strong>${tacticFit.best.roleName}</strong> (${tacticFit.best.position}): <span class="scout-tactic-fit-highlight ${label.cls}">${label.text}</span>.`;
+        // Only named when the fit isn't already strong — a "Very Suited" player doesn't need
+        // a list of nitpicks, but anything short of that gets the specific attribute(s)
+        // actually dragging their fit down for this role, not just the bare label.
+        const weakAttrs = tacticFit.best.weakKeyAttrs;
+        const weakAttrsHtml = (label.text !== 'Very Suited' && weakAttrs.length)
+          ? ` Held back by <strong>${weakAttrs.join(', ')}</strong> for this role.`
+          : '';
+        tacticFitInner = `In the active tactic (<strong>${formationLabel}</strong>), best fits <strong>${tacticFit.best.roleName}</strong> (${tacticFit.best.position}): <span class="scout-tactic-fit-highlight ${label.cls}">${label.text}</span>.${weakAttrsHtml}`;
       }
       const tacticFitLineHtml = `<div class="scout-tactic-fit-line" id="sm-tactic-fit">${tacticFitInner}</div>`;
 

@@ -83,5 +83,51 @@ if (evaluation.addressesGap) {
 check('#sm-tactic-fit is nested inside #sm-fit-summary\'s own innerHTML', /scout-tactic-fit-line/.test(fitSummaryHtml));
 check('the nested #sm-tactic-fit has real content (active-tactic fit line rendered)', document.getElementById('sm-tactic-fit') && document.getElementById('sm-tactic-fit').innerHTML.length > 0);
 
+// A "Very Suited" player (every attribute maxed) has nothing dragging their fit down, so no
+// "Held back by" clause should render at all.
+check('a Very Suited player gets no "Held back by" clause', !/Held back by/.test(fitSummaryHtml));
+
+// --- System-specific negative flags: a striker who is deliberately weak in the two
+// attributes ('Finishing', 'Off The Ball') shared as Key by both default ST(C) IP roles
+// (Target Forward and Channel Forward), everything else held at a moderate 12, so the fit
+// lands short of "Very Suited" and the weakest Key attributes for whichever role wins are
+// exactly those two, deterministically.
+//
+// The app boots blank-slate in this test harness (no save imported, so activeTacticIP is
+// [] rather than its TACTIC_ROLES_METALUL_BUZAU default) — set it explicitly here so this
+// check has a real active tactic with real ST(C) slots to match against, rather than always
+// hitting the "No tactic set yet" branch.
+activeTacticIP = TACTIC_ROLES_METALUL_BUZAU;
+
+const technicalWeak = Array(14).fill(12);
+technicalWeak[TECHNICAL_ATTR_NAMES.indexOf('Finishing')] = 3;
+const mentalWeak = Array(14).fill(12);
+mentalWeak[MENTAL_ATTR_NAMES.indexOf('Off The Ball')] = 3;
+const physicalWeak = Array(8).fill(12);
+
+const weakFitTarget = {
+  name: 'Test Weak-Fit Striker',
+  position: 'ST (C)',
+  age: 24,
+  nation: 'BRA',
+  club: 'Test FC',
+  ability: '3★',
+  potential: '3★',
+  attributes: flattenScoutAttributes({
+    technical: technicalWeak,
+    mental: mentalWeak,
+    physical: physicalWeak,
+  }),
+};
+addScoutedPlayers([weakFitTarget]);
+const weakIdx = scoutShortlist.findIndex(p => p.name === 'Test Weak-Fit Striker');
+openScoutProfile(weakIdx);
+const weakFitSummaryHtml = document.getElementById('sm-fit-summary').innerHTML;
+
+check('a less-than-Very-Suited player gets a "Held back by" clause', /Held back by/.test(weakFitSummaryHtml));
+check('the clause names Finishing, the deliberately weak shared Key attribute', /Held back by[^.]*Finishing/.test(weakFitSummaryHtml));
+check('the clause names Off The Ball, the other deliberately weak shared Key attribute', /Held back by[^.]*Off The Ball/.test(weakFitSummaryHtml));
+check('the fit label itself is not Very Suited (confirms the clause condition is doing real work)', /scout-tactic-fit-highlight (mid|weak|very-weak)"/.test(weakFitSummaryHtml));
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exitCode = 1;
