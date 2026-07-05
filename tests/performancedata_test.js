@@ -38,19 +38,31 @@ savePerformanceSnapshots(performanceSnapshots);
 
 // ---- validatePerformanceSnapshots ----
 check('rejects a snapshot missing "date"',
-  validatePerformanceSnapshots({ season: '2037/38', players: [{ name: 'A' }] }).some(e => /missing "date"/.test(e)));
-check('rejects a snapshot missing "season"',
-  validatePerformanceSnapshots({ date: '2037-04-11', players: [{ name: 'A' }] }).some(e => /missing "season"/.test(e)));
+  validatePerformanceSnapshots({ players: [{ name: 'A' }] }).some(e => /missing "date"/.test(e)));
 check('rejects a snapshot missing "players"',
-  validatePerformanceSnapshots({ date: '2037-04-11', season: '2037/38' }).some(e => /"players" must be a non-empty array/.test(e)));
+  validatePerformanceSnapshots({ date: '2037-04-11' }).some(e => /"players" must be a non-empty array/.test(e)));
 check('rejects a player missing "name"',
-  validatePerformanceSnapshots({ date: '2037-04-11', season: '2037/38', players: [{ goals: 1 }] }).some(e => /missing "name"/.test(e)));
-check('accepts a snapshot with only name + a couple of stat fields (everything else optional)',
-  validatePerformanceSnapshots({ date: '2037-04-11', season: '2037/38', players: [{ name: 'Player A', goals: 3 }] }).length === 0);
+  validatePerformanceSnapshots({ date: '2037-04-11', players: [{ goals: 1 }] }).some(e => /missing "name"/.test(e)));
+check('accepts a snapshot with only date + name + a couple of stat fields — "season" is not required',
+  validatePerformanceSnapshots({ date: '2037-04-11', players: [{ name: 'Player A', goals: 3 }] }).length === 0);
 
-// ---- getSnapshotSeason: legacy data captured before "season" existed falls back gracefully ----
-check('getSnapshotSeason returns the real season when present', getSnapshotSeason({ season: '2037/38' }) === '2037/38');
-check('getSnapshotSeason falls back to a shared bucket for legacy data with no season field', getSnapshotSeason({ date: '2037-04-11' }) === 'Unspecified Season');
+// ---- deriveSeasonFromDate: FM's own 1 July – 30 June season calendar ----
+// A month-based bucket, not a specific day cutoff, so the two days actually either side of
+// the real boundary (30 June / 1 July) land in different seasons with no off-by-one risk —
+// exactly the scenario an end-of-season review snapshot followed by the new season's first
+// snapshot would produce.
+check('a date well into a season (November) derives that season', deriveSeasonFromDate('2037-11-05') === '2037/38');
+check('a date early in the following calendar year (March) still derives the SAME season', deriveSeasonFromDate('2038-03-12') === '2037/38');
+check('30 June derives the OLD (ending) season', deriveSeasonFromDate('2038-06-30') === '2037/38');
+check('1 July derives the NEW season — one day later than 30 June, different season', deriveSeasonFromDate('2038-07-01') === '2038/39');
+check('1 July and 31 December of the same calendar year derive the same (new) season', deriveSeasonFromDate('2038-12-31') === '2038/39');
+check('deriveSeasonFromDate returns null for an unparseable date', deriveSeasonFromDate('not-a-date') === null && deriveSeasonFromDate(undefined) === null);
+
+// ---- getSnapshotSeason: explicit "season" wins when present; otherwise derives from "date";
+// only falls back to a shared bucket when NEITHER is usable (very old/corrupt data). ----
+check('getSnapshotSeason returns an explicit season when present, without re-deriving it', getSnapshotSeason({ season: '2037/38', date: '2038-07-01' }) === '2037/38');
+check('getSnapshotSeason derives the season from "date" when "season" is absent', getSnapshotSeason({ date: '2037-04-11' }) === '2036/37');
+check('getSnapshotSeason falls back to a shared bucket only when date is unparseable too', getSnapshotSeason({ date: 'not-a-date' }) === 'Unspecified Season');
 
 // ---- parseAppsTotal ----
 check('parseAppsTotal parses "39 (1)" as 40', parseAppsTotal('39 (1)') === 40);
@@ -373,6 +385,25 @@ check('history list for the old season shows its own 2 dates, not the new season
 removePerformanceSnapshot('2038-08-20');
 check('removing a season\'s only snapshot falls back to the remaining season', performanceSeason === '2037/38');
 check('season select drops back to one option once that season has no data left', document.getElementById('performance-season-select').children.length === 1);
+
+// ---- End-to-end: auto-derivation drives the real season boundary with no "season" field at
+// all — the exact scenario it exists for: an end-of-season review snapshot on 30 June,
+// followed by the new season's first snapshot on 1 July, with nobody needing to remember to
+// change a season label in between. ----
+addPerformanceSnapshots([
+  { date: '2039-06-30', players: [{ name: 'Samuel Musolino', apps: '38', goals: 22, shots: 118, xG: 19 }] },
+]);
+check('a snapshot dated 30 June with no explicit "season" is grouped into the ending season', performanceSeason === '2038/39');
+
+addPerformanceSnapshots([
+  { date: '2039-07-01', players: [{ name: 'Samuel Musolino', apps: '1', goals: 0, shots: 1, xG: 0.1 }] },
+]);
+check('a snapshot dated 1 July with no explicit "season" starts a NEW season automatically', performanceSeason === '2039/40');
+check('the 1 July snapshot has no previous snapshot to trend against, despite being just one day after 30 June', performancePreviousSnapshot === null);
+
+removePerformanceSnapshot('2039-06-30');
+removePerformanceSnapshot('2039-07-01');
+check('cleanup: back down to just the one original season', performanceSeason === '2037/38' && document.getElementById('performance-season-select').children.length === 1);
 
 // ---- Snapshot history + removal (unchanged behaviour, still worth covering post-rewrite) ----
 const historyHtml = document.getElementById('performance-history-list').innerHTML;

@@ -4886,12 +4886,13 @@
           Screenshot the squad's stats screens in FM (the Squad view's own stat filter — Attacking,
           Goalkeeping, Discipline, General Play, Goal Attempts, etc.), hand them to Claude in a new
           chat, and ask for JSON matching the shape below — paste it here to add it. Every field
-          except a player's name, the date, and the season is optional, so screenshots covering
-          only some columns still work. Position doesn't need to be included; it's looked up from
-          the loaded squad automatically. A snapshot already captured for the same date gets
-          replaced with the new data instead of being duplicated. The season field (e.g. "2037/38")
-          keeps a new season's stats from being compared against last season's — use the same
-          season label for every snapshot within one season.
+          except a player's name and the date is optional, so screenshots covering only some
+          columns still work. Position doesn't need to be included; it's looked up from the loaded
+          squad automatically. A snapshot already captured for the same date gets replaced with the
+          new data instead of being duplicated. Which season a snapshot belongs to is worked out
+          automatically from its date (FM's seasons run 1 July – 30 June), so a new season's stats
+          never get compared against the last one's — add a "season" field of your own (e.g.
+          "2037/38") only if your league runs a different calendar.
         </p>
         <textarea id="performance-json-textarea" class="import-json-textarea" placeholder="Paste a snapshot (or array of snapshots) as JSON here..." spellcheck="false"></textarea>
         <div class="import-actions">
@@ -12605,21 +12606,44 @@
       renderPerformanceData();
     }
 
-    // Falls back to a shared bucket label for snapshots captured before "season" existed in
-    // the schema (already-saved localStorage data from an older version of the app) — lets
-    // every season-aware function below (grouping, the season <select>, filtering) treat that
-    // old data as one more season entry instead of crashing on a missing field.
+    // FM seasons run 1 July – 30 June (confirmed against the bundled Metalul Buzău save's own
+    // SuperLiga calendar) — a date in July through December belongs to the season that STARTS
+    // that calendar year; a date in January through June belongs to the season that started
+    // the PREVIOUS July. Bucketed by month rather than a specific day-of-month cutoff, so 30
+    // June and 1 July land on opposite sides cleanly with no off-by-one risk right at the
+    // actual boundary — e.g. capturing an end-of-season review snapshot on the 30th still
+    // correctly counts as the OLD season, and the very next day's snapshot (1 July) correctly
+    // starts the new one. Returns null (rather than guessing) if "date" isn't in the expected
+    // "YYYY-MM-DD" shape.
+    function deriveSeasonFromDate(dateStr) {
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr || '');
+      if (!m) return null;
+      const year = parseInt(m[1], 10);
+      const month = parseInt(m[2], 10);
+      const startYear = month >= 7 ? year : year - 1;
+      return `${startYear}/${String((startYear + 1) % 100).padStart(2, '0')}`;
+    }
+
+    // Prefers an explicitly-provided "season" — useful for a non-standard-calendar league, or
+    // if a screenshot happens to show a season label Claude typed in directly — and otherwise
+    // derives it from "date" via deriveSeasonFromDate(). Deriving by default (rather than
+    // requiring the field) means there's nothing to remember to type or keep consistent
+    // snapshot to snapshot, and a season boundary is never miscategorized by a stale/mistyped
+    // label. Snapshots with neither a usable "season" nor a parseable "date" (very old data
+    // saved before either existed) fall into one shared bucket instead of crashing.
     function getSnapshotSeason(s) {
-      return (s && s.season) || 'Unspecified Season';
+      if (s && s.season) return s.season;
+      return (s && deriveSeasonFromDate(s.date)) || 'Unspecified Season';
     }
 
     // Same lightweight shape-check approach as validateScoutedPlayers — accepts either one
     // snapshot object or an array of them (so a single screenshot's worth, or several
-    // backfilled dates at once, both work), each needing a "date", a "season", and a
-    // non-empty "players" array, each player needing at least a "name". "season" exists so
-    // FM's season-cumulative stats (Goals, Apps, Shots, etc., which reset to zero every new
-    // season) never get compared trend-wise against a different season's totals — see
-    // sortedPerformanceSnapshotsForSeason()/renderPerformanceData().
+    // backfilled dates at once, both work), each needing a "date" and a non-empty "players"
+    // array, each player needing at least a "name". "season" is optional (see
+    // getSnapshotSeason/deriveSeasonFromDate) — FM's season-cumulative stats (Goals, Apps,
+    // Shots, etc., which reset to zero every new season) never get compared trend-wise across
+    // a season boundary either way; see sortedPerformanceSnapshotsForSeason()/
+    // renderPerformanceData().
     function validatePerformanceSnapshots(data) {
       const errors = [];
       const list = Array.isArray(data) ? data : [data];
@@ -12627,7 +12651,6 @@
       list.forEach((s, i) => {
         const tag = `[${i}]${s && s.date ? ' (' + s.date + ')' : ''}`;
         if (!s || !s.date) { errors.push(`${tag} is missing "date".`); return; }
-        if (!s.season) { errors.push(`${tag} is missing "season" (e.g. "2037/38") — needed so stats from a new season are never compared against the last one's totals.`); return; }
         if (!Array.isArray(s.players) || s.players.length === 0) {
           errors.push(`${tag} "players" must be a non-empty array.`);
           return;
@@ -12640,14 +12663,14 @@
     }
 
     // A single trimmed example matching the schema exactly — shown via "Load Example
-    // Template", same idea as SCOUT_EXAMPLE_TEMPLATE above. Every field except "name", "date",
-    // and "season" is optional (validatePerformanceSnapshots() only requires those), so a
-    // screenshot covering just one of the 5 stat views still imports fine — this example
-    // happens to show every field at once purely for reference, not because a real submission
-    // needs all of them.
+    // Template", same idea as SCOUT_EXAMPLE_TEMPLATE above. Every field except "name" and
+    // "date" is optional (validatePerformanceSnapshots() only requires those); "season" is left
+    // out here on purpose since it's normally derived automatically from "date" — add it
+    // explicitly only to override that for a non-standard-calendar league. This example
+    // happens to show every stat field at once purely for reference, not because a real
+    // submission needs all of them.
     const PERFORMANCE_EXAMPLE_TEMPLATE = {
       date: '2037-04-11',
-      season: '2037/38',
       players: [
         {
           name: 'Example Player', apps: '12 (3)', goals: 8, shots: 40, xG: 6.2,
