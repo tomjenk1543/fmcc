@@ -136,5 +136,43 @@ const objectWageIdx = scoutShortlist.findIndex(p => p.name === 'Test Object Wage
 openScoutProfile(objectWageIdx);
 check('the scouted-player modal also normalises an object-shaped wage instead of showing "[object Object]"', document.getElementById('sm-wage').textContent === '£30K p/w');
 
+// --- formatWage/parseWageValue: the {min, max} range shape a real bulk scouting export uses
+// (FM shows a wage range rather than one figure when the exact demand isn't known yet, and a
+// bulk export can carry that through as {min, max} rather than collapsing to one number) ----
+check('formatWage builds a "min - max" display string from a {min, max} shape', formatWage({ min: '£6K', max: '£8.27K' }) === '£6K - £8.27K p/w');
+check('formatWage collapses a {min, max} shape to one figure when min and max are equal', formatWage({ min: '£1', max: '£1' }) === '£1 p/w');
+check('parseWageValue on a {min, max} shape takes the HIGH end, not the low end', parseWageValue({ min: '£6K', max: '£8.27K' }) === 8.27);
+check('parseWageValue returns null for a {min, max} shape with no real "K" figure (FM\'s undisclosed-wage "£1" placeholder)', parseWageValue({ min: '£1', max: '£1' }) === null);
+
+const rangeWagePlayer = {
+  name: 'Test Range Wage Target',
+  position: 'D (C)',
+  age: 20,
+  club: 'Test FC',
+  nation: 'COL',
+  ability: '2★',
+  potential: '3.5★',
+  wage: { min: '£6K', max: '£8.27K' },
+  attributes: {
+    'First Touch': 10, Passing: 10, Technique: 10, Composure: 10, Decisions: 10, 'Off The Ball': 10, Teamwork: 10, Vision: 10,
+  },
+};
+addScoutedPlayers([rangeWagePlayer]);
+const rangeWageRowHtml = document.getElementById('scout-table-body').innerHTML;
+check('the Scouting table shows the full wage range, not a blank dash', /£6K - £8\.27K p\/w/.test(rangeWageRowHtml));
+
+const rangeWageIdx = scoutShortlist.findIndex(p => p.name === 'Test Range Wage Target');
+openScoutProfile(rangeWageIdx);
+check('the scouted-player modal shows the full wage range', document.getElementById('sm-wage').textContent === '£6K - £8.27K p/w');
+
+// --- parseValueSortValue: a dash-separated Transfer Value range must use the HIGH end -------
+// FM's own "Estimated Transfer Value" is often a range ("£120K - £1.2M") rather than one
+// figure, and a bulk scouting export can carry that through as-is — parseValueSortValue used
+// to just match the first number+unit in the string, which silently treated a "£120K - £1.2M"
+// player as worth only £120K for both sorting and the Max Transfer Value ceiling check.
+check('parseValueSortValue on a plain single value is unchanged', parseValueSortValue('£3.5M') === 3500000);
+check('parseValueSortValue on a dash range takes the HIGH end, not the low end', parseValueSortValue('£120K - £1.2M') === 1200000);
+check('parseValueSortValue on a dash range with both figures in K takes the higher one', parseValueSortValue('£450K - £900K') === 900000);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exitCode = 1;

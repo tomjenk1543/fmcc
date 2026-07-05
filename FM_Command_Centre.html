@@ -6254,18 +6254,28 @@
 
     // The schema (see SCOUT_EXAMPLE_TEMPLATE/the Setup Guide) expects wage as a plain string
     // like "£15K p/w", but hand-entered or screenshot-transcribed JSON sometimes ends up with
-    // a small object instead (e.g. {amount:'£15K', period:'p/w'} or {text:'£15K p/w'}) — the
-    // Scouting table/modal used to interpolate p.wage straight into a template literal, which
-    // doesn't throw for an object, it just silently stringifies it to the unhelpful literal
-    // text "[object Object]". This normalises either shape into a real display string (or a
-    // plain dash if nothing usable is found) so that can't happen again. parseWageValue below
-    // routes through this first so a wage ceiling check still works even when the underlying
-    // value arrived as one of these object shapes rather than a flat string.
+    // a small object instead. Two shapes have shown up in practice: {amount:'£15K',
+    // period:'p/w'}/{text:'£15K p/w'} (a single figure, just nested), and {min:'£6K',
+    // max:'£8.27K'} — the range FM itself shows for a player whose exact wage demand isn't
+    // known yet, which a bulk scouting export can carry through verbatim rather than
+    // collapsing to one number. The Scouting table/modal used to interpolate p.wage straight
+    // into a template literal, which doesn't throw for an object, it just silently
+    // stringifies it to the unhelpful literal text "[object Object]" (or, for a shape this
+    // didn't recognise, just quietly showed a dash instead of the real range). This
+    // normalises every shape seen so far into a real display string (or a plain dash if
+    // nothing usable is found) so neither of those can happen again. parseWageValue below
+    // routes through this first so a wage ceiling check still works no matter which shape the
+    // value arrived in.
     function formatWage(wage) {
       if (typeof wage === 'string') return wage || '—';
       if (wage && typeof wage === 'object') {
         if (typeof wage.text === 'string' && wage.text) return wage.text;
         if (typeof wage.value === 'string' && wage.value) return wage.value;
+        if (wage.min != null || wage.max != null) {
+          if (wage.min != null && wage.max != null && wage.min !== wage.max) return `${wage.min} - ${wage.max} p/w`;
+          const only = wage.min != null ? wage.min : wage.max;
+          return `${only} p/w`;
+        }
         if (wage.amount != null) {
           const period = wage.period || wage.frequency || 'p/w';
           return `${wage.amount} ${period}`.trim();
@@ -6275,15 +6285,22 @@
     }
 
     // Turns FM's "£15.25K p/w" wage strings into a plain weekly-£K number (15.25), so a
-    // mission's wage ceiling can be compared against it. Returns null for anything that isn't
-    // a recognisable "£<number>K" wage (blank, "Free", not yet captured, etc) rather than
-    // guessing — callers should treat null as "unknown, don't rule the candidate out on wage
-    // alone" rather than as a failed check.
+    // mission's wage ceiling can be compared against it. For a range (formatWage's {min, max}
+    // shape becomes "£6K - £8.27K p/w") this deliberately takes the HIGHEST figure in the
+    // string rather than the first one — a ceiling check exists to answer "could this player
+    // cost more than I want to pay", and the low end of a range understates that. Returns null
+    // for anything with no recognisable "£<number>K" figure at all (blank, "Free", a bare "£1"
+    // placeholder FM uses for a completely undisclosed wage, not yet captured, etc) rather
+    // than guessing — callers should treat null as "unknown, don't rule the candidate out on
+    // wage alone" rather than as a failed check.
     function parseWageValue(wageStr) {
       const str = formatWage(wageStr);
       if (str === '—') return null;
-      const m = str.match(/£\s*([\d.]+)\s*K/i);
-      return m ? parseFloat(m[1]) : null;
+      const matches = str.match(/£\s*[\d.]+\s*K/gi);
+      if (!matches) return null;
+      const last = matches[matches.length - 1];
+      const m = last.match(/[\d.]+/);
+      return m ? parseFloat(m[0]) : null;
     }
 
     // ---- Performance Data ----
@@ -12161,18 +12178,27 @@
     };
 
     // Turns "£3.5M" or "£450K" into a plain number (3500000 / 450000) so Transfer Value
-    // sorts numerically rather than alphabetically — same idea as parseWageSortValue, just
-    // covering the M (millions) suffix transfer fees actually use, alongside K.
+    // sorts numerically rather than alphabetically — same idea as parseWageValue, just
+    // covering the M (millions) suffix transfer fees actually use, alongside K. FM's own
+    // "Estimated Transfer Value" is often a range rather than one figure ("£120K - £1.2M"),
+    // which a bulk scouting export can carry through as-is instead of collapsing to a single
+    // number — this deliberately takes the HIGHEST figure across the whole string (matching
+    // every number+unit pair, not just the first) rather than whichever one the regex meets
+    // first, since sorting/filtering by "how much could this player actually cost" should use
+    // the upper end of a range, not the lower end (used to just grab the first match, which
+    // meant a "£120K - £1.2M" player sorted and filtered as if worth only £120K).
     function parseValueSortValue(str) {
       if (!str) return -1;
-      const match = /([\d.]+)\s*(K|M)?/i.exec(String(str));
-      if (!match) return -1;
-      const num = parseFloat(match[1]);
-      if (Number.isNaN(num)) return -1;
-      const unit = (match[2] || '').toUpperCase();
-      if (unit === 'M') return num * 1000000;
-      if (unit === 'K') return num * 1000;
-      return num;
+      const matches = [...String(str).matchAll(/([\d.]+)\s*(K|M)?/gi)];
+      let best = -1;
+      matches.forEach(match => {
+        const num = parseFloat(match[1]);
+        if (Number.isNaN(num)) return;
+        const unit = (match[2] || '').toUpperCase();
+        const val = unit === 'M' ? num * 1000000 : unit === 'K' ? num * 1000 : num;
+        if (val > best) best = val;
+      });
+      return best;
     }
 
     function renderScoutTable() {
