@@ -20,11 +20,11 @@ plain HTML/CSS/JS with no build step, no dependencies, and no server. Open
 ```
 
 Runs every `tests/*_test.js` file against `FM_Command_Centre.html`'s real `<script>` body
-using the mock DOM in `tests/harness/` — no real browser, just plain Node. Each test file
-is a standalone script (no framework, just `console.error`/`process.exitCode` on failure).
+using the mock DOM in `tests/harness/`. No real browser involved, just plain Node. Each test
+file is a standalone script (no framework, just `console.error`/`process.exitCode` on failure).
 
 ## Branches
 
-- `main` — the stable version.
-- `dev` — active work happens here first; merge to `main` via a Pull Request once a change
-  is confirmed working.
+- `main`: the stable version.
+- `dev`: active work happens here first. Changes merge to `main` via a Pull Request once
+  confirmed working.

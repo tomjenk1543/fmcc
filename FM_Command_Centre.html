@@ -56,6 +56,33 @@
 
   * { box-sizing: border-box; }
 
+  /* Global keyboard-focus indicator. Mouse/touch clicks never trigger :focus-visible, so this
+     stays invisible during normal pointer use and only appears for keyboard navigation —
+     added because several interactive elements below (e.g. .nav-links button) explicitly
+     zero out the default outline without supplying their own replacement. */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--club-text, #f2f2f2);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Respect the OS-level "reduce motion" preference — turn the app's hover/press transitions
+     into instant state changes instead of disabling them outright, since most of them are
+     short UI feedback (colour/background/border) rather than decorative motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   html, body {
     margin: 0;
     padding: 0;
@@ -219,6 +246,15 @@
     white-space: nowrap;
     flex-shrink: 0;
     transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+
+  /* This rule's own "outline: none" above (same specificity as the global :focus-visible
+     rule near the top of the file, but later in source order) would otherwise win and leave
+     keyboard users with no visible focus indicator when tabbing through the nav — restore it
+     explicitly here, using the tab's own underline colour so it reads as part of the design. */
+  .nav-links button:focus-visible {
+    outline: 2px solid var(--club-text, #f2f2f2);
+    outline-offset: -3px;
   }
 
   .nav-links button:hover {
@@ -1989,10 +2025,16 @@
 
   .player-modal-close {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: 6px;
+    right: 6px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: none;
     border: none;
+    border-radius: 8px;
     color: var(--text-dim);
     font-size: 22px;
     line-height: 1;
@@ -2001,6 +2043,7 @@
 
   .player-modal-close:hover {
     color: var(--text);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .player-modal-header {
@@ -4013,7 +4056,7 @@
          space instead. See SCOUT_EXAMPLE_TEMPLATE and addScoutedPlayers() further down. -->
     <div class="player-modal-backdrop" id="scout-add-modal-backdrop">
       <div class="player-modal">
-        <button class="player-modal-close" id="scout-add-modal-close">&times;</button>
+        <button class="player-modal-close" id="scout-add-modal-close" aria-label="Close">&times;</button>
         <div class="player-modal-header">
           <div class="player-modal-name">Add to Shortlist</div>
         </div>
@@ -4325,7 +4368,7 @@
     <!-- Player profile overlay — opened by clicking a row in the squad table -->
     <div class="player-modal-backdrop" id="player-modal-backdrop">
       <div class="player-modal">
-        <button class="player-modal-close" id="player-modal-close">&times;</button>
+        <button class="player-modal-close" id="player-modal-close" aria-label="Close">&times;</button>
         <div class="player-modal-header">
           <div class="player-modal-name" id="pm-name">Player Name</div>
           <div class="player-modal-meta">
@@ -4409,7 +4452,7 @@
          the squad one with currentSquad-specific assumptions. See openScoutProfile(). -->
     <div class="player-modal-backdrop" id="scout-modal-backdrop">
       <div class="player-modal">
-        <button class="player-modal-close" id="scout-modal-close">&times;</button>
+        <button class="player-modal-close" id="scout-modal-close" aria-label="Close">&times;</button>
         <div class="player-modal-header">
           <div class="player-modal-name" id="sm-name">Player Name</div>
           <div class="player-modal-meta">
@@ -4480,7 +4523,7 @@
          button here — there's nothing to clear yet on a genuinely blank app. -->
     <div class="player-modal-backdrop" id="landing-import-modal-backdrop">
       <div class="player-modal import-modal">
-        <button class="player-modal-close" id="landing-import-modal-close">&times;</button>
+        <button class="player-modal-close" id="landing-import-modal-close" aria-label="Close">&times;</button>
         <div class="player-modal-header">
           <div class="player-modal-name">Import Save Data</div>
         </div>
@@ -4506,7 +4549,7 @@
          whatever full list content a caller passes it (see openGapsModal()). -->
     <div class="player-modal-backdrop" id="gaps-modal-backdrop">
       <div class="player-modal">
-        <button class="player-modal-close" id="gaps-modal-close">&times;</button>
+        <button class="player-modal-close" id="gaps-modal-close" aria-label="Close">&times;</button>
         <div class="player-modal-header">
           <div class="player-modal-name" id="gaps-modal-title">Attribute Gaps</div>
         </div>
@@ -10625,7 +10668,7 @@
           <td style="font-style: normal;">${e.score === null ? '&mdash;' : e.score}</td>
           <td style="font-style: normal;" title="${e.status ? e.status.label : ''}">${e.status ? `<span class="depth-badge ${e.status.key}">${e.status.label}</span>` : '&mdash;'}</td>
           <td style="font-style: normal;">${e.addressesGap ? '<span class="scout-addresses-gap">&#10003;</span>' : '<span class="scout-no-gap">&mdash;</span>'}</td>
-          <td class="scout-remove-cell"><button class="scout-remove-btn" data-remove-index="${i}" title="Remove from shortlist">&times;</button></td>
+          <td class="scout-remove-cell"><button class="scout-remove-btn" data-remove-index="${i}" title="Remove from shortlist" aria-label="Remove from shortlist">&times;</button></td>
         </tr>
       `;
       }).join('');
