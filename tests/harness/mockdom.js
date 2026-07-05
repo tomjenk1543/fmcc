@@ -71,15 +71,28 @@ class Element {
   get id() { return this.attributes.get('id') || ''; }
   set id(v) { this.attributes.set('id', v); }
 
-  // <select>.value defers to whichever <option> child is actually .selected (falling back
-  // to the first option when none is), same as a real browser — critical for this app's
+  // Every OPTION descendant of a SELECT, recursing through OPTGROUP wrappers — real browsers
+  // group a select's options this way (see e.g. this app's own role pickers, which render
+  // <optgroup>s), so a plain this.children.filter(...) would miss every option nested one
+  // level deeper and silently treat the select as empty.
+  _allSelectOptions() {
+    const out = [];
+    (this.children || []).forEach(c => {
+      if (c.tagName === 'OPTION') out.push(c);
+      else if (c.tagName === 'OPTGROUP') out.push(...c._allSelectOptions());
+    });
+    return out;
+  }
+
+  // <select>.value defers to whichever <option> descendant is actually .selected (falling
+  // back to the first option when none is), same as a real browser — critical for this app's
   // "replace all the options via innerHTML, then read .value back" pattern (position/role
   // pickers etc.) to behave the way production code assumes. Every other element (input,
   // textarea, or a bare <option> with no value attribute set) just uses a plain backing
   // field, with <option> falling back to its own text if nothing set .value explicitly.
   get value() {
     if (this.tagName === 'SELECT') {
-      const opts = this.children.filter(c => c.tagName === 'OPTION');
+      const opts = this._allSelectOptions();
       const selected = opts.find(o => o.selected);
       if (selected) return selected.value;
       return opts.length ? opts[0].value : '';
@@ -89,7 +102,7 @@ class Element {
   }
   set value(v) {
     if (this.tagName === 'SELECT') {
-      this.children.filter(c => c.tagName === 'OPTION').forEach(o => { o.selected = (o.value === String(v)); });
+      this._allSelectOptions().forEach(o => { o.selected = (o.value === String(v)); });
       return;
     }
     this._value = v;

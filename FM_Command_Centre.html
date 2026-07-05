@@ -3758,6 +3758,93 @@
     padding: 8px 2px;
   }
 
+  /* Recruitment Missions tile — the add-mission form row (reuses .tb-control-group/select and
+     .mini-input styling from Tactic Builder/the crest-ID field so this doesn't need its own
+     input styles) plus the mission list rows below it. */
+  .mission-form-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  .mission-form-row .mini-input {
+    width: 60px;
+  }
+
+  .mission-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 2px;
+    border-bottom: 1px solid var(--panel-border);
+    font-size: 12.5px;
+  }
+
+  .mission-row:last-child {
+    border-bottom: none;
+  }
+
+  .mission-row-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .mission-row-main .scout-tile-name {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .mission-row-main .scout-tile-meta {
+    color: var(--text-dim);
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Priority pill — a plain neutral-bordered tag rather than another traffic-light colour, so
+     it doesn't compete with the status badge (.depth-badge) for the same red/amber/green
+     visual language; priority and live status are two different questions. */
+  .mission-priority {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    border: 1px solid var(--panel-border);
+    color: var(--text-dim);
+  }
+
+  .mission-priority-high {
+    border-color: var(--club-primary);
+    color: var(--text);
+  }
+
+  .mission-delete-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 4px;
+  }
+
+  .mission-delete-btn:hover {
+    color: var(--text);
+  }
+
   /* Short "- meets X" description sitting right after each triage tile's name (see
      scout-tile-perfect/-nearly/-potential h3 content) — replaces the old empty-state
      message with an always-visible explanation of what the tile means, whether it currently
@@ -4757,6 +4844,42 @@
             </div>
             <div class="scout-tile-list" id="scout-tile-potential-list"></div>
           </div>
+        </div>
+
+        <!-- Recruitment Missions — structured scouting targets (role + optional age/wage
+             ceiling + priority), each showing a live green/amber/red status against the
+             current shortlist, rather than browsing the shortlist with no explicit target in
+             mind. Always visible (unlike .scout-tiles-row above, which only appears once
+             something's shortlisted) since missions are useful to set up before any
+             shortlisting has happened — see renderRecruitmentMissions()/evaluateMission(). -->
+        <div class="dashboard-panel scout-tile" id="recruitment-missions-panel">
+          <div class="panel-title-row">
+            <h3>Recruitment Missions <span class="scout-tile-subtitle">- structured scouting targets</span></h3>
+          </div>
+          <div class="mission-form-row">
+            <div class="tb-control-group">
+              <label for="mission-role-select">Role</label>
+              <select id="mission-role-select"></select>
+            </div>
+            <div class="tb-control-group">
+              <label for="mission-age-input">Max Age</label>
+              <input type="number" id="mission-age-input" class="mini-input" placeholder="Any" min="15" max="45">
+            </div>
+            <div class="tb-control-group">
+              <label for="mission-wage-input">Max Wage £K p/w</label>
+              <input type="number" id="mission-wage-input" class="mini-input" placeholder="Any" min="0" step="0.25">
+            </div>
+            <div class="tb-control-group">
+              <label for="mission-priority-select">Priority</label>
+              <select id="mission-priority-select">
+                <option value="high">High</option>
+                <option value="medium" selected>Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            <button type="button" class="tb-btn-secondary" id="mission-add-btn">+ Add Mission</button>
+          </div>
+          <div class="scout-tile-list" id="recruitment-missions-list"></div>
         </div>
       </div>
     </section>
@@ -6046,6 +6169,38 @@
     }
 
     let scoutShortlist = loadScoutShortlist();
+
+    // ---- Recruitment Missions ----
+    // Structured scouting targets — role + optional age ceiling + optional wage ceiling +
+    // priority — each showing a green/amber/red status against the current shortlist, rather
+    // than browsing the shortlist with no explicit target in mind. Idea from the "Mastering
+    // FM26" ebook review: Recruitment Focus missions that run all season instead of loose
+    // position-only searches. Storage key/load/save follow the exact same pattern as the
+    // Scouting Shortlist just above.
+    const RECRUITMENT_MISSIONS_STORAGE_KEY = 'fmCommandCentre.recruitmentMissions';
+    function loadRecruitmentMissions() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(RECRUITMENT_MISSIONS_STORAGE_KEY));
+        if (Array.isArray(saved)) return saved;
+      } catch (e) { /* storage unavailable or corrupt */ }
+      return [];
+    }
+    function saveRecruitmentMissions(list) {
+      try { localStorage.setItem(RECRUITMENT_MISSIONS_STORAGE_KEY, JSON.stringify(list)); }
+      catch (e) { /* storage unavailable — list just won't persist across reloads */ }
+    }
+    let recruitmentMissions = loadRecruitmentMissions();
+
+    // Turns FM's "£15.25K p/w" wage strings into a plain weekly-£K number (15.25), so a
+    // mission's wage ceiling can be compared against it. Returns null for anything that isn't
+    // a recognisable "£<number>K" wage (blank, "Free", not yet captured, etc) rather than
+    // guessing — callers should treat null as "unknown, don't rule the candidate out on wage
+    // alone" rather than as a failed check.
+    function parseWageValue(wageStr) {
+      if (!wageStr || typeof wageStr !== 'string') return null;
+      const m = wageStr.match(/£\s*([\d.]+)\s*K/i);
+      return m ? parseFloat(m[1]) : null;
+    }
 
     // ---- Performance Data ----
     // Squad performance stats captured from FM screenshots — same screenshot -> Claude ->
@@ -9322,6 +9477,7 @@
         // not just saves brought in through the Setup Wizard.
         importedSaveData: storedImportedSaveData || buildCurrentSaveDataSnapshot(),
         scoutingShortlist: safeParseStored(localStorage.getItem(SCOUT_SHORTLIST_STORAGE_KEY)),
+        recruitmentMissions: safeParseStored(localStorage.getItem(RECRUITMENT_MISSIONS_STORAGE_KEY)),
         performanceSnapshots: safeParseStored(localStorage.getItem(PERFORMANCE_STORAGE_KEY)),
         positionOverrides: safeParseStored(localStorage.getItem(POSITION_OVERRIDE_STORAGE_KEY)),
         builtTactic: safeParseStored(localStorage.getItem(BUILT_TACTIC_STORAGE_KEY)),
@@ -9343,6 +9499,7 @@
     function restoreFullBackup(backup) {
       if (backup.importedSaveData != null) localStorage.setItem(IMPORTED_SAVE_DATA_STORAGE_KEY, JSON.stringify(backup.importedSaveData));
       if (backup.scoutingShortlist != null) localStorage.setItem(SCOUT_SHORTLIST_STORAGE_KEY, JSON.stringify(backup.scoutingShortlist));
+      if (backup.recruitmentMissions != null) localStorage.setItem(RECRUITMENT_MISSIONS_STORAGE_KEY, JSON.stringify(backup.recruitmentMissions));
       if (backup.performanceSnapshots != null) localStorage.setItem(PERFORMANCE_STORAGE_KEY, JSON.stringify(backup.performanceSnapshots));
       if (backup.positionOverrides != null) localStorage.setItem(POSITION_OVERRIDE_STORAGE_KEY, JSON.stringify(backup.positionOverrides));
       if (backup.builtTactic != null) localStorage.setItem(BUILT_TACTIC_STORAGE_KEY, JSON.stringify(backup.builtTactic));
@@ -12013,10 +12170,94 @@
       `;
     }
 
+    // Checks one Recruitment Mission against the current shortlist and returns its status —
+    // 'stocked' (green: a shortlisted player already meets role, age ceiling AND wage ceiling),
+    // 'thin' (amber: the closest shortlisted player meets the role well but is a compromise on
+    // age or wage, or wage/age data isn't captured yet so it can't be confirmed either way), or
+    // 'critical' (red: nobody shortlisted is even a reasonable fit for the role) — reusing the
+    // exact same .depth-badge colour classes/labels as the Squad Breakdown headcount badges,
+    // rather than inventing a second green/amber/red scale.
+    function evaluateMission(mission) {
+      const profile = ROLE_ATTRIBUTES[mission.role];
+      if (!profile) return { status: 'critical', label: 'No Candidate', best: null };
+
+      let best = null;
+      scoutShortlist.forEach(p => {
+        if (!p.attributes) return;
+        const score = roleFitScore(p, profile);
+        if (!best || score > best.score) best = { player: p, score };
+      });
+
+      if (!best) return { status: 'critical', label: 'No Candidate', best: null };
+
+      const label = fitScoreLabel(best.score);
+      const ageOk = !mission.maxAge || !best.player.age || best.player.age <= mission.maxAge;
+      const wageValue = parseWageValue(best.player.wage);
+      const wageOk = !mission.maxWageK || wageValue == null || wageValue <= mission.maxWageK;
+      const wageUnknown = !!mission.maxWageK && wageValue == null;
+
+      if (label.text === 'Very Suited' && ageOk && wageOk && !wageUnknown) {
+        return { status: 'stocked', label: 'Ready', best: best.player };
+      }
+      if ((label.text === 'Very Suited' || label.text === 'Suited') && (ageOk || wageOk || wageUnknown)) {
+        return { status: 'thin', label: 'Close', best: best.player };
+      }
+      return { status: 'critical', label: 'Open', best: best.player };
+    }
+
+    // Renders the Recruitment Missions tile's mission list — one row per mission with its
+    // role/age/wage ceiling, priority, live green/amber/red status against the current
+    // shortlist, and a delete (x) control. Always runs (unlike the triage tiles row, which is
+    // hidden until something's shortlisted) since missions are useful to set up before any
+    // shortlisting has happened, and their status naturally reads "No Candidate" until it has.
+    function renderRecruitmentMissions() {
+      const listEl = document.getElementById('recruitment-missions-list');
+      if (!listEl) return;
+      if (recruitmentMissions.length === 0) {
+        listEl.innerHTML = '<div class="scout-tile-empty">No missions yet — set a role/age/wage target above to track candidates against it.</div>';
+        return;
+      }
+      const priorityOrder = { high: 0, medium: 1, low: 2 };
+      const rows = recruitmentMissions
+        .map((m, i) => ({ m, i }))
+        .sort((a, b) => (priorityOrder[a.m.priority] ?? 1) - (priorityOrder[b.m.priority] ?? 1));
+
+      listEl.innerHTML = rows.map(({ m, i }) => {
+        const evalResult = evaluateMission(m);
+        const ceilingParts = [];
+        if (m.maxAge) ceilingParts.push(`Age ${m.maxAge}-`);
+        if (m.maxWageK) ceilingParts.push(`£${m.maxWageK}K-`);
+        const ceilingText = ceilingParts.length ? ` (${ceilingParts.join(', ')})` : '';
+        const bestText = evalResult.best ? ` — best: ${evalResult.best.name}` : '';
+        return `
+          <div class="mission-row" data-mission-index="${i}">
+            <div class="mission-row-main">
+              <span class="mission-priority mission-priority-${m.priority}">${m.priority}</span>
+              <span class="scout-tile-name">${m.role}${ceilingText}</span>
+              <span class="scout-tile-meta">${bestText}</span>
+            </div>
+            <span class="depth-badge ${evalResult.status}">${evalResult.label}</span>
+            <button type="button" class="mission-delete-btn" data-mission-delete="${i}" title="Remove mission">&times;</button>
+          </div>
+        `;
+      }).join('');
+
+      listEl.querySelectorAll('[data-mission-delete]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          const idx = parseInt(btn.dataset.missionDelete, 10);
+          recruitmentMissions.splice(idx, 1);
+          saveRecruitmentMissions(recruitmentMissions);
+          renderRecruitmentMissions();
+        });
+      });
+    }
+
     // Sorts every shortlisted player into at most one of the three tiles (see scoutFitTier)
     // and renders each list — called from renderScoutTable() so the table and tiles always
     // stay in sync with the shortlist and with each other.
     function renderScoutTiles() {
+      renderRecruitmentMissions();
       const tilesRow = document.getElementById('scout-tiles-row');
       if (scoutShortlist.length === 0) {
         tilesRow.style.display = 'none';
@@ -13675,6 +13916,42 @@
 
     renderPerformanceData();
     // ---- END Performance Data ----
+
+    // ---- Recruitment Missions wiring ----
+    // Role select uses the same 40-role In Possession list (with optgroups) as the Tactic
+    // Builder's own role pickers — real named roles with full Key/Preferred data, not the
+    // generic OOP sub-roles (Pressing/Screening/Tracking/etc), since a mission is "we need an
+    // Advanced Playmaker", not a phase-specific pitch slot.
+    (function populateMissionRoleSelect() {
+      const sel = document.getElementById('mission-role-select');
+      if (!sel) return;
+      sel.innerHTML = ROLE_CATEGORIES_IP
+        .map(cat => `<optgroup label="${cat.label}">${cat.roles.map(name => `<option value="${name}">${name}</option>`).join('')}</optgroup>`)
+        .join('');
+    })();
+
+    const missionAddBtn = document.getElementById('mission-add-btn');
+    if (missionAddBtn) {
+      missionAddBtn.addEventListener('click', () => {
+        const roleSel = document.getElementById('mission-role-select');
+        const ageInput = document.getElementById('mission-age-input');
+        const wageInput = document.getElementById('mission-wage-input');
+        const prioritySel = document.getElementById('mission-priority-select');
+        if (!roleSel.value) return;
+        recruitmentMissions.push({
+          role: roleSel.value,
+          maxAge: ageInput.value ? parseInt(ageInput.value, 10) : null,
+          maxWageK: wageInput.value ? parseFloat(wageInput.value) : null,
+          priority: prioritySel.value || 'medium',
+        });
+        saveRecruitmentMissions(recruitmentMissions);
+        ageInput.value = '';
+        wageInput.value = '';
+        renderRecruitmentMissions();
+      });
+    }
+    renderRecruitmentMissions();
+    // ---- END Recruitment Missions ----
 
     // Renders the "Best Players" list in the dashboard tile — shows however many players
     // computeBestPlayers() was asked for (its own topN default), rather than re-capping here.
