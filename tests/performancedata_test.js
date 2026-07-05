@@ -237,7 +237,12 @@ check('inline Analysis tile includes the goalkeeping depth-gap improvement namin
 check('inline Analysis tile does NOT show the Discipline dirty-tackler improvement', !/Michael Botha/.test(gkInlineHtml));
 check('inline Analysis tile has a "View full breakdown" button', /View full breakdown/.test(gkInlineHtml));
 check('goalkeeping depth-gap improvement suggests the shortlisted Scouted Keeper', /Scouted option/.test(gkInlineHtml) && /Scouted Keeper/.test(gkInlineHtml));
-check('the suggestion sits under its own "Recommendation" label', /perf-recommendation-label">Recommendation</.test(gkInlineHtml));
+check('the suggestion sits under its own numbered "Recommendation N" label', /perf-recommendation-label">Recommendation \d+</.test(gkInlineHtml));
+// Sergio Acosta's shot-stopping concern is pushed before the Pol/Acosta depth gap (see
+// computePerformanceInsights' push order), so the numbering should read 1. then 2. — and
+// the depth-gap's own recommendation should read "Recommendation 2" to match.
+check('Areas for Improvement numbers goalkeeping entries 1. then 2. in push order', />1\. Shot-stopping is underperforming/.test(gkInlineHtml) && />2\. There's a meaningful save-percentage gap/.test(gkInlineHtml));
+check('the depth-gap improvement\'s recommendation is numbered 2 to match its own list item', /perf-recommendation-label">Recommendation 2</.test(gkInlineHtml));
 check('the scouted suggestion line is a clickable element wired to its shortlist index', document.querySelector('#performance-insights-content .scout-suggestion-line[data-scout-index]') !== null);
 
 document.getElementById('performance-insights-panel').fire('click');
@@ -266,6 +271,7 @@ check('inline Analysis tile does NOT show goalkeeping or attacking content for D
 // neither has a shortlisted player, so the improvement falls back to the "No shortlisted
 // player" message rather than silently showing nothing, confirming the empty path works too.
 check('discipline improvement with no matching shortlist player falls back to the empty-suggestion message', /No shortlisted player for this position yet/.test(discInlineHtml));
+check('the single discipline improvement is numbered 1. with a matching Recommendation 1 label', />1\. .*Michael Botha/.test(discInlineHtml) && /perf-recommendation-label">Recommendation 1</.test(discInlineHtml));
 
 document.getElementById('performance-insights-panel').fire('click');
 const discModalHtml = document.getElementById('gaps-modal-body').innerHTML;
@@ -336,6 +342,7 @@ check('Analysis title reflects the Attacking category', /Attacking/.test(documen
 // Arthur Ndo (AM (RL)/ST (C)) classifies into both Winger and Striker — the shortlisted
 // Scouted Striker matches the Striker group, so the finishing improvement should suggest him.
 check('finishing improvement suggests the shortlisted Scouted Striker (Arthur Ndo\'s Striker group)', /Scouted Striker/.test(insightsHtml));
+check('the single attacking improvement is numbered 1. with a matching Recommendation 1 label', />1\. Finishing looks like a coaching priority/.test(insightsHtml) && /perf-recommendation-label">Recommendation 1</.test(insightsHtml));
 
 document.getElementById('performance-insights-panel').fire('click');
 const attackingModalHtml = document.getElementById('gaps-modal-body').innerHTML;

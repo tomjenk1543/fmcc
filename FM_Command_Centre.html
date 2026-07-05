@@ -4054,10 +4054,11 @@
 
   /* One "Recommendation" label above the scouted-player suggestion line(s) for a given
      Areas for Improvement entry — see buildImprovementScoutSuggestionsHtml(). Sits right
-     after that entry's own <p>, so margin-top (rather than the section-level heading's
-     margin-bottom-only spacing) is what separates it from the improvement text above. */
+     after that entry's own <p>; margin-top of 16px matches .perf-insight-section's own
+     margin-bottom (the gap between Assumptions and Areas for Improvement), so the
+     improvement-to-recommendation gap reads the same as the gap between sections. */
   .perf-recommendation {
-    margin: 6px 0 6px 0;
+    margin: 16px 0 16px 0;
   }
 
   .perf-recommendation:last-child {
@@ -13275,11 +13276,15 @@
     // everywhere else scouting suggestions appear in the app. Returns '' (no line at all)
     // when the improvement names no one, or no one resolves to a real position group, rather
     // than showing a suggestion that isn't actually targeted at the concern.
-    function buildImprovementScoutSuggestionsHtml(improvement) {
+    // number is the entry's own 1-based position in the Areas for Improvement list (see
+    // callers below) — the label reads "Recommendation N" so it visibly correlates to the
+    // matching numbered improvement above it, even when some improvements have no
+    // recommendation of their own (no groups resolved) and the numbering skips them.
+    function buildImprovementScoutSuggestionsHtml(improvement, number) {
       const groups = findImprovementScoutGroups(improvement.players);
       if (!groups.length) return '';
       const lines = groups.map(buildScoutSuggestionLineHtml).join('');
-      return `<div class="perf-recommendation"><div class="perf-recommendation-label">Recommendation</div>${lines}</div>`;
+      return `<div class="perf-recommendation"><div class="perf-recommendation-label">Recommendation ${number}</div>${lines}</div>`;
     }
 
     function buildPerformanceOverUnderRow(name, label, diff, isOver) {
@@ -13313,7 +13318,7 @@
         </div>
         <div class="perf-insight-section">
           <div class="perf-insight-heading">Areas for Improvement</div>
-          ${insights.improvements.map(imp => `<p>${imp.text}</p>${buildImprovementScoutSuggestionsHtml(imp)}`).join('')}
+          ${insights.improvements.map((imp, i) => `<p>${i + 1}. ${imp.text}</p>${buildImprovementScoutSuggestionsHtml(imp, i + 1)}`).join('')}
         </div>
         <div class="perf-insight-section">
           <div class="perf-insight-heading">Over / Underperforming Players</div>
@@ -13344,7 +13349,7 @@
           </div>
           <div class="perf-insight-section">
             <div class="perf-insight-heading">Areas for Improvement</div>
-            ${insights.improvements.map(imp => `<p>${imp.text}</p>${buildImprovementScoutSuggestionsHtml(imp)}`).join('')}
+            ${insights.improvements.map((imp, i) => `<p>${i + 1}. ${imp.text}</p>${buildImprovementScoutSuggestionsHtml(imp, i + 1)}`).join('')}
           </div>
           <button type="button" class="view-all-gaps-btn" id="performance-insights-view-all-btn">View full breakdown (Over/Underperforming Players)</button>
         `;
