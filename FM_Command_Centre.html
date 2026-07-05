@@ -347,24 +347,27 @@
      list started feeling long. Collapse state persists per-label-text via localStorage
      (NAV_GROUP_COLLAPSE_STORAGE_KEY), same pattern as gapThreshold/positionOverrides
      elsewhere in the app. */
+  /* v4: matches the same size/weight/colour as every other top-level item in the hotbar
+     (Dashboard/Scouting/Settings — see .nav-links button below) instead of a small dimmed
+     uppercase caption — it reads as a real section of the nav now, just one that happens to
+     be expandable, rather than looking like a different, lesser kind of label. */
   .nav-group-label {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
     color: var(--text-dim);
-    opacity: 0.75;
-    padding: 16px 20px 6px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 9px 20px;
     cursor: pointer;
     user-select: none;
-    transition: opacity 0.15s ease;
+    transition: color 0.15s ease, background 0.15s ease;
   }
 
   .nav-group-label:hover {
-    opacity: 1;
+    color: var(--text);
+    background: color-mix(in srgb, var(--club-primary) 8%, transparent);
   }
 
   /* Small chevron indicating the group can be collapsed — rotates to point sideways rather
@@ -372,7 +375,8 @@
      instead of two unrelated icons. */
   .nav-group-label::after {
     content: '\25BE';
-    font-size: 8px;
+    font-size: 10px;
+    opacity: 0.6;
     transition: transform 0.15s ease;
   }
 
@@ -1044,14 +1048,18 @@
   /* Kit images on the hero card (Home/Away/Third, next to Manager+Division) — see
      setKitImage() for the show/hide logic that makes a missing kit (most commonly Third)
      collapse the row instead of leaving a gap or broken image.
-     flex-wrap is a safety net for the narrowest end of --design-width's 1400-2400px clamp
-     range (see updateDesignWidthForViewport()) — .hero-kit-img's own height already shrinks
-     with --design-width (see that rule's comment) so this shouldn't often be needed, but a
-     3rd kit wrapping onto its own line still beats it overflowing past the column. */
+     v2: used to be flex-wrap:wrap with .hero-kit-img sized off a clamp() against
+     --design-width directly — that guessed at how much room the column actually had, and at
+     the narrow end of --design-width's 1400-2400px clamp range the guess came up short, so
+     images still wrapped onto their own line and overlapped the Manager/Division/Stadium
+     text next to them. nowrap (never wrap) + each .hero-kit-item taking an equal flex share
+     of the row (below) makes the images size off the column's REAL available width instead
+     of a guess, so 1, 2 or 3 kits always sit on one line and shrink exactly as much as
+     needed, however narrow the column gets. */
   .hero-kits-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 18px;
+    flex-wrap: nowrap;
+    gap: 12px;
   }
 
   .hero-kit-item {
@@ -1059,20 +1067,20 @@
     flex-direction: column;
     align-items: center;
     gap: 6px;
+    flex: 1 1 0;
+    min-width: 0;
   }
 
-  /* height was a flat 104px regardless of --design-width — fine at the wide end of that
-     variable's 1400-2400px clamp range (see updateDesignWidthForViewport()), but at the
-     narrow end the hero-tile's other fixed-width neighbours (crest, Club Records,
-     Achievements) leave much less room for .hero-info, and three same-sized kit images
-     with no ability to shrink were overflowing their column and overlapping the
-     Manager/Division/Stadium text next to them - the actual bug report this fixes. Scaling
-     with --design-width via clamp() (same pattern already used for the player/scout
-     drawer's own width, back when that existed) keeps the original 104px at the wide end
-     but shrinks proportionally at the narrow end instead of staying fixed. */
+  /* width:100% of this item's flex share (so it shrinks along with the row instead of
+     overflowing it — see .hero-kit-item's flex:1 1 0/min-width:0 above), capped at 90px so a
+     lone kit (or just two) doesn't blow up oversized when there's plenty of spare width.
+     height:auto preserves the image's own aspect ratio; max-height is just a backstop for an
+     unusually tall kit image, since width is what's actually doing the constraining here. */
   .hero-kit-img {
-    height: clamp(64px, calc(var(--design-width) * 0.052), 104px);
-    width: auto;
+    width: 100%;
+    max-width: 90px;
+    height: auto;
+    max-height: 104px;
     border-radius: var(--radius-xs);
   }
 
@@ -3794,6 +3802,17 @@
     border-left-color: #7bdc7b;
   }
 
+  /* Nested inside #sm-fit-summary (built into its innerHTML by openScoutProfile() — see that
+     function's own comment for why it can't just be a statically-nested child in the HTML).
+     Used to be its own separate box, sharing .scout-fit-summary's full border/background —
+     a thin top divider reads as one continuous "here's what this player means for your
+     squad" block instead of two boxes repeating overlapping information. */
+  .scout-tactic-fit-line {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--panel-border);
+  }
+
   /* Colour for the active-tactic fit line's own highlighted word (Very Suited/Suited/etc,
      see computeScoutPlayerActiveTacticFit()) — same 4 hex values fitScoreLabel() maps
      everywhere else a fit score is shown (attribute values, Tactic Builder's fit dots, the
@@ -3826,14 +3845,6 @@
   .scout-addresses-gap {
     color: #7bdc7b;
     font-weight: 700;
-  }
-
-  /* Wraps the "would address a current squad need" line in the scouted-player modal's fit
-     summary so it always sits on its own line below the squad-status sentence, rather than
-     running on inline after it (see openScoutProfile()'s gapLine). .scout-addresses-gap
-     itself stays untouched/inline since it's shared with a table-cell checkmark elsewhere. */
-  .scout-gap-line {
-    margin-top: 6px;
   }
 
   .scout-no-gap {
@@ -4825,14 +4836,13 @@
             <span class="depth-badge" id="sm-squad-need" style="display:none;"></span>
           </div>
         </div>
+        <!-- Squad-status fit and active-tactic fit used to be two separate boxes stacked
+             back to back, saying overlapping things in a disjointed way (see git history) —
+             merged into one box; openScoutProfile() builds #sm-tactic-fit as a nested div
+             INSIDE this element's own innerHTML (rather than nesting it here statically —
+             fitSummary.innerHTML gets fully overwritten each time the modal opens, which
+             would otherwise wipe out a statically-nested child) — see its own comment there. -->
         <div class="scout-fit-summary" id="sm-fit-summary"></div>
-        <!-- Fit against whichever tactic is currently active on Tactical Analysis (FM's own
-             tactic, or a built one — see activeTacticIP/getActiveTacticFormationLabel) rather
-             than the broad position-group fit above (.scout-fit-summary), which is about
-             their position in the abstract, not a specific role. Own line since the two
-             answer genuinely different questions - see computeScoutPlayerActiveTacticFit()'s
-             own comment further down for the scoring itself. -->
-        <div class="scout-fit-summary scout-tactic-fit-line" id="sm-tactic-fit"></div>
         <!-- Same 3-independent-flex-column layout as the squad player-modal above (see its
              own comment) — three column wrappers so a keeper's Technical group sits
              directly under whichever box is above it in that SAME column, rather than
@@ -11450,42 +11460,59 @@
         tierLine = `<div class="scout-tier-line">Not currently in a tile</div>`;
       }
 
+      // Fit against the tactic actually in use on Tactical Analysis — a different question
+      // from the position-group fit summary below it (see computeScoutPlayerActiveTacticFit's
+      // own comment for the scoring itself). Built first so its markup can be folded into the
+      // single fitSummary.innerHTML assignment further down — #sm-fit-summary and
+      // #sm-tactic-fit used to be two separate boxes, each with their own border/background,
+      // stacked directly on top of each other; merged into one box (a single sentence about
+      // squad need, then a thin-divider line about tactic fit) since two boxes making
+      // related, sometimes seemingly-contradictory claims (e.g. "Well Stocked" right above
+      // "would address a current squad need") read as disjointed rather than as one coherent
+      // read on the player.
+      const tacticFit = computeScoutPlayerActiveTacticFit(p);
+      const formationLabel = getActiveTacticFormationLabel();
+      let tacticFitInner;
+      if (tacticFit.noTactic) {
+        tacticFitInner = `No tactic set yet — visit Tactical Analysis to pick or build one.`;
+      } else if (tacticFit.noAttributes) {
+        tacticFitInner = `Fit against the active tactic (<strong>${formationLabel}</strong>) needs attribute data, not captured yet for this player.`;
+      } else if (!tacticFit.best) {
+        tacticFitInner = `No slot in the active tactic (<strong>${formationLabel}</strong>) matches their listed position.`;
+      } else {
+        const label = fitScoreLabel(tacticFit.best.score);
+        tacticFitInner = `In the active tactic (<strong>${formationLabel}</strong>), best fits <strong>${tacticFit.best.roleName}</strong> (${tacticFit.best.position}): <span class="scout-tactic-fit-highlight ${label.cls}">${label.text}</span>.`;
+      }
+      const tacticFitLineHtml = `<div class="scout-tactic-fit-line" id="sm-tactic-fit">${tacticFitInner}</div>`;
+
       const fitSummary = document.getElementById('sm-fit-summary');
       if (!e.groupName) {
         fitSummary.className = 'scout-fit-summary';
-        fitSummary.innerHTML = `Position "${p.position}" didn't match a known scouting group, so no fit assessment is available.`;
+        fitSummary.innerHTML = `Position "${p.position}" didn't match a known scouting group, so no fit assessment is available.${tacticFitLineHtml}`;
       } else if (e.score === null) {
         fitSummary.className = 'scout-fit-summary';
-        fitSummary.innerHTML = `${tierLine}<strong>${e.groupName}</strong> — no attributes captured yet, so no fit score is available. Squad status there: <strong>${e.status.label}</strong>.`;
+        fitSummary.innerHTML = `${tierLine}<strong>${e.groupName}</strong> — no attributes captured yet, so no fit score is available. Squad status there: <strong>${e.status.label}</strong>.${tacticFitLineHtml}`;
       } else {
         fitSummary.className = 'scout-fit-summary' + (e.addressesGap ? ' addresses-gap' : '');
         // The fit-score sentence (score + "Key×2 + Preferred" formula explanation) was dropped
         // here too — same reasoning as the tier line above, it's detail Tactics' own
         // recommended-player panel already covers, and this modal doesn't need to repeat it.
-        const hitLine = e.weakAttrsHit.length
-          ? ` Clears the squad's current weak spot(s) in: ${e.weakAttrsHit.join(', ')}.`
-          : '';
-        const gapLine = e.addressesGap
-          ? `<div class="scout-gap-line"><span class="scout-addresses-gap">This player would address a current squad need.</span></div>`
-          : '';
-        fitSummary.innerHTML = `${tierLine}<div>Squad status there: <strong>${e.status.label}</strong>.${hitLine}</div>${gapLine}`;
-      }
-
-      // Separate line for fit against the tactic actually in use on Tactical Analysis —
-      // see computeScoutPlayerActiveTacticFit()'s own comment for why this is a different
-      // question from the position-group fit summary just above.
-      const tacticFitEl = document.getElementById('sm-tactic-fit');
-      const tacticFit = computeScoutPlayerActiveTacticFit(p);
-      const formationLabel = getActiveTacticFormationLabel();
-      if (tacticFit.noTactic) {
-        tacticFitEl.innerHTML = `No tactic set yet — visit Tactical Analysis to pick or build one.`;
-      } else if (tacticFit.noAttributes) {
-        tacticFitEl.innerHTML = `Fit against the active tactic (<strong>${formationLabel}</strong>) needs attribute data, not captured yet for this player.`;
-      } else if (!tacticFit.best) {
-        tacticFitEl.innerHTML = `No slot in the active tactic (<strong>${formationLabel}</strong>) matches their listed position.`;
-      } else {
-        const label = fitScoreLabel(tacticFit.best.score);
-        tacticFitEl.innerHTML = `In the active tactic (<strong>${formationLabel}</strong>), best fits <strong>${tacticFit.best.roleName}</strong> (${tacticFit.best.position}): <span class="scout-tactic-fit-highlight ${label.cls}">${label.text}</span>.`;
+        // One sentence now instead of a headcount-status clause plus a separately-stated
+        // "addresses a current need" clause — those two used to read as contradictory when
+        // headcount was fine (Well Stocked) but attribute quality wasn't, since "Well
+        // Stocked" and "addresses a squad need" look like opposite verdicts side by side
+        // without the headcount-vs-attributes distinction spelled out. isHeadcountGap draws
+        // that distinction explicitly so the single sentence stays consistent either way.
+        const isHeadcountGap = e.status.key === 'critical' || e.status.key === 'thin';
+        let needLine;
+        if (isHeadcountGap) {
+          needLine = `Squad status there: <strong>${e.status.label}</strong> — <span class="scout-addresses-gap">this player would help fill that gap</span>.`;
+        } else if (e.weakAttrsHit.length) {
+          needLine = `Squad status there: <strong>${e.status.label}</strong> on headcount, but the squad's current options are weak in ${e.weakAttrsHit.join(', ')} — <span class="scout-addresses-gap">this player would raise the level there</span>.`;
+        } else {
+          needLine = `Squad status there: <strong>${e.status.label}</strong>.`;
+        }
+        fitSummary.innerHTML = `${tierLine}<div>${needLine}</div>${tacticFitLineHtml}`;
       }
 
       document.getElementById('sm-mental').innerHTML = attributeRowsHtml(ATTRIBUTE_GROUPS.Mental, p.attributes);
@@ -11611,6 +11638,15 @@
       }
       if (viewName === 'tactics') {
         rerenderTacticsGaps();
+      }
+      // Scouting page's triage tiles (Perfect Fit/Nearly There/Potential) now measure their
+      // own real rendered height the same way (see getScoutTilesRowBudget()/fitRowsToClip(),
+      // renderScoutTiles()) — needs the same re-render-on-arrival treatment as the two
+      // above, or a shortlist added/loaded before ever visiting this tab gets stuck with a
+      // clip capped at 0px (measured while `.view { display:none }` was hiding the page),
+      // showing no players at all until something else happens to re-render it.
+      if (viewName === 'scout') {
+        renderScoutTiles();
       }
     }
 

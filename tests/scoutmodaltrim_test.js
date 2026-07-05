@@ -1,9 +1,14 @@
 // Regression test for the trimmed scouted-player fit summary (openScoutProfile) — the tier
 // line now shows just the label (Perfect Fit / Nearly There / Potential / Not currently in a
 // tile) with no trailing description, the "<group> fit score: N (Key×2 + Preferred...)"
-// sentence is gone entirely, the squad-status sentence is kept, and "This player would
-// address a current squad need" now sits in its own <div> on a new line rather than running
-// on inline after the squad-status sentence.
+// sentence is gone entirely, and the squad-status sentence is kept. The old separate
+// "This player would address a current squad need" <div class="scout-gap-line"> was later
+// merged into the SAME sentence as the squad-status line (see openScoutProfile()'s
+// isHeadcountGap branch) — two boxes/lines making related, sometimes seemingly-contradictory
+// claims (e.g. "Well Stocked" right above "addresses a current squad need") read as
+// disjointed, so it's now one coherent sentence instead. #sm-tactic-fit (the active-tactic
+// fit line) was also merged from its own separate box into a nested div inside
+// #sm-fit-summary at the same time — checked here too.
 
 let pass = 0, fail = 0;
 function check(name, cond) {
@@ -56,17 +61,27 @@ check('does NOT contain the removed fit-score sentence', !/fit score:/i.test(fit
 check('does NOT contain the Key×2 formula explanation', !/Key(&times;|×|x)2/i.test(fitSummaryHtml));
 check('still contains the squad-status sentence', /Squad status there:/.test(fitSummaryHtml));
 
+check('the old standalone scout-gap-line div is gone (merged into the status sentence)', !/scout-gap-line/.test(fitSummaryHtml));
+
 if (evaluation.addressesGap) {
-  check('gap line is present when addressesGap is true', /would address a current squad need/.test(fitSummaryHtml));
-  check('gap line is wrapped in its own scout-gap-line div (own line, not inline)', /<div class="scout-gap-line"><span class="scout-addresses-gap">This player would address a current squad need\.<\/span><\/div>/.test(fitSummaryHtml));
-  // The gap-line div must come AFTER the squad-status div, i.e. genuinely "a new line"
-  // below it rather than merged into the same sentence.
+  check('addresses-gap highlight is present when addressesGap is true', /scout-addresses-gap/.test(fitSummaryHtml));
+  // Whichever wording applies (headcount gap vs attribute-quality gap — see
+  // openScoutProfile()'s isHeadcountGap branch), it must be part of the SAME sentence as
+  // "Squad status there:", not a separate line/div below it.
   const statusIdx = fitSummaryHtml.indexOf('Squad status there:');
-  const gapIdx = fitSummaryHtml.indexOf('scout-gap-line');
-  check('gap-line div appears after the squad-status line', statusIdx >= 0 && gapIdx > statusIdx);
+  const addressesIdx = fitSummaryHtml.indexOf('scout-addresses-gap');
+  check('addresses-gap highlight appears after "Squad status there:" in the same sentence',
+    statusIdx >= 0 && addressesIdx > statusIdx && fitSummaryHtml.slice(statusIdx, addressesIdx).indexOf('</div>') === -1);
 } else {
-  check('no gap line rendered when addressesGap is false', !/would address a current squad need/.test(fitSummaryHtml));
+  check('no addresses-gap highlight rendered when addressesGap is false', !/scout-addresses-gap/.test(fitSummaryHtml));
 }
+
+// #sm-fit-summary and #sm-tactic-fit used to be two separate boxes stacked back to back —
+// merged into one box, with the tactic-fit line nested inside #sm-fit-summary's own
+// innerHTML (see openScoutProfile()'s own comment for why it can't be statically nested in
+// the HTML instead).
+check('#sm-tactic-fit is nested inside #sm-fit-summary\'s own innerHTML', /scout-tactic-fit-line/.test(fitSummaryHtml));
+check('the nested #sm-tactic-fit has real content (active-tactic fit line rendered)', document.getElementById('sm-tactic-fit') && document.getElementById('sm-tactic-fit').innerHTML.length > 0);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exitCode = 1;
