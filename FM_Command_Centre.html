@@ -45,10 +45,12 @@
        the layout was still a side-by-side row (badge + wordmark). That crowding was really
        the row layout's problem, not the badge's own size — once .sidebar-header switched to
        stacking the badge above the wordmark (see that rule's own comment), the wordmark got
-       the sidebar's full width regardless of badge size, so the size increase requested
-       afterwards (60px, most of the way back toward the original 64px) doesn't reintroduce
-       the crowding the first shrink was fixing. */
-    --hotbar-h: 60px;
+       the sidebar's full width regardless of badge size, so it's been free to grow again
+       since (60px, then this). Tied directly to --sidebar-w (minus .sidebar-header's own
+       16px side padding twice) rather than another flat px guess, so the badge actually
+       fills the header's available width — leaving just that same 16px of breathing room on
+       each side, not an arbitrarily smaller circle floating in a much wider header. */
+    --hotbar-h: calc(var(--sidebar-w) - 64px);
     /* A lightened version of club-primary used specifically for text (see --club-text below,
        used in place of --club-primary anywhere text is coloured) — plain club-primary can
        be nearly unreadable against the near-black background when a club's colour is
