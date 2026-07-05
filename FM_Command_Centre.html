@@ -4798,23 +4798,30 @@
                    the remove button reliably fit inside one screen width without a
                    horizontal scrollbar on most windows — see .scout-table-compact below
                    for the table-layout:fixed + ellipsis rules these widths depend on. -->
+              <!-- Widths re-tuned when the Wage column was added: total stays exactly 1140px
+                   (matching the pre-Wage total precisely) by shaving a few px off several
+                   already-generous columns rather than growing the table overall — this was
+                   the width the table already fit inside without a horizontal scrollbar, so
+                   keeping the sum unchanged was the safest way to add a column without
+                   reintroducing one. -->
               <colgroup>
                 <col style="width:130px;">
-                <col style="width:115px;">
-                <col style="width:70px;">
-                <col style="width:35px;">
-                <col style="width:50px;">
-                <col style="width:100px;">
-                <col style="width:60px;">
-                <col style="width:55px;">
-                <col style="width:65px;">
-                <col style="width:65px;">
-                <col style="width:65px;">
-                <col style="width:70px;">
-                <col style="width:50px;">
+                <col style="width:107px;">
+                <col style="width:64px;">
+                <col style="width:31px;">
                 <col style="width:45px;">
-                <col style="width:95px;">
+                <col style="width:93px;">
+                <col style="width:55px;">
+                <col style="width:50px;">
+                <col style="width:65px;">
+                <col style="width:65px;">
+                <col style="width:60px;">
+                <col style="width:60px;">
+                <col style="width:64px;">
+                <col style="width:45px;">
                 <col style="width:40px;">
+                <col style="width:95px;">
+                <col style="width:36px;">
                 <col style="width:30px;">
               </colgroup>
               <thead>
@@ -4829,6 +4836,7 @@
                   <th data-sort-key="bestRole">Best Role</th>
                   <th data-sort-key="ability">Ability</th>
                   <th data-sort-key="potential">Potential</th>
+                  <th data-sort-key="wage">Wage</th>
                   <th data-sort-key="value">Value</th>
                   <th data-sort-key="contract">Expires</th>
                   <th data-sort-key="matchPct">Match%</th>
@@ -4839,7 +4847,7 @@
                 </tr>
               </thead>
               <tbody id="scout-table-body">
-                <tr><td colspan="17">Awaiting data</td></tr>
+                <tr><td colspan="18">Awaiting data</td></tr>
               </tbody>
             </table>
           </div>
@@ -4876,7 +4884,7 @@
           </div>
         </div>
 
-        <!-- Recruitment Missions — structured scouting targets (role + optional age/wage
+        <!-- Recruitment Missions — structured scouting targets (role + optional age/wage/value
              ceiling + priority), each showing a live green/amber/red status against the
              current shortlist, rather than browsing the shortlist with no explicit target in
              mind. Always visible (unlike .scout-tiles-row above, which only appears once
@@ -4898,6 +4906,10 @@
             <div class="tb-control-group">
               <label for="mission-wage-input">Max Wage £K p/w</label>
               <input type="number" id="mission-wage-input" class="mini-input" placeholder="Any" min="0" step="0.25">
+            </div>
+            <div class="tb-control-group">
+              <label for="mission-value-input">Max Value £M</label>
+              <input type="number" id="mission-value-input" class="mini-input" placeholder="Any" min="0" step="0.1">
             </div>
             <div class="tb-control-group">
               <label for="mission-priority-select">Priority</label>
@@ -5521,6 +5533,7 @@
             Club: <span id="sm-club">—</span>
           </div>
           <div class="player-modal-meta" id="sm-value-line">
+            Wage: <span id="sm-wage">—</span> &middot;
             Transfer Value: <span id="sm-value">—</span>
           </div>
           <div class="player-modal-badges">
@@ -12105,6 +12118,10 @@
       height: p => parseHeightSortValue(p.height),
       ability: p => parseStarRating(p.ability),
       potential: p => parseStarRating(p.potential),
+      // parseWageValue already exists (built for Recruitment Missions' wage-ceiling check) —
+      // reused here rather than a second wage parser, same as Value reuses its own
+      // parseValueSortValue below.
+      wage: p => { const v = parseWageValue(p.wage); return v == null ? -1 : v; },
       value: p => parseValueSortValue(p.value),
       contract: p => parseContractSortValue(p.contract),
       matchPct: p => { const { pct } = scoutRequirementMatch(p); return pct === null ? -1 : pct; },
@@ -12173,6 +12190,7 @@
           <td style="font-style: normal;">${p.bestRole ?? '&mdash;'}</td>
           <td style="font-style: normal;">${starRatingHtml(p.ability)}</td>
           <td style="font-style: normal;">${starRatingHtml(p.potential)}</td>
+          <td style="font-style: normal;">${p.wage ?? '&mdash;'}</td>
           <td style="font-style: normal;">${p.value ?? '&mdash;'}</td>
           <td style="font-style: normal;">${p.contract ?? '&mdash;'}</td>
           <td style="font-style: normal;">${pct === null ? '&mdash;' : Math.round(pct * 100) + '%'}</td>
@@ -12233,14 +12251,26 @@
 
       const label = fitScoreLabel(best.score);
       const ageOk = !mission.maxAge || !best.player.age || best.player.age <= mission.maxAge;
+
       const wageValue = parseWageValue(best.player.wage);
       const wageOk = !mission.maxWageK || wageValue == null || wageValue <= mission.maxWageK;
       const wageUnknown = !!mission.maxWageK && wageValue == null;
 
-      if (label.text === 'Very Suited' && ageOk && wageOk && !wageUnknown) {
+      // Transfer Value ceiling — parseValueSortValue already exists (Scouting table's own
+      // Value column sort) and returns -1 for a missing/unparsable value, so -1 is treated
+      // the same "unknown, can't confirm either way" way wage's null does above, just via a
+      // different sentinel since that function predates this one and already has its own
+      // convention.
+      const rawValue = parseValueSortValue(best.player.value);
+      const valueM = rawValue >= 0 ? rawValue / 1000000 : null;
+      const valueOk = !mission.maxValueM || valueM == null || valueM <= mission.maxValueM;
+      const valueUnknown = !!mission.maxValueM && valueM == null;
+
+      const anyUnknown = wageUnknown || valueUnknown;
+      if (label.text === 'Very Suited' && ageOk && wageOk && valueOk && !anyUnknown) {
         return { status: 'stocked', label: 'Ready', best: best.player };
       }
-      if ((label.text === 'Very Suited' || label.text === 'Suited') && (ageOk || wageOk || wageUnknown)) {
+      if ((label.text === 'Very Suited' || label.text === 'Suited') && (ageOk || wageOk || valueOk || anyUnknown)) {
         return { status: 'thin', label: 'Close', best: best.player };
       }
       return { status: 'critical', label: 'Open', best: best.player };
@@ -12268,6 +12298,7 @@
         const ceilingParts = [];
         if (m.maxAge) ceilingParts.push(`Age ${m.maxAge}-`);
         if (m.maxWageK) ceilingParts.push(`£${m.maxWageK}K-`);
+        if (m.maxValueM) ceilingParts.push(`£${m.maxValueM}M-`);
         const ceilingText = ceilingParts.length ? ` (${ceilingParts.join(', ')})` : '';
         const bestText = evalResult.best ? ` — best: ${evalResult.best.name}` : '';
         return `
@@ -12550,6 +12581,7 @@
       document.getElementById('sm-nation').textContent = (`${nationFlag(p.nation)} ${p.nation || ''}`).trim() || '—';
       document.getElementById('sm-height').textContent = p.height || '—';
       document.getElementById('sm-club').textContent = p.club || '—';
+      document.getElementById('sm-wage').textContent = p.wage || '—';
       document.getElementById('sm-value').textContent = p.value || '—';
       document.getElementById('sm-ability').textContent = `Ability ${p.ability || '—'}`;
       document.getElementById('sm-potential').textContent = `Potential ${p.potential || '—'}`;
@@ -13977,17 +14009,20 @@
         const roleSel = document.getElementById('mission-role-select');
         const ageInput = document.getElementById('mission-age-input');
         const wageInput = document.getElementById('mission-wage-input');
+        const valueInput = document.getElementById('mission-value-input');
         const prioritySel = document.getElementById('mission-priority-select');
         if (!roleSel.value) return;
         recruitmentMissions.push({
           role: roleSel.value,
           maxAge: ageInput.value ? parseInt(ageInput.value, 10) : null,
           maxWageK: wageInput.value ? parseFloat(wageInput.value) : null,
+          maxValueM: valueInput.value ? parseFloat(valueInput.value) : null,
           priority: prioritySel.value || 'medium',
         });
         saveRecruitmentMissions(recruitmentMissions);
         ageInput.value = '';
         wageInput.value = '';
+        valueInput.value = '';
         renderRecruitmentMissions();
       });
     }
