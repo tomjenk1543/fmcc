@@ -462,13 +462,20 @@
     background: color-mix(in srgb, var(--club-primary) 14%, transparent);
   }
 
+  /* Used to sit pinned to the bottom of the sidebar (margin-top: auto) as its own separate
+     line, disconnected from the save name above it. Moved to sit directly under
+     .brand-team-name instead (see the HTML further down) — same small subtitle treatment as
+     that element (font-size/weight/letter-spacing/color) so the two read as one connected
+     "save name, then save data" block rather than two unrelated pieces of sidebar text. Kept
+     the class name itself unchanged — see .hotbar's own comment for why (several JS
+     querySelector('.hotbar-right') call sites elsewhere would otherwise need updating too). */
   .hotbar-right {
-    margin-top: auto;
-    display: flex;
-    align-items: center;
-    padding: 16px 20px 0;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
     color: var(--text-dim);
-    font-size: 13px;
+    margin-top: 1px;
+    text-transform: none;
   }
 
   /* ---------- MAIN ---------- */
@@ -4439,6 +4446,7 @@
       <div class="club-name">
         FM <span>Command Centre</span>
         <div class="brand-team-name" id="hotbar-team-name"></div>
+        <div class="hotbar-right">Save not loaded</div>
       </div>
     </div>
     </div>
@@ -4468,7 +4476,6 @@
       <button class="nav-btn" data-view="scout">Scouting</button>
       <button class="nav-btn" data-view="settings">Settings</button>
     </nav>
-    <div class="hotbar-right">Save not loaded</div>
   </div>
 
   <main>
