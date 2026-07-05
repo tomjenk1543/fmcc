@@ -144,14 +144,17 @@ check('backup keeper\'s Sv%-xSv% diff is colour-classed negative', /perf-diff-ne
 // ---- The Analysis tile re-renders (via renderPerformanceCategoryView -> renderPerformanceInsights)
 // scoped to whichever category the dropdown is on — this is the actual feature being tested:
 // picking Goalkeeping should surface goalkeeping-only observations, not the Attacking ones.
-// The inline tile itself only shows Assumptions (Areas for Improvement/Over-Underperformers
-// live behind the "View full breakdown" click — see the gaps-modal checks below), so these
-// checks confirm the inline Assumptions text is scoped, then open the modal for the rest. ----
+// The inline tile shows Assumptions + Areas for Improvement; only Over/Underperforming
+// Players (the one section whose row count can grow unbounded) lives behind the "View full
+// breakdown" click — see the gaps-modal checks below. ----
 const gkInsightsTitle = document.getElementById('performance-insights-title').innerHTML;
 check('Analysis title reflects the Goalkeeping category', /Goalkeeping/.test(gkInsightsTitle));
 const gkInlineHtml = document.getElementById('performance-insights-content').innerHTML;
-check('inline Analysis tile has no Areas for Improvement/Over-Under sections (assumptions only)',
-  !/Areas for Improvement/.test(gkInlineHtml) && !/Over \/ Underperforming/.test(gkInlineHtml));
+check('inline Analysis tile has an Assumptions section', /Assumptions/.test(gkInlineHtml));
+check('inline Analysis tile has an Areas for Improvement section', /Areas for Improvement/.test(gkInlineHtml));
+check('inline Analysis tile has no Over/Under section (that stays behind the click)', !/Over \/ Underperforming/.test(gkInlineHtml));
+check('inline Analysis tile includes the goalkeeping depth-gap improvement naming both keepers', /Pol/.test(gkInlineHtml) && /goalkeeping depth/.test(gkInlineHtml));
+check('inline Analysis tile does NOT show the Discipline dirty-tackler improvement', !/Michael Botha/.test(gkInlineHtml));
 check('inline Analysis tile has a "View full breakdown" button', /View full breakdown/.test(gkInlineHtml));
 
 document.getElementById('performance-insights-panel').fire('click');
@@ -171,6 +174,10 @@ const discHeadHtml = document.getElementById('performance-table-head').innerHTML
 check('discipline table header includes Tackles Won and Fouls Made', /Tackles Won/.test(discHeadHtml) && /Fouls Made/.test(discHeadHtml));
 const discChartHtml = document.getElementById('performance-chart-container').innerHTML;
 check('discipline chart renders bars without an actual/expected marker requirement', /perf-chart-row/.test(discChartHtml));
+
+const discInlineHtml = document.getElementById('performance-insights-content').innerHTML;
+check('inline Analysis tile flags Michael Botha as a dirty tackler for Discipline', /Michael Botha/.test(discInlineHtml));
+check('inline Analysis tile does NOT show goalkeeping or attacking content for Discipline', !/Sergio Acosta/.test(discInlineHtml) && !/overperforming xG/.test(discInlineHtml));
 
 document.getElementById('performance-insights-panel').fire('click');
 const discModalHtml = document.getElementById('gaps-modal-body').innerHTML;
@@ -217,11 +224,14 @@ closePerformanceOverviewModal();
 check('Full Overview modal closes', !document.getElementById('performance-overview-modal-backdrop').classList.contains('open'));
 
 // ---- Insights: assumptions / improvements / over-underperformers (back on Attacking, per the reset above) ----
-// Inline tile stays assumptions-only; the full breakdown (Improvements + Over/Under) is
-// checked via the gaps-modal the tile opens on click, same as the goalkeeping/discipline
+// Inline tile shows Assumptions + Areas for Improvement; only Over/Underperforming Players
+// is checked via the gaps-modal the tile opens on click, same as the goalkeeping/discipline
 // checks above.
 const insightsHtml = document.getElementById('performance-insights-content').innerHTML;
-check('inline Analysis tile has no Areas for Improvement/Over-Under sections here either', !/Areas for Improvement/.test(insightsHtml) && !/Over \/ Underperforming/.test(insightsHtml));
+check('inline Analysis tile has an Assumptions section here too', /Assumptions/.test(insightsHtml));
+check('inline Analysis tile has an Areas for Improvement section here too', /Areas for Improvement/.test(insightsHtml));
+check('inline Analysis tile has no Over/Under section here either', !/Over \/ Underperforming/.test(insightsHtml));
+check('inline Analysis tile names Ndo in the finishing improvement text (underperformer)', /Arthur Ndo/.test(insightsHtml));
 check('Analysis title reflects the Attacking category', /Attacking/.test(document.getElementById('performance-insights-title').innerHTML));
 
 document.getElementById('performance-insights-panel').fire('click');

@@ -12894,9 +12894,9 @@
         const topCrosser = crossers.slice().sort((a, b) => b.crossesAttempted - a.crossesAttempted)[0];
         const totalCrosses = crossers.reduce((sum, p) => sum + p.crossesAttempted, 0);
         if (topCrosser.crossesAttempted >= 100) {
-          assumptions.push(`${topCrosser.name} has attempted <strong>${topCrosser.crossesAttempted}</strong> crosses, well ahead of the rest of the squad — this suggests attacks are being funnelled through them on the flank fairly heavily.`);
+          assumptions.push(`<strong>${topCrosser.name}</strong> has attempted <strong>${topCrosser.crossesAttempted}</strong> crosses, well ahead of the rest of the squad — this suggests attacks are being funnelled through them on the flank fairly heavily.`);
         } else if (totalCrosses < 50) {
-          assumptions.push(`Cross attempts are low across the board (highest is ${topCrosser.name} with ${topCrosser.crossesAttempted}), suggesting the team builds attacks through the middle rather than from wide areas.`);
+          assumptions.push(`Cross attempts are low across the board (highest is <strong>${topCrosser.name}</strong> with ${topCrosser.crossesAttempted}), suggesting the team builds attacks through the middle rather than from wide areas.`);
         }
       }
 
@@ -12907,7 +12907,7 @@
         const topScorer = scorers.slice().sort((a, b) => b.goals - a.goals)[0];
         const share = totalGoals > 0 ? (topScorer.goals / totalGoals) * 100 : 0;
         if (share >= 30) {
-          assumptions.push(`${topScorer.name} accounts for <strong>${share.toFixed(0)}%</strong> of the squad's captured goals (${topScorer.goals} of ${totalGoals}) — the team may be over-reliant on one source of goals.`);
+          assumptions.push(`<strong>${topScorer.name}</strong> accounts for <strong>${share.toFixed(0)}%</strong> of the squad's captured goals (${topScorer.goals} of ${totalGoals}) — the team may be over-reliant on one source of goals.`);
         }
       }
 
@@ -13095,11 +13095,12 @@
     }
 
     // targetId present (Full Overview modal) -> full three-section breakdown, same as before.
-    // targetId absent (the small inline dashboard tile) -> Assumptions only, plus a "view full
-    // breakdown" cue — Areas for Improvement and Over/Underperforming Players can run to several
-    // paragraphs/rows and were making the inline tile itself scroll, so they now live one click
-    // away in the shared gaps-modal (see openPerformanceInsightsModal, wired to the whole tile
-    // via the .gaps-clickable class already used for this exact pattern elsewhere in the app).
+    // targetId absent (the small inline dashboard tile) -> Assumptions + Areas for Improvement,
+    // plus a "view full breakdown" cue for Over/Underperforming Players specifically — that
+    // section's player-by-player rows are the one part that can run long enough to make the
+    // inline tile scroll, so it's the one part that stays one click away in the shared
+    // gaps-modal (see openPerformanceInsightsModal, wired to the whole tile via the
+    // .gaps-clickable class already used for this exact pattern elsewhere in the app).
     function renderPerformanceInsights(latest, categoryKey, targetId) {
       const cat = PERFORMANCE_CATEGORIES[categoryKey];
       const insights = computePerformanceInsights(latest, categoryKey);
@@ -13110,9 +13111,14 @@
       if (!targetId) {
         container.innerHTML = `
           <div class="perf-insight-section">
+            <div class="perf-insight-heading">Assumptions</div>
             ${insights.assumptions.map(a => `<p>${a}</p>`).join('')}
           </div>
-          <button type="button" class="view-all-gaps-btn" id="performance-insights-view-all-btn">View full breakdown</button>
+          <div class="perf-insight-section">
+            <div class="perf-insight-heading">Areas for Improvement</div>
+            ${insights.improvements.map(i => `<p>${i}</p>`).join('')}
+          </div>
+          <button type="button" class="view-all-gaps-btn" id="performance-insights-view-all-btn">View full breakdown (Over/Underperforming Players)</button>
         `;
         return;
       }
