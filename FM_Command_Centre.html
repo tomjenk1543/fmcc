@@ -4052,11 +4052,15 @@
     color: var(--text);
   }
 
-  /* One "Recommendation" label above the scouted-player suggestion line(s) for a given
-     Areas for Improvement entry — see buildImprovementScoutSuggestionsHtml(). Sits right
-     after that entry's own <p>; margin-top of 16px matches .perf-insight-section's own
-     margin-bottom (the gap between Assumptions and Areas for Improvement), so the
-     improvement-to-recommendation gap reads the same as the gap between sections. */
+  /* One "Recommendation N" label above the scouted-player suggestion line(s) for a given
+     Areas for Improvement entry — see buildImprovementScoutSuggestionsHtml(). All of these
+     now render together AFTER the full numbered improvements list (not each one directly
+     under its own <p>) — see the two callers of buildImprovementScoutSuggestionsHtml() —
+     so the recommendations read as their own group, correlated to the numbered list above
+     purely by the matching number in their label. margin-top of 16px matches
+     .perf-insight-section's own margin-bottom (the gap between Assumptions and Areas for
+     Improvement), so the list-to-recommendations gap reads the same as the gap between
+     sections. */
   .perf-recommendation {
     margin: 16px 0 16px 0;
   }
@@ -12436,16 +12440,35 @@
       return (name || '').normalize('NFD').replace(new RegExp('[\\u0300-\\u036f]', 'g'), '').toLowerCase().trim();
     }
 
+    // Shared by findSquadPosition() and isPerformancePlayerLoanedOut() below — one name
+    // lookup against currentSquad (diacritic-insensitive, see normalizeNameForMatch), rather
+    // than each re-implementing the same .find(). Returns null (not a placeholder record)
+    // when no match is found.
+    function findSquadRecord(name) {
+      const target = normalizeNameForMatch(name);
+      if (!target) return null;
+      return currentSquad.find(p => normalizeNameForMatch(p.name) === target) || null;
+    }
+
     // Performance snapshots deliberately don't carry a "position" field (it isn't visible on
     // any of FM's own stat-filter screens this feature is built around) — looked up from the
     // squad already loaded elsewhere in the app instead. Returns null (not a placeholder
     // string) when no match is found, so callers can tell "unknown" apart from a real
     // position string.
     function findSquadPosition(name) {
-      const target = normalizeNameForMatch(name);
-      if (!target) return null;
-      const match = currentSquad.find(p => normalizeNameForMatch(p.name) === target);
-      return match ? match.position : null;
+      const record = findSquadRecord(name);
+      return record ? record.position : null;
+    }
+
+    // Excludes players out on loan from Performance Data's Analysis (assumptions, areas for
+    // improvement, recommendations, over/underperformers) — same "status === 'loan-out'"
+    // convention used to exclude them from Tactics' recommendPlayerForRole()/gap analysis
+    // elsewhere in the app (loaned-in players are NOT excluded — they're actually playing
+    // for us). A name with no squad match at all is treated as not loaned out rather than
+    // silently dropped, since there's no actual evidence either way.
+    function isPerformancePlayerLoanedOut(name) {
+      const record = findSquadRecord(name);
+      return !!(record && record.status === 'loan-out');
     }
 
     // Derived (computed-on-read, never stored) stats shared between the table and the charts
@@ -13016,7 +13039,12 @@
     // category-specific "not enough data yet" line rather than guessing when a required field
     // wasn't captured in this particular batch of screenshots.
     function computePerformanceInsights(latest, categoryKey) {
-      const players = latest.players;
+      // Players out on loan are excluded from the analysis entirely (assumptions, areas for
+      // improvement, recommendations, over/underperformers) — same loan-out exclusion
+      // convention as Tactics' recommendPlayerForRole()/gap analysis. Their captured stats
+      // stay visible in the raw Squad Performance table/chart (that's a factual record of
+      // what was captured); this only affects what the Analysis panel reasons about.
+      const players = latest.players.filter(p => !isPerformancePlayerLoanedOut(p.name));
       const assumptions = [];
       const improvements = [];
 
@@ -13318,7 +13346,8 @@
         </div>
         <div class="perf-insight-section">
           <div class="perf-insight-heading">Areas for Improvement</div>
-          ${insights.improvements.map((imp, i) => `<p>${i + 1}. ${imp.text}</p>${buildImprovementScoutSuggestionsHtml(imp, i + 1)}`).join('')}
+          ${insights.improvements.map((imp, i) => `<p>${i + 1}. ${imp.text}</p>`).join('')}
+          ${insights.improvements.map((imp, i) => buildImprovementScoutSuggestionsHtml(imp, i + 1)).join('')}
         </div>
         <div class="perf-insight-section">
           <div class="perf-insight-heading">Over / Underperforming Players</div>
@@ -13349,7 +13378,8 @@
           </div>
           <div class="perf-insight-section">
             <div class="perf-insight-heading">Areas for Improvement</div>
-            ${insights.improvements.map((imp, i) => `<p>${i + 1}. ${imp.text}</p>${buildImprovementScoutSuggestionsHtml(imp, i + 1)}`).join('')}
+            ${insights.improvements.map((imp, i) => `<p>${i + 1}. ${imp.text}</p>`).join('')}
+            ${insights.improvements.map((imp, i) => buildImprovementScoutSuggestionsHtml(imp, i + 1)).join('')}
           </div>
           <button type="button" class="view-all-gaps-btn" id="performance-insights-view-all-btn">View full breakdown (Over/Underperforming Players)</button>
         `;

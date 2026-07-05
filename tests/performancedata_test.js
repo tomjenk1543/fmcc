@@ -128,6 +128,13 @@ addPerformanceSnapshots([
       { name: 'Sergio Acosta', apps: '7', cleanSheets: 4, goalsConceded: 5, svPct: 72, xSvPct: 78 },
       // A dirty tackler: more fouls made than successful tackles won, on real volume.
       { name: 'Michael Botha', apps: '35 (6)', foulsMade: 47, tacklesWon: 20, tacklesAttempted: 30, passPct: 87, passesAttempted: 1748 },
+      // Zeki Uzunoğlu is one of the bundled save's real loaned-out players (status:
+      // 'loan-out' in currentSquad, see loadSaveData_MetaluBuzau's squad data) — his stats
+      // here are deliberately worse than Michael Botha's (foulsMade-tacklesWon of 50 vs 27),
+      // so if the Analysis engine didn't exclude loaned-out players he'd wrongly become the
+      // dirty-tackler flagged instead of Botha. The raw Squad Performance table still shows
+      // him (that's a factual record of what was captured), only the Analysis panel excludes him.
+      { name: 'Zeki Uzunoğlu', apps: '10 (2)', foulsMade: 60, tacklesWon: 10, tacklesAttempted: 20, passPct: 65, passesAttempted: 150 },
       // Six more shot-takers with no other signal, purely to push the number of
       // chart-eligible attacking players (has goals+xG, shots >= 1) to 8 — past the inline
       // chart's topN of 6 — so the "Full Overview" modal's uncapped chart can be checked
@@ -142,10 +149,11 @@ addPerformanceSnapshots([
   },
 ]);
 
-// Total players in the latest snapshot: Musolino, Ndo, Pol, Acosta, Botha + 6 extras = 11.
+// Total players in the latest snapshot: Musolino, Ndo, Pol, Acosta, Botha, Zeki Uzunoğlu
+// (loaned out) + 6 extras = 12.
 // Chart-eligible for Attacking specifically (needs goals+xG, shots>=1): Musolino, Ndo, +6
 // extras = 8 — deliberately more than the inline chart's topN (6), see below.
-const LATEST_SNAPSHOT_PLAYER_COUNT = 11;
+const LATEST_SNAPSHOT_PLAYER_COUNT = 12;
 const ATTACKING_CHART_ELIGIBLE_COUNT = 8;
 
 check('two snapshots recorded', performanceSnapshots.length === 2);
@@ -244,6 +252,12 @@ check('the suggestion sits under its own numbered "Recommendation N" label', /pe
 check('Areas for Improvement numbers goalkeeping entries 1. then 2. in push order', />1\. Shot-stopping is underperforming/.test(gkInlineHtml) && />2\. There's a meaningful save-percentage gap/.test(gkInlineHtml));
 check('the depth-gap improvement\'s recommendation is numbered 2 to match its own list item', /perf-recommendation-label">Recommendation 2</.test(gkInlineHtml));
 check('the scouted suggestion line is a clickable element wired to its shortlist index', document.querySelector('#performance-insights-content .scout-suggestion-line[data-scout-index]') !== null);
+// Recommendations now render as their own group AFTER the full numbered improvements list,
+// not each one directly under its own <p> — so BOTH numbered list items should appear before
+// EITHER "Recommendation N" label in the rendered HTML.
+check('both numbered improvement items come before either Recommendation label (grouped, not interleaved)',
+  Math.max(gkInlineHtml.indexOf('>1. Shot-stopping is underperforming'), gkInlineHtml.indexOf('2. There\'s a meaningful save-percentage gap'))
+  < Math.min(gkInlineHtml.indexOf('Recommendation 1'), gkInlineHtml.indexOf('Recommendation 2')));
 
 document.getElementById('performance-insights-panel').fire('click');
 check('clicking the Analysis tile opens the shared gaps-modal', document.getElementById('gaps-modal-backdrop').classList.contains('open'));
@@ -263,10 +277,16 @@ const discHeadHtml = document.getElementById('performance-table-head').innerHTML
 check('discipline table header includes Tackles Won and Fouls Made', /Tackles Won/.test(discHeadHtml) && /Fouls Made/.test(discHeadHtml));
 const discChartHtml = document.getElementById('performance-chart-container').innerHTML;
 check('discipline chart renders bars without an actual/expected marker requirement', /perf-chart-row/.test(discChartHtml));
+// The raw Squad Performance table is a factual record of what was captured — it still shows
+// Zeki Uzunoğlu even though he's out on loan (only the Analysis panel excludes him below).
+check('the raw Squad Performance table still shows the loaned-out Zeki Uzunoğlu', /Zeki/.test(document.getElementById('performance-table-body').innerHTML));
 
 const discInlineHtml = document.getElementById('performance-insights-content').innerHTML;
 check('inline Analysis tile flags Michael Botha as a dirty tackler for Discipline', /Michael Botha/.test(discInlineHtml));
 check('inline Analysis tile does NOT show goalkeeping or attacking content for Discipline', !/Sergio Acosta/.test(discInlineHtml) && !/overperforming xG/.test(discInlineHtml));
+// Zeki Uzunoğlu's stats are deliberately worse than Michael Botha's — if the Analysis engine
+// didn't exclude loaned-out players he'd wrongly be the one flagged here instead of Botha.
+check('inline Analysis tile excludes the loaned-out Zeki Uzunoğlu from the dirty-tackler flag', !/Zeki/.test(discInlineHtml));
 // Michael Botha (D/WB (R)) classifies into BOTH Centre Back and Full Back / Wing Back —
 // neither has a shortlisted player, so the improvement falls back to the "No shortlisted
 // player" message rather than silently showing nothing, confirming the empty path works too.
@@ -278,6 +298,7 @@ const discModalHtml = document.getElementById('gaps-modal-body').innerHTML;
 check('discipline full breakdown flags Michael Botha as a dirty tackler', /Michael Botha/.test(discModalHtml));
 check('discipline full breakdown has no over/underperformer ranking (no expected-value baseline)', /no expected-value baseline/.test(discModalHtml));
 check('discipline full breakdown does NOT show goalkeeping or attacking content', !/Sergio Acosta/.test(discModalHtml) && !/overperforming xG/.test(discModalHtml));
+check('discipline full breakdown also excludes the loaned-out Zeki Uzunoğlu', !/Zeki/.test(discModalHtml));
 closeGapsModal();
 
 // Reset back to the default category so later checks aren't order-dependent.
