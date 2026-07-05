@@ -141,6 +141,17 @@ const gkBodyHtml = document.getElementById('performance-table-body').innerHTML;
 check('goalkeeping table includes both keepers', /Pol/.test(gkBodyHtml) && /Sergio Acosta/.test(gkBodyHtml));
 check('backup keeper\'s Sv%-xSv% diff is colour-classed negative', /perf-diff-negative/.test(gkBodyHtml));
 
+// ---- The Analysis tile re-renders (via renderPerformanceCategoryView -> renderPerformanceInsights)
+// scoped to whichever category the dropdown is on — this is the actual feature being tested:
+// picking Goalkeeping should surface goalkeeping-only observations, not the Attacking ones. ----
+const gkInsightsTitle = document.getElementById('performance-insights-title').innerHTML;
+check('Analysis title reflects the Goalkeeping category', /Goalkeeping/.test(gkInsightsTitle));
+const gkInsightsHtml = document.getElementById('performance-insights-content').innerHTML;
+check('goalkeeping insights flag Sergio Acosta as underperforming xSv%', /Sergio Acosta/.test(gkInsightsHtml) && /underperforming xSv%/.test(gkInsightsHtml));
+check('goalkeeping insights include the depth-gap improvement naming both keepers', /Pol/.test(gkInsightsHtml) && /goalkeeping depth/.test(gkInsightsHtml));
+check('goalkeeping insights do NOT show the Attacking category\'s over/underperformer labels', !/overperforming xG/.test(gkInsightsHtml) && !/underperforming xG/.test(gkInsightsHtml));
+check('goalkeeping insights do NOT show the Discipline dirty-tackler improvement', !/Michael Botha/.test(gkInsightsHtml));
+
 // ---- Switch to discipline category (single-metric chart, no actual/expected pair) ----
 performanceCategory = 'discipline';
 renderPerformanceCategoryView();
@@ -148,6 +159,11 @@ const discHeadHtml = document.getElementById('performance-table-head').innerHTML
 check('discipline table header includes Tackles Won and Fouls Made', /Tackles Won/.test(discHeadHtml) && /Fouls Made/.test(discHeadHtml));
 const discChartHtml = document.getElementById('performance-chart-container').innerHTML;
 check('discipline chart renders bars without an actual/expected marker requirement', /perf-chart-row/.test(discChartHtml));
+
+const discInsightsHtml = document.getElementById('performance-insights-content').innerHTML;
+check('discipline insights flag Michael Botha as a dirty tackler', /Michael Botha/.test(discInsightsHtml));
+check('discipline insights have no over/underperformer ranking (no expected-value baseline)', /no expected-value baseline/.test(discInsightsHtml));
+check('discipline insights do NOT show goalkeeping or attacking content', !/Sergio Acosta/.test(discInsightsHtml) && !/overperforming xG/.test(discInsightsHtml));
 
 // Reset back to the default category so later checks aren't order-dependent.
 performanceCategory = 'attacking';
@@ -186,20 +202,28 @@ check('Full Overview modal includes the same Assumptions/Improvement analysis', 
 closePerformanceOverviewModal();
 check('Full Overview modal closes', !document.getElementById('performance-overview-modal-backdrop').classList.contains('open'));
 
-// ---- Insights: assumptions / improvements / over-underperformers ----
+// ---- Insights: assumptions / improvements / over-underperformers (back on Attacking, per the reset above) ----
 const insightsHtml = document.getElementById('performance-insights-content').innerHTML;
 check('insights panel has an Assumptions section', /Assumptions/.test(insightsHtml));
 check('insights panel has an Areas for Improvement section', /Areas for Improvement/.test(insightsHtml));
 check('insights panel has an Over\/Underperforming Players section', /Over \/ Underperforming Players/.test(insightsHtml));
+check('Analysis title reflects the Attacking category', /Attacking/.test(document.getElementById('performance-insights-title').innerHTML));
 check('Musolino listed as an overperformer', /Samuel Musolino/.test(insightsHtml) && /overperforming xG/.test(insightsHtml));
 check('Ndo listed as an underperformer', /Arthur Ndo/.test(insightsHtml) && /underperforming xG/.test(insightsHtml));
-check('goalkeeping depth gap improvement flag mentions both keepers', /Pol/.test(insightsHtml) && /Sergio Acosta/.test(insightsHtml));
-check('dirty-tackler improvement flag names Michael Botha', /Michael Botha/.test(insightsHtml));
+check('attacking insights do NOT show the goalkeeping depth-gap improvement', !/goalkeeping depth/.test(insightsHtml));
+check('attacking insights do NOT show the discipline dirty-tackler improvement', !/Michael Botha/.test(insightsHtml));
 
-const insights = computePerformanceInsights(performanceLatestSnapshot);
-check('computePerformanceInsights ranks Musolino as the top overperformer', insights.overperformers[0] && insights.overperformers[0].name === 'Samuel Musolino');
-check('computePerformanceInsights ranks Ndo as the top underperformer', insights.underperformers[0] && insights.underperformers[0].name === 'Arthur Ndo');
-check('computePerformanceInsights flags Sergio Acosta as a goalkeeping underperformer', insights.gkUnder.some(p => p.name === 'Sergio Acosta'));
+// ---- computePerformanceInsights is category-scoped: same snapshot, different categoryKey ----
+const attackingInsights = computePerformanceInsights(performanceLatestSnapshot, 'attacking');
+check('attacking insights rank Musolino as the top overperformer', attackingInsights.overUnderOver[0] && attackingInsights.overUnderOver[0].name === 'Samuel Musolino');
+check('attacking insights rank Ndo as the top underperformer', attackingInsights.overUnderUnder[0] && attackingInsights.overUnderUnder[0].name === 'Arthur Ndo');
+
+const goalkeepingInsights = computePerformanceInsights(performanceLatestSnapshot, 'goalkeeping');
+check('goalkeeping insights flag Sergio Acosta as an underperformer', goalkeepingInsights.overUnderUnder.some(p => p.name === 'Sergio Acosta'));
+check('goalkeeping insights carry no attacking over/underperformers', goalkeepingInsights.overUnderKind === 'goalkeeping');
+
+const disciplineInsights = computePerformanceInsights(performanceLatestSnapshot, 'discipline');
+check('discipline insights have no over/underperformer ranking (no expected-value baseline for this category)', disciplineInsights.overUnderKind === null && disciplineInsights.overUnderOver.length === 0);
 
 // ---- Snapshot history + removal (unchanged behaviour, still worth covering post-rewrite) ----
 const historyHtml = document.getElementById('performance-history-list').innerHTML;

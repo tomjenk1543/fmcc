@@ -4823,7 +4823,7 @@
         <div class="performance-secondary-row" id="performance-secondary-row" style="display:none;">
           <div class="dashboard-panel" id="performance-insights-panel">
             <div class="panel-title-row">
-              <h3>Analysis</h3>
+              <h3 id="performance-insights-title">Analysis</h3>
             </div>
             <div id="performance-insights-content"></div>
           </div>
@@ -4860,7 +4860,7 @@
         <div class="perf-chart-caption" id="performance-overview-chart-caption" style="margin-top:16px;"></div>
         <div id="performance-overview-chart-container"></div>
         <div class="perf-insight-section" style="margin-top:16px;">
-          <div class="perf-insight-heading">Analysis</div>
+          <div class="perf-insight-heading" id="performance-overview-insights-title">Analysis</div>
           <div id="performance-overview-insights-content"></div>
         </div>
       </div>
@@ -12696,6 +12696,12 @@
       document.getElementById('performance-chart-caption').textContent = chartRows.length
         ? buildPerformanceChartCaption(cat, chartRows.length, false)
         : '';
+
+      // Keep the Analysis tile in lockstep with whichever category the dropdown is showing —
+      // this is the one call site the category <select>'s change listener actually goes
+      // through, so re-rendering the insights here (rather than only table/chart) is what
+      // makes the Analysis tile re-scope itself when the user switches tabs.
+      renderPerformanceInsights(performanceLatestSnapshot, performanceCategory);
     }
 
     // Full, uncapped view of whatever category is currently picked — table shows every
@@ -12724,7 +12730,7 @@
         ? buildPerformanceChartCaption(cat, chartRows.length, true)
         : '';
 
-      renderPerformanceInsights(performanceLatestSnapshot, 'performance-overview-insights-content');
+      renderPerformanceInsights(performanceLatestSnapshot, performanceCategory, 'performance-overview-insights-content');
 
       document.getElementById('performance-overview-modal-backdrop').classList.add('open');
     }
@@ -12829,13 +12835,14 @@
     }
 
     // ---- Analysis: assumptions / areas for improvement / over-underperformers ----
-    // Always computed off the LATEST snapshot regardless of which category tab is open — the
-    // user asked for this to read as one persistent "what does the data suggest" view, not
-    // something that resets every time the picker changes. Every observation is generated
-    // from thresholds against whatever's actually in the snapshot (not hardcoded to any one
-    // save), and every list gracefully falls back to a "not enough data yet" line rather than
-    // guessing when a required field wasn't captured in this particular batch of screenshots.
-    function computePerformanceInsights(latest) {
+    // Scoped to whichever category the page's dropdown currently has selected (categoryKey),
+    // so switching from Attacking to Goalkeeping to Discipline etc. shows only the
+    // observations relevant to that stat set instead of one fixed, mixed-category list.
+    // Every observation is still generated from thresholds against whatever's actually in the
+    // snapshot (not hardcoded to any one save), and every list gracefully falls back to a
+    // category-specific "not enough data yet" line rather than guessing when a required field
+    // wasn't captured in this particular batch of screenshots.
+    function computePerformanceInsights(latest, categoryKey) {
       const players = latest.players;
       const assumptions = [];
       const improvements = [];
@@ -12851,13 +12858,28 @@
       // ---- Goalkeeping over/underperformers: Sv% vs xSv%, for keepers with a real sample
       // of appearances (>=3). ----
       const keeperDiffs = players.filter(p => isGoalkeeperRecord(p) && parseAppsTotal(p.apps) >= 3)
-        .map(p => ({ name: p.name, diff: p.svPct - p.xSvPct }));
+        .map(p => ({ name: p.name, diff: p.svPct - p.xSvPct, apps: parseAppsTotal(p.apps) }));
       const gkOver = keeperDiffs.filter(p => p.diff >= 1.5).sort((a, b) => b.diff - a.diff);
       const gkUnder = keeperDiffs.filter(p => p.diff <= -1.5).sort((a, b) => a.diff - b.diff);
 
-      // ---- Assumptions: squad-wide passing tendency ----
+      // ---- Goal Attempts conversion: goals/shots for anyone with a meaningful sample of
+      // shots (>=5) — a different lens on the same shots-and-goals data to Attacking's
+      // Goals-vs-xG view, since this category's columns don't include xG at all. Ranked
+      // against the squad's own average conversion rather than a fixed benchmark. ----
+      const withConversion = players.filter(p => typeof p.goals === 'number' && typeof p.shots === 'number' && p.shots >= 5)
+        .map(p => ({ name: p.name, goals: p.goals, shots: p.shots, conversion: (p.goals / p.shots) * 100 }));
+      let squadConversion = 0, conversionOver = [], conversionUnder = [];
+      if (withConversion.length) {
+        const totalGoals = withConversion.reduce((sum, p) => sum + p.goals, 0);
+        const totalShots = withConversion.reduce((sum, p) => sum + p.shots, 0);
+        squadConversion = totalShots > 0 ? (totalGoals / totalShots) * 100 : 0;
+        conversionOver = withConversion.filter(p => p.conversion - squadConversion >= 8).sort((a, b) => b.conversion - a.conversion).slice(0, 3);
+        conversionUnder = withConversion.filter(p => squadConversion - p.conversion >= 8).sort((a, b) => a.conversion - b.conversion).slice(0, 3);
+      }
+
+      // ---- Assumptions: squad-wide passing tendency (General Play) ----
       const passers = players.filter(p => typeof p.passPct === 'number' && typeof p.passesAttempted === 'number' && p.passesAttempted > 0);
-      if (passers.length) {
+      if (categoryKey === 'generalplay' && passers.length) {
         const totalAttempted = passers.reduce((sum, p) => sum + p.passesAttempted, 0);
         const weightedPassPct = passers.reduce((sum, p) => sum + p.passPct * p.passesAttempted, 0) / totalAttempted;
         const style = weightedPassPct >= 89 ? 'a controlled, possession-based build-up'
@@ -12866,9 +12888,9 @@
         assumptions.push(`Weighted average pass completion across the squad is <strong>${weightedPassPct.toFixed(1)}%</strong>, which suggests ${style}.`);
       }
 
-      // ---- Assumptions: wide play / crossing reliance ----
+      // ---- Assumptions: wide play / crossing reliance (General Play) ----
       const crossers = players.filter(p => typeof p.crossesAttempted === 'number' && p.crossesAttempted > 0);
-      if (crossers.length) {
+      if (categoryKey === 'generalplay' && crossers.length) {
         const topCrosser = crossers.slice().sort((a, b) => b.crossesAttempted - a.crossesAttempted)[0];
         const totalCrosses = crossers.reduce((sum, p) => sum + p.crossesAttempted, 0);
         if (topCrosser.crossesAttempted >= 100) {
@@ -12878,9 +12900,9 @@
         }
       }
 
-      // ---- Assumptions: goal-scoring concentration ----
+      // ---- Assumptions: goal-scoring concentration (Attacking) ----
       const scorers = players.filter(p => typeof p.goals === 'number' && p.goals > 0);
-      if (scorers.length) {
+      if (categoryKey === 'attacking' && scorers.length) {
         const totalGoals = scorers.reduce((sum, p) => sum + p.goals, 0);
         const topScorer = scorers.slice().sort((a, b) => b.goals - a.goals)[0];
         const share = totalGoals > 0 ? (topScorer.goals / totalGoals) * 100 : 0;
@@ -12889,9 +12911,9 @@
         }
       }
 
-      // ---- Assumptions: discipline / pressing intensity ----
+      // ---- Assumptions: discipline / pressing intensity (Discipline) ----
       const disciplined = players.filter(p => typeof p.foulsMade === 'number' && typeof p.tacklesAttempted === 'number' && p.tacklesAttempted > 0);
-      if (disciplined.length) {
+      if (categoryKey === 'discipline' && disciplined.length) {
         const totalFouls = disciplined.reduce((sum, p) => sum + p.foulsMade, 0);
         const totalTackles = disciplined.reduce((sum, p) => sum + p.tacklesAttempted, 0);
         const foulRate = totalTackles > 0 ? (totalFouls / totalTackles) * 100 : 0;
@@ -12901,60 +12923,161 @@
         assumptions.push(`Fouls made are running at roughly <strong>${foulRate.toFixed(0)}%</strong> of tackles attempted, suggesting ${tone}.`);
       }
 
-      if (!assumptions.length) {
-        assumptions.push('Not enough data captured yet to draw squad-wide assumptions — add a snapshot with passing, crossing, or discipline columns filled in to see observations here.');
+      // ---- Assumptions: squad-wide shot-stopping vs model (Goalkeeping) ----
+      if (categoryKey === 'goalkeeping' && keeperDiffs.length) {
+        const totalApps = keeperDiffs.reduce((sum, p) => sum + p.apps, 0);
+        const weightedDiff = totalApps > 0 ? keeperDiffs.reduce((sum, p) => sum + p.diff * p.apps, 0) / totalApps : 0;
+        const tone = weightedDiff >= 1.5 ? 'goalkeeping is outperforming the model — shot-stopping looks like a strength right now'
+          : weightedDiff <= -1.5 ? "goalkeeping is underperforming the model — shot-stopping is costing goals relative to expectation"
+          : "goalkeeping is broadly in line with the model's expectation";
+        assumptions.push(`Across ${keeperDiffs.length} keeper${keeperDiffs.length === 1 ? '' : 's'} with a meaningful sample, Sv% is running <strong>${weightedDiff >= 0 ? '+' : ''}${weightedDiff.toFixed(1)}pts</strong> vs expected, suggesting ${tone}.`);
       }
 
-      // ---- Areas for improvement ----
-      if (underperformers.length) {
+      // ---- Assumptions: squad-wide shot conversion (Goal Attempts) ----
+      if (categoryKey === 'goalattempts' && withConversion.length) {
+        const totalGoals = withConversion.reduce((sum, p) => sum + p.goals, 0);
+        const totalShots = withConversion.reduce((sum, p) => sum + p.shots, 0);
+        const tone = squadConversion >= 15 ? 'a clinical, high-conversion group in front of goal'
+          : squadConversion >= 10 ? 'a fairly average conversion rate for the level'
+          : "a below-par conversion rate — chances are going down more often than they're being taken";
+        assumptions.push(`The squad is converting <strong>${squadConversion.toFixed(1)}%</strong> of shots (${totalGoals} goals from ${totalShots} shots, among players with 5+ shots), suggesting ${tone}.`);
+      }
+
+      if (!assumptions.length) {
+        const fallbacks = {
+          attacking: "Not enough goal data yet to draw attacking assumptions — capture Goals for more players (30%+ share from one scorer is what this looks for) to see observations here.",
+          goalkeeping: "Not enough goalkeeping appearances yet (need 3+ per keeper) to draw a squad-wide shot-stopping assumption.",
+          discipline: "Not enough tackling/fouls data captured yet to draw a discipline assumption — add Fouls Made and Tackles Attempted to see this here.",
+          generalplay: "Not enough passing or crossing data captured yet to draw general play assumptions — add Pass % and Crosses Attempted to see this here.",
+          goalattempts: "Not enough shot data yet (need 5+ shots per player) to draw a conversion-rate assumption.",
+        };
+        assumptions.push(fallbacks[categoryKey] || 'Not enough data captured yet to draw an assumption for this category.');
+      }
+
+      // ---- Areas for improvement: finishing (Attacking) ----
+      if (categoryKey === 'attacking' && underperformers.length) {
         const names = underperformers.map(p => `${p.name} (${p.goals} goals from ${p.xG.toFixed(1)} xG)`).join(', ');
         improvements.push(`Finishing looks like a coaching priority for: <strong>${names}</strong> — each is scoring meaningfully below the chances they're getting.`);
       }
-      if (gkUnder.length) {
+
+      // ---- Areas for improvement: shot-stopping + depth gap (Goalkeeping) ----
+      if (categoryKey === 'goalkeeping' && gkUnder.length) {
         const names = gkUnder.map(p => `${p.name} (${p.diff.toFixed(1)}pts below expected)`).join(', ');
         improvements.push(`Shot-stopping is underperforming the model for: <strong>${names}</strong> — worth a look at goalkeeping coaching or confidence.`);
       }
-      const dirtyTacklers = players.filter(p => typeof p.foulsMade === 'number' && typeof p.tacklesWon === 'number' && p.tacklesAttempted >= 10 && p.foulsMade > p.tacklesWon)
-        .sort((a, b) => (b.foulsMade - b.tacklesWon) - (a.foulsMade - a.tacklesWon));
-      if (dirtyTacklers.length) {
-        const worst = dirtyTacklers[0];
-        improvements.push(`<strong>${worst.name}</strong> commits more fouls (${worst.foulsMade}) than successful tackles (${worst.tacklesWon}) — their tackle timing/discipline looks like a training focus.`);
-      }
-      if (passers.length) {
-        const worstPasser = passers.filter(p => p.passesAttempted >= 100).sort((a, b) => a.passPct - b.passPct)[0];
-        if (worstPasser && worstPasser.passPct < 85) {
-          improvements.push(`<strong>${worstPasser.name}</strong>'s pass completion (${worstPasser.passPct.toFixed(0)}%) is the weakest among regular passers — distribution under pressure may be worth targeting in training.`);
-        }
-      }
       const keepersWithApps = players.filter(p => isGoalkeeperRecord(p) && parseAppsTotal(p.apps) >= 1)
         .sort((a, b) => parseAppsTotal(b.apps) - parseAppsTotal(a.apps));
-      if (keepersWithApps.length >= 2) {
+      if (categoryKey === 'goalkeeping' && keepersWithApps.length >= 2) {
         const starter = keepersWithApps[0];
         const backup = keepersWithApps[1];
         if (typeof backup.svPct === 'number' && typeof starter.svPct === 'number' && (starter.svPct - backup.svPct) >= 8) {
           improvements.push(`There's a meaningful save-percentage gap between ${starter.name} (${starter.svPct}%) and backup ${backup.name} (${backup.svPct}%) — goalkeeping depth looks like a squad-building priority if ${starter.name} picks up an injury or suspension.`);
         }
       }
-      if (!improvements.length) {
-        improvements.push('No clear improvement areas stood out from this snapshot — add more snapshots over time to spot developing trends.');
+
+      // ---- Areas for improvement: dirty tacklers (Discipline) ----
+      const dirtyTacklers = players.filter(p => typeof p.foulsMade === 'number' && typeof p.tacklesWon === 'number' && p.tacklesAttempted >= 10 && p.foulsMade > p.tacklesWon)
+        .sort((a, b) => (b.foulsMade - b.tacklesWon) - (a.foulsMade - a.tacklesWon));
+      if (categoryKey === 'discipline' && dirtyTacklers.length) {
+        const worst = dirtyTacklers[0];
+        improvements.push(`<strong>${worst.name}</strong> commits more fouls (${worst.foulsMade}) than successful tackles (${worst.tacklesWon}) — their tackle timing/discipline looks like a training focus.`);
       }
 
-      return { assumptions, improvements, overperformers, underperformers, gkOver, gkUnder };
+      // ---- Areas for improvement: worst passer (General Play) ----
+      if (categoryKey === 'generalplay' && passers.length) {
+        const worstPasser = passers.filter(p => p.passesAttempted >= 100).sort((a, b) => a.passPct - b.passPct)[0];
+        if (worstPasser && worstPasser.passPct < 85) {
+          improvements.push(`<strong>${worstPasser.name}</strong>'s pass completion (${worstPasser.passPct.toFixed(0)}%) is the weakest among regular passers — distribution under pressure may be worth targeting in training.`);
+        }
+      }
+
+      // ---- Areas for improvement: conversion, penalties, goal drought (Goal Attempts) ----
+      if (categoryKey === 'goalattempts' && conversionUnder.length) {
+        const names = conversionUnder.map(p => `${p.name} (${p.conversion.toFixed(0)}% from ${p.shots} shots)`).join(', ');
+        improvements.push(`Conversion rate looks like a concern for: <strong>${names}</strong> — well below the squad's own average of ${squadConversion.toFixed(1)}%.`);
+      }
+      const penTakers = players.filter(p => typeof p.pensScored === 'number' && typeof p.pensTaken === 'number' && p.pensTaken >= 3);
+      if (categoryKey === 'goalattempts' && penTakers.length) {
+        const worstPenTaker = penTakers.slice().sort((a, b) => (a.pensScored / a.pensTaken) - (b.pensScored / b.pensTaken))[0];
+        const rate = (worstPenTaker.pensScored / worstPenTaker.pensTaken) * 100;
+        if (rate < 70) {
+          improvements.push(`<strong>${worstPenTaker.name}</strong> has scored ${worstPenTaker.pensScored} of ${worstPenTaker.pensTaken} penalties (${rate.toFixed(0)}%) — penalty-taking reliability looks worth addressing.`);
+        }
+      }
+      const droughts = players.filter(p => typeof p.minsSinceLastGoal === 'number' && p.minsSinceLastGoal >= 500 && (p.shots || 0) >= 5)
+        .sort((a, b) => b.minsSinceLastGoal - a.minsSinceLastGoal);
+      if (categoryKey === 'goalattempts' && droughts.length) {
+        const worstDrought = droughts[0];
+        improvements.push(`<strong>${worstDrought.name}</strong> hasn't scored in ${worstDrought.minsSinceLastGoal} minutes despite regular shot volume — a finishing drought worth monitoring.`);
+      }
+
+      if (!improvements.length) {
+        const fallbacks = {
+          attacking: 'No clear finishing concerns stood out from this snapshot — add more snapshots over time to spot developing trends.',
+          goalkeeping: 'No clear goalkeeping concerns stood out from this snapshot — add more snapshots over time to spot developing trends.',
+          discipline: 'No clear discipline concerns stood out from this snapshot — add more snapshots over time to spot developing trends.',
+          generalplay: 'No clear passing concerns stood out from this snapshot — add more snapshots over time to spot developing trends.',
+          goalattempts: 'No clear conversion, penalty, or drought concerns stood out from this snapshot — add more snapshots over time to spot developing trends.',
+        };
+        improvements.push(fallbacks[categoryKey] || 'No clear improvement areas stood out from this snapshot.');
+      }
+
+      // ---- Over/underperforming players: which pairing (if any) applies to this category ----
+      let overUnderKind = null;
+      let overUnderOver = [];
+      let overUnderUnder = [];
+      const overUnderEmptyMessages = {
+        attacking: 'Not enough shot data yet (need 5+ shots) to rank finishing over/underperformers.',
+        goalkeeping: 'Not enough goalkeeping appearances yet (need 3+) to rank shot-stopping over/underperformers.',
+        discipline: 'Discipline has no expected-value baseline to rank over/underperformers against — see Areas for Improvement instead.',
+        generalplay: 'General Play has no expected-value baseline to rank over/underperformers against — see Areas for Improvement instead.',
+        goalattempts: 'Not enough shot data yet (need 5+ shots) to rank conversion over/underperformers.',
+      };
+      if (categoryKey === 'attacking') {
+        overUnderKind = 'attacking';
+        overUnderOver = overperformers;
+        overUnderUnder = underperformers;
+      } else if (categoryKey === 'goalkeeping') {
+        overUnderKind = 'goalkeeping';
+        overUnderOver = gkOver;
+        overUnderUnder = gkUnder;
+      } else if (categoryKey === 'goalattempts') {
+        overUnderKind = 'goalattempts';
+        overUnderOver = conversionOver;
+        overUnderUnder = conversionUnder;
+      }
+
+      return {
+        assumptions, improvements,
+        overUnderKind, overUnderOver, overUnderUnder, squadConversion,
+        overUnderEmptyMessage: overUnderEmptyMessages[categoryKey] || 'Not enough data yet to rank over/underperformers for this category.',
+      };
     }
 
-    function renderPerformanceInsights(latest, targetId) {
-      const insights = computePerformanceInsights(latest);
+    function buildPerformanceOverUnderRow(name, label, diff, isOver) {
+      const cls = isOver ? 'perf-diff-positive' : 'perf-diff-negative';
+      const sign = isOver ? '+' : '';
+      return `<div class="perf-history-row"><span>${name} <span class="scout-tile-subtitle">- ${label}</span></span><span class="${cls}">${sign}${diff.toFixed(1)}</span></div>`;
+    }
+
+    function renderPerformanceInsights(latest, categoryKey, targetId) {
+      const cat = PERFORMANCE_CATEGORIES[categoryKey];
+      const insights = computePerformanceInsights(latest, categoryKey);
       const container = document.getElementById(targetId || 'performance-insights-content');
+      const titleEl = document.getElementById(targetId ? 'performance-overview-insights-title' : 'performance-insights-title');
+      if (titleEl && cat) titleEl.innerHTML = `Analysis <span class="scout-tile-subtitle">- ${cat.label}</span>`;
 
       const overUnderRows = [];
-      insights.overperformers.forEach(p => overUnderRows.push(
-        `<div class="perf-history-row"><span>${p.name} <span class="scout-tile-subtitle">- overperforming xG</span></span><span class="perf-diff-positive">+${p.diff.toFixed(1)}</span></div>`));
-      insights.underperformers.forEach(p => overUnderRows.push(
-        `<div class="perf-history-row"><span>${p.name} <span class="scout-tile-subtitle">- underperforming xG</span></span><span class="perf-diff-negative">${p.diff.toFixed(1)}</span></div>`));
-      insights.gkOver.forEach(p => overUnderRows.push(
-        `<div class="perf-history-row"><span>${p.name} <span class="scout-tile-subtitle">- overperforming xSv%</span></span><span class="perf-diff-positive">+${p.diff.toFixed(1)}</span></div>`));
-      insights.gkUnder.forEach(p => overUnderRows.push(
-        `<div class="perf-history-row"><span>${p.name} <span class="scout-tile-subtitle">- underperforming xSv%</span></span><span class="perf-diff-negative">${p.diff.toFixed(1)}</span></div>`));
+      if (insights.overUnderKind === 'attacking') {
+        insights.overUnderOver.forEach(p => overUnderRows.push(buildPerformanceOverUnderRow(p.name, 'overperforming xG', p.diff, true)));
+        insights.overUnderUnder.forEach(p => overUnderRows.push(buildPerformanceOverUnderRow(p.name, 'underperforming xG', p.diff, false)));
+      } else if (insights.overUnderKind === 'goalkeeping') {
+        insights.overUnderOver.forEach(p => overUnderRows.push(buildPerformanceOverUnderRow(p.name, 'overperforming xSv%', p.diff, true)));
+        insights.overUnderUnder.forEach(p => overUnderRows.push(buildPerformanceOverUnderRow(p.name, 'underperforming xSv%', p.diff, false)));
+      } else if (insights.overUnderKind === 'goalattempts') {
+        insights.overUnderOver.forEach(p => overUnderRows.push(buildPerformanceOverUnderRow(p.name, 'conversion above squad average', p.conversion - insights.squadConversion, true)));
+        insights.overUnderUnder.forEach(p => overUnderRows.push(buildPerformanceOverUnderRow(p.name, 'conversion below squad average', p.conversion - insights.squadConversion, false)));
+      }
 
       container.innerHTML = `
         <div class="perf-insight-section">
@@ -12967,7 +13090,7 @@
         </div>
         <div class="perf-insight-section">
           <div class="perf-insight-heading">Over / Underperforming Players</div>
-          ${overUnderRows.length ? overUnderRows.join('') : '<p>Not enough shot or save data yet to rank over/underperformers.</p>'}
+          ${overUnderRows.length ? overUnderRows.join('') : `<p>${insights.overUnderEmptyMessage}</p>`}
         </div>
       `;
     }
@@ -13024,8 +13147,7 @@
       document.getElementById('performance-latest-label').textContent = `- ${performanceLatestSnapshot.date}`;
 
       ensurePerformanceCategorySelect();
-      renderPerformanceCategoryView();
-      renderPerformanceInsights(performanceLatestSnapshot);
+      renderPerformanceCategoryView(); // also refreshes the Analysis tile, scoped to performanceCategory
       renderPerformanceHistory(snapshots);
     }
 
