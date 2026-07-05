@@ -2158,10 +2158,17 @@
      toggles display:none -> flex with no existing open/close animation either, and
      animating a display:none->flex swap needs a bigger rework of the show/hide mechanism
      across all five modals sharing that pair; instant is at least consistent with what
-     every other modal in the app already does today. */
+     every other modal in the app already does today.
+
+     v2: widened from a flat 460px cap - that was the actual cause of "hard to read", not
+     the drawer idea itself. 460px forced the 3-column attribute layout (below) to stack
+     into one long column, turning a comfortable glance into a lot of scrolling. 680px (or
+     40% of the design canvas, whichever is smaller) gives it as much or more room than the
+     original 640px centered modal had, so the 3-column layout can stay exactly as it was -
+     see the attribute-groups override just below, now removed rather than forcing a stack. */
   #player-modal-backdrop .player-modal,
   #scout-modal-backdrop .player-modal {
-    width: min(460px, calc(var(--design-width) * 0.32));
+    width: min(680px, calc(var(--design-width) * 0.4));
     max-height: none;
     height: 100%;
     border-radius: 0;
@@ -2170,15 +2177,12 @@
     box-shadow: -8px 0 28px rgba(0, 0, 0, 0.45);
   }
 
-  /* The attribute-groups three-column layout (see its own comment further up) was sized
-     for a 640px+ centered modal - at the drawer's ~460px width that's too cramped to read,
-     so stack the three groups vertically instead, same treatment the base layout already
-     falls back to at real narrow viewports (see the existing 600px media query) just
-     applied unconditionally here since the drawer is narrow regardless of window size. */
-  #player-modal-backdrop .attribute-groups,
-  #scout-modal-backdrop .attribute-groups {
-    flex-direction: column;
-  }
+  /* v2: no longer forcing .attribute-groups to stack into one column here (removed the
+     rule that used to sit at this spot) - now that the drawer is wide enough (see
+     .player-modal's own comment above) to fit the original 3-column layout without
+     cramping it, forcing a stack was just costing readability for nothing. Still falls
+     back to a single column under the existing real-viewport 600px media query, same as
+     the centered modal always did. */
 
   /* redesign-explore: same soft-elevation card language as .hero-tile/.dashboard-panel,
      rather than a third shadow style for modals specifically. */
