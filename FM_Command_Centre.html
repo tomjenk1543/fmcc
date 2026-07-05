@@ -1972,10 +1972,16 @@
     border-left: 3px solid var(--club-primary);
     border-radius: var(--radius-sm);
     padding: 16px 18px;
+    transition: background 0.15s ease, transform 0.15s ease;
   }
 
+  /* Same lift motion as every other clickable tile, minus the box-shadow — still nested
+     inside "Current Squad Breakdown"'s own shadow (see this card's own comment above), so
+     adding a second shadow on top would look heavy, but the translateY on its own gives
+     the same tactile hover feedback as the rest of the app. */
   .position-card.gaps-clickable:hover {
     background: linear-gradient(135deg, var(--bg) 0%, color-mix(in srgb, var(--club-primary) 22%, var(--bg)) 100%);
+    transform: translateY(-2px);
   }
 
   .position-card h3 {
@@ -2149,60 +2155,21 @@
      behind the list it was opened from. Bump the two detail popups above the two list/import
      popups so a detail popup always wins regardless of DOM order.
 
-     redesign-explore: this z-index bump was a patch on top of the real problem - two
-     modals fighting over the same centered position. Converting these same two detail
-     popups into a right-side slide-over drawer (below) fixes the actual layering question
-     instead of just winning it: a drawer and a centered list dialog occupy different space,
-     so there's no stacking fight to referee regardless of which opened first. The z-index
-     bump stays too - belt and braces, and harmless either way. */
+     The z-index bump stays regardless of positioning - belt and braces, and harmless
+     either way. */
   #player-modal-backdrop,
   #scout-modal-backdrop {
     z-index: 210;
   }
 
-  /* Anchor to the right edge and stretch full height instead of centering a fixed-size
-     box - this is what actually turns these two into a drawer rather than a modal. Lighter
-     overlay than the base .player-modal-backdrop's 0.65 alpha, since keeping whatever's
-     behind (e.g. an open gaps list) legible is the whole point of a drawer over a modal. */
-  #player-modal-backdrop,
-  #scout-modal-backdrop {
-    justify-content: flex-end;
-    align-items: stretch;
-    background: rgba(0, 0, 0, 0.45);
-  }
-
-  /* Full-height panel instead of a centered card: no vertical centering (align-items above
-     already stretches it), no top accent bar (a left border reads better on a vertical
-     edge), square outer corner against the screen edge but keep the inner ones rounded.
-     Deliberately no slide-in transition - the base .player-modal-backdrop/.open pair
-     toggles display:none -> flex with no existing open/close animation either, and
-     animating a display:none->flex swap needs a bigger rework of the show/hide mechanism
-     across all five modals sharing that pair; instant is at least consistent with what
-     every other modal in the app already does today.
-
-     v2: widened from a flat 460px cap - that was the actual cause of "hard to read", not
-     the drawer idea itself. 460px forced the 3-column attribute layout (below) to stack
-     into one long column, turning a comfortable glance into a lot of scrolling. 680px (or
-     40% of the design canvas, whichever is smaller) gives it as much or more room than the
-     original 640px centered modal had, so the 3-column layout can stay exactly as it was -
-     see the attribute-groups override just below, now removed rather than forcing a stack. */
-  #player-modal-backdrop .player-modal,
-  #scout-modal-backdrop .player-modal {
-    width: min(680px, calc(var(--design-width) * 0.4));
-    max-height: none;
-    height: 100%;
-    border-radius: 0;
-    border-top: none;
-    border-left: 3px solid var(--club-primary);
-    box-shadow: -8px 0 28px rgba(0, 0, 0, 0.45);
-  }
-
-  /* v2: no longer forcing .attribute-groups to stack into one column here (removed the
-     rule that used to sit at this spot) - now that the drawer is wide enough (see
-     .player-modal's own comment above) to fit the original 3-column layout without
-     cramping it, forcing a stack was just costing readability for nothing. Still falls
-     back to a single column under the existing real-viewport 600px media query, same as
-     the centered modal always did. */
+  /* redesign-explore tried a right-side slide-over drawer here (anchored to the edge,
+     full height, own width/position overrides). Feedback after widening it once was that
+     it still felt "stuck on the right" and should just sit centered like every other
+     modal in the app - reverted by deleting the per-ID overrides entirely rather than
+     re-specifying centered values that would just duplicate the base
+     .player-modal-backdrop/.player-modal rules below. These two IDs now behave exactly
+     like every other centered modal in the app (gaps-modal-backdrop,
+     landing-import-modal-backdrop, etc.) - true consistency instead of a special case. */
 
   /* redesign-explore: same soft-elevation card language as .hero-tile/.dashboard-panel,
      rather than a third shadow style for modals specifically. */
@@ -3128,11 +3095,15 @@
      the click handler itself is attached/removed in renderRoleSynergyPanel(). */
   .tb-synergy-panel.clickable {
     cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
   }
 
+  /* Same lift motion as every other clickable tile (see .position-card's own comment for
+     why this one skips the box-shadow too — a recessed nested panel, not a raised card). */
   .tb-synergy-panel.clickable:hover {
     border-color: var(--club-primary);
     background: rgba(255,255,255,0.05);
+    transform: translateY(-2px);
   }
 
   .tb-synergy-title {
@@ -3305,14 +3276,21 @@
   /* Generic — not Tactics-specific — so any dashboard-panel with hidden content behind a
      "View all" can reuse the same clickable-tile treatment (Scouting's own Recommended
      Focus panel included). */
+  /* Same hover-lift as .best-players-panel/#league-slot (transform + --shadow-card-hover)
+     — this is a top-level .dashboard-panel tile like those two, just with its own
+     tint+border treatment layered on top rather than replacing it. .position-card's own
+     more specific .position-card.gaps-clickable:hover rule (above) still wins for that one
+     nested case and deliberately skips the lift, per its own comment. */
   .gaps-clickable {
     cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   }
 
   .gaps-clickable:hover {
     background: linear-gradient(135deg, var(--panel) 0%, color-mix(in srgb, var(--club-primary) 22%, var(--panel)) 100%);
     border-left-color: var(--club-primary);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
   }
 
   /* Shown when a tile's gap rows don't all fit (see fitRowsToClip()) — opens the full list
