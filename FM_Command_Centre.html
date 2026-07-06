@@ -581,21 +581,25 @@
 
   /* ---- Landing screen animated background ---- */
   /* A tiled football-pitch outline (touchline + byline rectangle, halfway line, a penalty
-     box at each end) repeating diagonally behind the logo/import button. Each pitch is drawn
-     portrait — touchlines running vertically — so its own long axis lines up with the
-     mostly-downward direction it drifts in, rather than sitting sideways to its own motion.
-     Each column of pitches is offset 50% (half a tile height) from the column beside it, so
-     the columns brick-lay rather than lining up in a plain grid — same trick as an
-     offset-brick CSS pattern, just with a pitch outline as the motif instead of a rectangle.
-     Built as a single SVG tile (one full-height pitch, plus the column-2 pitch split into two
-     <use> copies — one shifted +50%, one -50% — so the offset one wraps seamlessly at the
-     tile edge) used as a CSS mask rather than a background-image, so the line colour still
-     tracks var(--club-primary) via color-mix() — the SVG only supplies the shape (white
-     strokes on a transparent canvas; the browser's default luminance mask treats the
-     transparent parts as invisible and the white strokes as fully visible), same recolouring
-     mechanism as every other club-coloured element in the app (see .fmcc-badge's own
-     comment). The masked layer itself is oversized and rotated inside an overflow:hidden
-     parent so the tilted grid never reveals a hard edge at the container's corners. */
+     box at each end) repeating diagonally behind the logo/import button, drifting toward the
+     bottom-left at exactly 45° (per Tom's reference screenshot with the arrow). The SVG tile
+     itself is drawn with the pitch's long axis running straight down and the pan animation
+     moving straight down too — both share the SAME local direction on purpose, so the single
+     outer rotate(45deg) below carries the pitch orientation AND its drift direction to the
+     identical on-screen angle, with no separate maths for the two. Each column of pitches is
+     offset 50% (half a tile height) from the column beside it, so the columns brick-lay
+     rather than lining up in a plain grid — same trick as an offset-brick CSS pattern, just
+     with a pitch outline as the motif instead of a rectangle. Built as a single SVG tile (one
+     full-height pitch, plus the column-2 pitch split into two <use> copies — one shifted
+     +50%, one -50% — so the offset one wraps seamlessly at the tile edge) used as a CSS mask
+     rather than a background-image, so the line colour still tracks var(--club-primary) via
+     color-mix() — the SVG only supplies the shape (white strokes on a transparent canvas;
+     the browser's default luminance mask treats the transparent parts as invisible and the
+     white strokes as fully visible), same recolouring mechanism as every other club-coloured
+     element in the app (see .fmcc-badge's own comment). The masked layer itself is oversized
+     and rotated inside an overflow:hidden parent so the tilted grid never reveals a hard edge
+     at the container's corners — 220% comfortably covers the container even at 45°, the
+     rotation angle that needs the most oversize headroom of any angle. */
   #landing {
     position: relative;
     overflow: hidden;
@@ -616,7 +620,7 @@
     left: 50%;
     width: 220%;
     height: 220%;
-    transform: translate(-50%, -50%) rotate(-25deg);
+    transform: translate(-50%, -50%) rotate(45deg);
     background-color: color-mix(in srgb, var(--club-primary) 55%, transparent);
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 270'%3E%3Cdefs%3E%3Cg id='p'%3E%3Crect x='30' y='15' width='120' height='240' fill='none' stroke='%23fff' stroke-width='4'/%3E%3Cline x1='30' y1='135' x2='150' y2='135' stroke='%23fff' stroke-width='4'/%3E%3Crect x='60' y='15' width='60' height='45' fill='none' stroke='%23fff' stroke-width='4'/%3E%3Crect x='60' y='210' width='60' height='45' fill='none' stroke='%23fff' stroke-width='4'/%3E%3C/g%3E%3C/defs%3E%3Cuse href='%23p' x='0' y='0'/%3E%3Cuse href='%23p' x='180' y='135'/%3E%3Cuse href='%23p' x='180' y='-135'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 270'%3E%3Cdefs%3E%3Cg id='p'%3E%3Crect x='30' y='15' width='120' height='240' fill='none' stroke='%23fff' stroke-width='4'/%3E%3Cline x1='30' y1='135' x2='150' y2='135' stroke='%23fff' stroke-width='4'/%3E%3Crect x='60' y='15' width='60' height='45' fill='none' stroke='%23fff' stroke-width='4'/%3E%3Crect x='60' y='210' width='60' height='45' fill='none' stroke='%23fff' stroke-width='4'/%3E%3C/g%3E%3C/defs%3E%3Cuse href='%23p' x='0' y='0'/%3E%3Cuse href='%23p' x='180' y='135'/%3E%3Cuse href='%23p' x='180' y='-135'/%3E%3C/svg%3E");
@@ -624,7 +628,7 @@
     mask-repeat: repeat;
     -webkit-mask-size: 360px 270px;
     mask-size: 360px 270px;
-    animation: landingPitchDrift 40s linear infinite;
+    animation: landingPitchDrift 17s linear infinite;
   }
 
   /* Vignette + centre fade — sits above the pitch pattern (painted after ::before within
@@ -652,7 +656,7 @@
 
   @keyframes landingPitchDrift {
     from { -webkit-mask-position: 0 0; mask-position: 0 0; }
-    to   { -webkit-mask-position: -360px 540px; mask-position: -360px 540px; }
+    to   { -webkit-mask-position: 0 270px; mask-position: 0 270px; }
   }
 
   /* Respect a real accessibility preference over a decorative flourish — freezes the
