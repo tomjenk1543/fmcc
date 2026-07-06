@@ -21,7 +21,7 @@ function check(name, cond) {
 // finishes and control returns to Node's event loop — so the one check below that depends on
 // the merge/reload having actually happened needs to await past that delay first.
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-const IMPORT_WAIT_MS = 1300 + 150;
+const IMPORT_WAIT_MS = 2000 + 150;
 
 // --- Opening/closing the modal, from both entry points -------------------------------------
 {

@@ -9438,14 +9438,14 @@
     // genuinely invisible otherwise. applyFn does the actual data mutation (merge/restore) and
     // always runs, just deliberately delayed so the spinner gets a paint frame first — this is
     // purely a perceived-feedback delay, not real processing time.
-    // Was 450ms, then 900ms. Tom reported twice that he saw no loading state at all after
-    // restoring a Full Backup — just the confirm() popup, then straight into the app — even on
-    // code paths already correctly wired through this function. Turned out the inline spinner
+    // Was 450ms, then 900ms, then 1300ms. Tom reported twice that he saw no loading state at all
+    // after restoring a Full Backup — just the confirm() popup, then straight into the app — even
+    // on code paths already correctly wired through this function. Turned out the inline spinner
     // next to the button (.import-status.is-loading) just isn't somewhere the eye lands right
     // after dismissing a native dialog, wherever the button happens to be on screen. Now paired
     // with a dead-center full-screen overlay (#import-loading-overlay / .import-loading-overlay)
-    // that's impossible to miss, and given a bit more time to register.
-    const IMPORT_SPINNER_DELAY_MS = 1300;
+    // that's impossible to miss, given a full 2 seconds to register.
+    const IMPORT_SPINNER_DELAY_MS = 2000;
     function runImportThenReload(statusEl, label, applyFn) {
       setImportStatusFor(statusEl, `<span class="import-spinner"></span> ${label}`, 'loading');
       const overlay = document.getElementById('import-loading-overlay');

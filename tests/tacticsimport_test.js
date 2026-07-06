@@ -16,7 +16,7 @@ function check(name, cond) {
 // by IMPORT_SPINNER_DELAY_MS via a real setTimeout rather than running them synchronously in
 // the click handler — see backupinimport_test.js's own comment for the full reasoning.
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-const IMPORT_WAIT_MS = 1300 + 150;
+const IMPORT_WAIT_MS = 2000 + 150;
 
 // --- Opening/closing the modal ----------------------------------------------------------------
 {
