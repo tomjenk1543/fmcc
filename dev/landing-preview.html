@@ -179,24 +179,11 @@
   <div class="landing-content">
     <svg class="landing-badge" viewBox="0 0 100 100" role="img" aria-label="FM Command Centre">
       <defs>
-        <clipPath id="fmccBallClipPreview"><circle cx="50" cy="50" r="34"/></clipPath>
+        <clipPath id="fmccBadgeLeftClipPreview"><rect x="0" y="0" width="50" height="100"/></clipPath>
       </defs>
       <circle cx="50" cy="50" r="47" fill="rgba(8,11,16,0.94)"/>
-      <circle cx="50" cy="50" r="34" fill="#000"/>
-      <g clip-path="url(#fmccBallClipPreview)">
-        <polygon points="50,37 62.36,45.98 57.64,60.52 42.36,60.52 37.64,45.98" fill="none" stroke="var(--club-primary)" stroke-width="2.5"/>
-        <line x1="50" y1="37" x2="50" y2="16" stroke="var(--club-primary)" stroke-width="2.5"/>
-        <line x1="62.36" y1="45.98" x2="82.34" y2="39.49" stroke="var(--club-primary)" stroke-width="2.5"/>
-        <line x1="57.64" y1="60.52" x2="69.98" y2="77.51" stroke="var(--club-primary)" stroke-width="2.5"/>
-        <line x1="42.36" y1="60.52" x2="30.02" y2="77.51" stroke="var(--club-primary)" stroke-width="2.5"/>
-        <line x1="37.64" y1="45.98" x2="17.66" y2="39.49" stroke="var(--club-primary)" stroke-width="2.5"/>
-        <line x1="50" y1="16" x2="82.34" y2="39.49" stroke="var(--club-primary)" stroke-width="2.5"/>
-        <line x1="82.34" y1="39.49" x2="69.98" y2="77.51" stroke="var(--club-primary)" stroke-width="2.5"/>
-        <line x1="69.98" y1="77.51" x2="30.02" y2="77.51" stroke="var(--club-primary)" stroke-width="2.5"/>
-        <line x1="30.02" y1="77.51" x2="17.66" y2="39.49" stroke="var(--club-primary)" stroke-width="2.5"/>
-        <line x1="17.66" y1="39.49" x2="50" y2="16" stroke="var(--club-primary)" stroke-width="2.5"/>
-      </g>
-      <rect x="27" y="41" width="46" height="18" fill="#000" clip-path="url(#fmccBallClipPreview)"/>
+      <circle cx="50" cy="50" r="34" fill="var(--club-secondary)"/>
+      <circle cx="50" cy="50" r="34" fill="var(--club-primary)" clip-path="url(#fmccBadgeLeftClipPreview)"/>
       <circle cx="50" cy="50" r="47" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="3"/>
       <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.6"/>
       <circle cx="10" cy="50" r="2.1" fill="#fff"/>
@@ -229,7 +216,7 @@
       <g transform="rotate(-48.46 79.94 76.52)"><text x="79.94" y="76.52" dy="0.32em" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="7.2" fill="#fff">T</text></g>
       <g transform="rotate(-59.23 84.37 70.46)"><text x="84.37" y="70.46" dy="0.32em" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="7.2" fill="#fff">R</text></g>
       <g transform="rotate(-70.0 87.59 63.68)"><text x="87.59" y="63.68" dy="0.32em" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="7.2" fill="#fff">E</text></g>
-      <text x="50" y="50" dy="0.35em" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="16" fill="#fff">FMCC</text>
+      <text x="50" y="50" dy="0.35em" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="16"><tspan fill="var(--club-secondary)">FM</tspan><tspan fill="var(--club-primary)">CC</tspan></text>
     </svg>
     <div class="landing-logo">FM <span>Command Centre</span></div>
     <button type="button" class="mini-btn dashboard-empty-import-btn">Import Club Data</button>
