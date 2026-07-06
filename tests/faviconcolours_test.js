@@ -7,7 +7,11 @@
 // does. The badge's centre is a football icon matching a reference photo Tom supplied: a
 // solid black ball with a central pentagon and 5 straight, symmetric lines running out to the
 // ball's edge (an earlier pass tried curved/bowed lines with extra rim-connector arcs, but Tom
-// preferred the straight symmetric look of the original reference).
+// preferred the straight symmetric look of the original reference). The pentagon is VERTEX-UP
+// (a single point at the top, not a flat top edge) and centred slightly above the ball's own
+// centre — see .fmcc-badge's own comment for the exact geometry — matching the reference
+// photo's actual orientation; an earlier pass used a flat-top pentagon centred lower down,
+// which Tom flagged didn't match the photo he'd sent.
 //
 // The "FMCC" monogram and its black equator band were added, then removed again — see
 // .fmcc-badge's own comment for the full story. The band (even narrowed) was fighting with
@@ -50,6 +54,8 @@ function check(name, cond) {
   check('the decoded favicon SVG ends with a closing </svg> tag', decoded.trim().endsWith('</svg>'));
   check('the decoded favicon SVG has the black ball circle', decoded.includes("r='34' fill='#000'"));
   check('the decoded favicon SVG has the central pentagon panel outline', decoded.includes('<polygon points='));
+  check('the pentagon is vertex-up (top vertex at 50,32, not a flat-top edge)', decoded.includes("<polygon points='50,32"));
+  check('the pentagon\'s top vertex has a spoke running straight up to the rim (50,16)', decoded.includes("x1='50' y1='32' x2='50' y2='16'"));
   check('the decoded favicon SVG has no curved <path> ball artwork (straight spokes, not curves)', !decoded.includes("<path d='M42.36"));
   check('the decoded favicon SVG has all 5 straight radiating panel lines in the primary colour', (decoded.match(/<line [^>]*stroke='#14305A'/g) || []).length === 5);
   check('the pentagon outline itself is also in the primary colour', decoded.includes("stroke='#14305A'") && decoded.includes('<polygon'));
