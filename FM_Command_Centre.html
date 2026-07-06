@@ -1085,6 +1085,49 @@
     }
   }
 
+  /* Full-screen dead-center loading overlay, shown alongside the inline .import-status.is-loading
+     spinner during runImportThenReload() (see the JS). Tom still didn't notice the small inline
+     spinner next to the button even after it was made bigger/brighter — it's easy to miss when
+     your eyes are elsewhere on a wide screen. This sits over the entire viewport, on top of
+     whatever import modal is open, so it's impossible to miss regardless of where the button was. */
+  .import-loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    background: rgba(10, 10, 10, 0.78);
+    backdrop-filter: blur(2px);
+  }
+
+  .import-loading-overlay.open {
+    display: flex;
+  }
+
+  .import-loading-overlay-spinner {
+    width: 64px;
+    height: 64px;
+    border: 6px solid rgba(255, 255, 255, 0.18);
+    border-top-color: var(--club-primary);
+    border-radius: 50%;
+    animation: importSpin 0.8s linear infinite;
+  }
+
+  .import-loading-overlay-label {
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .import-loading-overlay-spinner {
+      animation-duration: 1.8s;
+    }
+  }
+
   /* Settings > References & Sources — a plain list of links out to the external FM26
      guides this app's data was sourced from, each with a one-line reminder of what it
      feeds into the app. */
@@ -5870,6 +5913,16 @@
       </div>
     </div>
 
+    <!-- Full-screen loading overlay shown during runImportThenReload() — see the CSS/JS notes
+         next to .import-loading-overlay and IMPORT_SPINNER_DELAY_MS. The small inline spinner
+         next to the button (.import-status.is-loading) wasn't attention-grabbing enough on its
+         own, so this sits dead-center over the whole screen on top of everything, including
+         whatever modal the import button lives in. -->
+    <div class="import-loading-overlay" id="import-loading-overlay">
+      <div class="import-loading-overlay-spinner"></div>
+      <div class="import-loading-overlay-label" id="import-loading-overlay-label">Importing…</div>
+    </div>
+
   </main>
 
   </div>
@@ -9385,15 +9438,22 @@
     // genuinely invisible otherwise. applyFn does the actual data mutation (merge/restore) and
     // always runs, just deliberately delayed so the spinner gets a paint frame first — this is
     // purely a perceived-feedback delay, not real processing time.
-    // Was 450ms. Tom reported that after restoring a Full Backup he still saw no loading state
-    // at all — just the confirm() popup, then straight into the app — even on the code paths
-    // that were already correctly wired through this function. 450ms plus a small/dim spinner is
-    // plausibly too brief and subtle to register right after dismissing a native browser dialog,
-    // so this is now longer and paired with a bigger, brighter spinner/text (see .import-spinner
-    // and .import-status.is-loading above) to make the state unmistakable.
-    const IMPORT_SPINNER_DELAY_MS = 900;
+    // Was 450ms, then 900ms. Tom reported twice that he saw no loading state at all after
+    // restoring a Full Backup — just the confirm() popup, then straight into the app — even on
+    // code paths already correctly wired through this function. Turned out the inline spinner
+    // next to the button (.import-status.is-loading) just isn't somewhere the eye lands right
+    // after dismissing a native dialog, wherever the button happens to be on screen. Now paired
+    // with a dead-center full-screen overlay (#import-loading-overlay / .import-loading-overlay)
+    // that's impossible to miss, and given a bit more time to register.
+    const IMPORT_SPINNER_DELAY_MS = 1300;
     function runImportThenReload(statusEl, label, applyFn) {
       setImportStatusFor(statusEl, `<span class="import-spinner"></span> ${label}`, 'loading');
+      const overlay = document.getElementById('import-loading-overlay');
+      const overlayLabel = document.getElementById('import-loading-overlay-label');
+      if (overlay) {
+        if (overlayLabel) overlayLabel.textContent = label.replace(/…$/, '') + '…';
+        overlay.classList.add('open');
+      }
       setTimeout(() => {
         applyFn();
         location.reload();

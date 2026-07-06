@@ -26,9 +26,9 @@ function check(name, cond) {
 }
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-// Matches IMPORT_SPINNER_DELAY_MS in FM_Command_Centre.html (900ms) plus a buffer so a slow
+// Matches IMPORT_SPINNER_DELAY_MS in FM_Command_Centre.html (1300ms) plus a buffer so a slow
 // CI machine scheduling the timer a little late still passes.
-const IMPORT_WAIT_MS = 900 + 150;
+const IMPORT_WAIT_MS = 1300 + 150;
 
 const BACKUP_JSON = JSON.stringify({
   _meta: { app: 'FM Command Centre', kind: 'full-backup', exportedAt: '2026-07-01T00:00:00.000Z' },
@@ -65,6 +65,7 @@ const BACKUP_JSON = JSON.stringify({
 
   document.getElementById('import-apply-btn').fire('click');
   check('clicking Import & Reload shows the loading spinner first', status.className.includes('is-loading') && status.innerHTML.includes('import-spinner'));
+  check('clicking Import & Reload also opens the full-screen overlay', document.getElementById('import-loading-overlay').classList.contains('open'));
   await sleep(IMPORT_WAIT_MS);
 
   check('Import & Reload restores the club/squad from inside the backup', localStorage.getItem('fmCommandCentre.importedSaveData') === JSON.stringify({ club: { name: 'Backup FC' }, squad: [{ name: 'Backup Player' }] }));

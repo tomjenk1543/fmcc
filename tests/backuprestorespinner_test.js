@@ -11,6 +11,10 @@
 // A real setTimeout only fires once this script's synchronous portion finishes and control
 // returns to Node's event loop, so every check below that depends on the restore/reload having
 // actually happened awaits sleep(IMPORT_WAIT_MS) first — same pattern as backupinimport_test.js.
+//
+// Also covers the follow-up: Tom still didn't notice the (now bigger/brighter) inline spinner
+// even after the above fix, so runImportThenReload now also opens a dead-center full-screen
+// #import-loading-overlay — checked below alongside the inline spinner.
 
 let pass = 0, fail = 0;
 function check(name, cond) {
@@ -19,9 +23,9 @@ function check(name, cond) {
 }
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-// Matches IMPORT_SPINNER_DELAY_MS in FM_Command_Centre.html (900ms) plus a buffer so a slow
+// Matches IMPORT_SPINNER_DELAY_MS in FM_Command_Centre.html (1300ms) plus a buffer so a slow
 // CI machine scheduling the timer a little late still passes.
-const IMPORT_WAIT_MS = 900 + 150;
+const IMPORT_WAIT_MS = 1300 + 150;
 
 const BACKUP_JSON = JSON.stringify({
   _meta: { app: 'FM Command Centre', kind: 'full-backup', exportedAt: '2026-07-01T00:00:00.000Z' },
@@ -48,6 +52,7 @@ const BACKUP_JSON = JSON.stringify({
   fileInput.fire('change', { target: fileInput });
 
   check('the loading spinner shows immediately, before the reload fires', status.className.includes('is-loading') && status.innerHTML.includes('import-spinner'));
+  check('the full-screen loading overlay also opens immediately', document.getElementById('import-loading-overlay').classList.contains('open'));
   check('the page has not reloaded yet on the same tick', !reloaded);
 
   await sleep(IMPORT_WAIT_MS);
