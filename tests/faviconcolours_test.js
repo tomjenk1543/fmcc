@@ -37,7 +37,10 @@ function check(name, cond) {
   const decoded = decodeURIComponent(href.slice('data:image/svg+xml,'.length));
   check('the decoded favicon SVG starts with an <svg> tag', decoded.trim().startsWith('<svg'));
   check('the decoded favicon SVG ends with a closing </svg> tag', decoded.trim().endsWith('</svg>'));
-  check('the decoded favicon SVG still has the "FMCC" monogram text', decoded.includes('>FMCC<'));
+  // Monogram is split across two <tspan>s now (FM in black, CC in the brand green) rather
+  // than one plain "FMCC" text node — see updateFaviconColours()'s own comment.
+  check('the decoded favicon SVG still has the "FM" half of the monogram', decoded.includes('>FM</tspan>'));
+  check('the decoded favicon SVG still has the "CC" half of the monogram', decoded.includes('>CC</tspan>'));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
