@@ -15,11 +15,13 @@
 // request. All 10 lines are straight, never curved (an earlier pass tried curved/bowed lines
 // with extra rim-connector arcs, but Tom preferred the straight symmetric look).
 //
-// The "FMCC" monogram and its black equator band were added, then removed again — see
-// .fmcc-badge's own comment for the full story. The band (even narrowed) was fighting with
-// the two nearly-horizontal side spokes, and Tom asked to pull the monogram/band back out
-// until the pentagon/spoke artwork itself reads correctly as a football, rather than keep
-// tuning the band around it. These checks reflect that current, text-and-band-free state.
+// The "FMCC" monogram and its black equator band were added, then temporarily removed while
+// the football shape itself was being iterated on, and are now back — see .fmcc-badge's own
+// comment for the full story, including why the band stays narrow (46 wide, not the ball's
+// full width) rather than short: a full-width band would swallow the two spokes running close
+// to the ball's vertical middle entirely, so narrowing it instead lets the outer half of every
+// spoke/chord still reach the rim while the band still fully covers the "FMCC" text underneath
+// it. These checks reflect that current, band-and-text-restored state.
 
 let pass = 0, fail = 0;
 function check(name, cond) {
@@ -46,8 +48,9 @@ function check(name, cond) {
 }
 
 // --- The favicon SVG decodes back to well-formed markup (not mangled by string concatenation)
-// and carries the football ball artwork (black ball, pentagon + 5 straight panel lines) in the
-// club's actual primary colour, with no FMCC monogram and no equator band any more -----------
+// and carries the football ball artwork (black ball, centred pentagon + 10 straight panel
+// lines) in the club's actual primary colour, plus the black equator band and white "FMCC"
+// monogram on top -----------------------------------------------------------------------------
 {
   applyClubColours('#14305A', '#4C7CBE');
   const href = document.getElementById('fmcc-favicon').href;
@@ -63,8 +66,9 @@ function check(name, cond) {
   check('the pentagon outline itself is also in the primary colour', decoded.includes("stroke='#14305A'") && decoded.includes('<polygon'));
   check('the rim chords connect adjacent spoke endpoints (e.g. 82.34,39.49 -> 69.98,77.51)', decoded.includes("x1='82.34' y1='39.49' x2='69.98' y2='77.51'"));
   check('the rim chords close the loop back to the top spoke endpoint (17.66,39.49 -> 50,16)', decoded.includes("x1='17.66' y1='39.49' x2='50' y2='16'"));
-  check('the "FMCC" monogram has been removed for now', !decoded.includes('>FMCC<'));
-  check('the black equator band has been removed for now', !decoded.includes("fill='#000' clip-path='url(#fmccBallClipFavicon)'"));
+  check('the "FMCC" monogram is present, in plain white, centred on the ball', decoded.includes(">FMCC<") && decoded.includes("x='50' y='50' dy='0.35em'") && decoded.includes("fill='#fff'>FMCC<"));
+  check('the black equator band is present, narrow (46 wide) rather than spanning the full ball', decoded.includes("<rect x='27' y='41' width='46' height='18' fill='#000' clip-path='url(#fmccBallClipFavicon)'/>"));
+  check('the equator band sits on top of the pentagon/spoke group but before the outer ring', decoded.indexOf("</g>") < decoded.indexOf("<rect x='27'") && decoded.indexOf("<rect x='27'") < decoded.indexOf("r='47' fill='none'"));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
