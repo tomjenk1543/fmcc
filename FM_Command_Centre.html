@@ -384,6 +384,15 @@
     transition: color 0.15s ease, background 0.15s ease;
   }
 
+  /* Wraps the icon+text together as one flex item so justify-content:space-between on
+     .nav-group-label still splits cleanly into exactly two items - this span, and the
+     chevron ::after - the same way it did back when the label was a single text node. */
+  .nav-group-label-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
   .nav-group-label:hover {
     color: var(--text);
     background: color-mix(in srgb, var(--club-primary) 8%, transparent);
@@ -408,6 +417,9 @@
   }
 
   .nav-links button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     background: none;
     border: none;
     outline: none;
@@ -422,6 +434,16 @@
     white-space: nowrap;
     flex-shrink: 0;
     transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+
+  /* Every top-level section (Dashboard, each group label, Performance Data, Scouting,
+     Settings) gets the same margin-top break above it - without this only the two
+     .nav-group-label rows had breathing space above them (see that rule's own margin-top),
+     which read as uneven once the taller 13px padding made the gap-vs-no-gap contrast much
+     more obvious than it was at the old cramped 9px padding. Dashboard (:first-child) is
+     excluded so the nav doesn't start with a needless gap under the sidebar header. */
+  .nav-links > button.nav-btn:not(.nav-btn-sub):not(:first-child) {
+    margin-top: 10px;
   }
 
   /* Indented, slightly smaller sub-items for the three consolidated Players destinations
@@ -470,6 +492,18 @@
     color: var(--text);
     border-left: 3px solid var(--club-primary);
     background: color-mix(in srgb, var(--club-primary) 14%, transparent);
+  }
+
+  /* One shared outline-icon style, reused by every nav button, every .nav-group-label, and
+     the two .sidebar-footer-link rows below - stroke="currentColor" on the <svg> itself (see
+     the markup) means each icon just inherits whatever colour its own button/label/link is
+     already using (dim grey at rest, brighter on hover, brightest of all once .active), so
+     hover/active states apply to the icon and its label text together with no extra JS or
+     per-state icon colour rules needed. */
+  .nav-icon {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
   }
 
   /* Used to sit pinned to the bottom of the sidebar (margin-top: auto) as its own separate
@@ -527,12 +561,6 @@
   .sidebar-footer-link:focus-visible {
     outline: 2px solid var(--club-text, #f2f2f2);
     outline-offset: -3px;
-  }
-
-  .sidebar-footer-icon {
-    font-size: 14px;
-    line-height: 1;
-    flex-shrink: 0;
   }
 
   /* ---------- MAIN ---------- */
@@ -4798,20 +4826,20 @@
          button below still needed to keep its exact class="nav-btn" + data-view value
          unchanged regardless of which group it sits in. -->
     <nav class="nav-links">
-      <button class="nav-btn active" data-view="dashboard">Dashboard</button>
-      <div class="nav-group-label">Squad</div>
-      <button class="nav-btn nav-btn-sub" data-view="squad">Squad List</button>
-      <button class="nav-btn nav-btn-sub" data-view="scouting">Squad Breakdown</button>
-      <div class="nav-group-label">Tactics</div>
-      <button class="nav-btn nav-btn-sub" data-view="tactics">Tactical Analysis</button>
-      <button class="nav-btn nav-btn-sub" data-view="tacticbuilder">Tactic Builder</button>
-      <button class="nav-btn" data-view="performance">Performance Data</button>
-      <button class="nav-btn" data-view="scout">Scouting</button>
-      <button class="nav-btn" data-view="settings">Settings</button>
+      <button class="nav-btn active" data-view="dashboard"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg><span>Dashboard</span></button>
+      <div class="nav-group-label"><span class="nav-group-label-inner"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M4 20c0-3 2-5 5-5s5 2 5 5"/><circle cx="17" cy="9" r="2.3"/><path d="M14.8 20c.2-2.2 1.6-3.8 3.4-3.8 2 0 3.6 1.7 3.8 4"/></svg>Squad</span></div>
+      <button class="nav-btn nav-btn-sub" data-view="squad"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg><span>Squad List</span></button>
+      <button class="nav-btn nav-btn-sub" data-view="scouting"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v8l6 4"/></svg><span>Squad Breakdown</span></button>
+      <div class="nav-group-label"><span class="nav-group-label-inner"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><line x1="12" y1="4" x2="12" y2="20"/><circle cx="12" cy="12" r="3"/></svg>Tactics</span></div>
+      <button class="nav-btn nav-btn-sub" data-view="tactics"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg><span>Tactical Analysis</span></button>
+      <button class="nav-btn nav-btn-sub" data-view="tacticbuilder"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><line x1="3" y1="12" x2="21" y2="12"/><circle cx="12" cy="12" r="2.6"/></svg><span>Tactic Builder</span></button>
+      <button class="nav-btn" data-view="performance"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,11 13,14 20,6"/><polyline points="14,6 20,6 20,12"/></svg><span>Performance Data</span></button>
+      <button class="nav-btn" data-view="scout"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Scouting</span></button>
+      <button class="nav-btn" data-view="settings"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="4" x2="6" y2="20"/><circle cx="6" cy="9" r="2"/><line x1="12" y1="4" x2="12" y2="20"/><circle cx="12" cy="15" r="2"/><line x1="18" y1="4" x2="18" y2="20"/><circle cx="18" cy="7" r="2"/></svg><span>Settings</span></button>
     </nav>
     <div class="sidebar-footer">
-      <a class="sidebar-footer-link" href="https://github.com/tomjenk1543/fmcc/issues/new?labels=bug" target="_blank" rel="noopener"><span class="sidebar-footer-icon">&#128027;</span>Report a Bug</a>
-      <a class="sidebar-footer-link" href="https://github.com/tomjenk1543/fmcc/issues/new?labels=enhancement" target="_blank" rel="noopener"><span class="sidebar-footer-icon">&#128161;</span>Suggest an Improvement</a>
+      <a class="sidebar-footer-link" href="https://github.com/tomjenk1543/fmcc/issues/new?labels=bug" target="_blank" rel="noopener"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="13" rx="5" ry="6"/><line x1="12" y1="7" x2="12" y2="19"/><line x1="7" y1="10" x2="3" y2="8"/><line x1="7" y1="13" x2="2" y2="13"/><line x1="7" y1="16" x2="3" y2="18"/><line x1="17" y1="10" x2="21" y2="8"/><line x1="17" y1="13" x2="22" y2="13"/><line x1="17" y1="16" x2="21" y2="18"/><path d="M9 7c0-1.5 1.3-3 3-3s3 1.5 3 3"/></svg><span>Report a Bug</span></a>
+      <a class="sidebar-footer-link" href="https://github.com/tomjenk1543/fmcc/issues/new?labels=enhancement" target="_blank" rel="noopener"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1.1 2.1h4.8c.1-.9.5-1.6 1.1-2.1A6 6 0 0 0 12 3z"/><path d="M9 18h6"/><path d="M10 21h4"/></svg><span>Suggest an Improvement</span></a>
     </div>
   </div>
 
