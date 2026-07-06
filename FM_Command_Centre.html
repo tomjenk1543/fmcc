@@ -9931,11 +9931,16 @@
         e.target.value = ''; // reset so picking the same file again still fires 'change'
         if (!ok) return;
 
-        restoreFullBackup(backup);
-        // A restored backup should behave like a real import, not a lingering blank slate.
-        localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
-        setBackupStatus('Backup loaded — reloading...', 'ok');
-        location.reload();
+        // Goes through the same spinner-then-reload path as every other import/restore button
+        // (see runImportThenReload's own comment) — this used to call restoreFullBackup() and
+        // location.reload() directly, right after the confirm() dialog closed, so the page
+        // reloaded before the spinner ever got a paint frame; all a user saw was the confirm
+        // popup immediately followed by a blank reloading page.
+        runImportThenReload(document.getElementById('backup-status'), 'Restoring backup…', () => {
+          restoreFullBackup(backup);
+          // A restored backup should behave like a real import, not a lingering blank slate.
+          localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
+        });
       };
       reader.onerror = () => setBackupStatus('Could not read that file.', 'error');
       reader.readAsText(file);
