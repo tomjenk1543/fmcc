@@ -16,8 +16,8 @@
      When the real app's landing screen changes, re-sync this file by hand (there's no build
      step wiring the two together automatically).
 
-     The two buttons here are inert (no JS) — this file is for looking at the page, not
-     using it. -->
+     The button here is inert (no JS) — this file is for looking at the page, not using
+     it. -->
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,11 +25,11 @@
 
 <style>
   :root {
-    /* Landing always shows the neutral black/red "no data loaded" theme regardless of any
+    /* Landing always shows the neutral black/green "no data loaded" theme regardless of any
        previously-loaded club — see FM_Command_Centre.html's own --club-primary/--club-secondary
        comment (resetToBlankSlate() re-applies these same two values explicitly) — so this
        preview just hardcodes them rather than needing a club-colour picker. */
-    --club-primary: #d81f2a;
+    --club-primary: #2CFF05;
     --club-secondary: #1a1a1a;
     --bg: #050505;
     --panel-border: #262626;
@@ -75,13 +75,13 @@
     height: 220%;
     transform: translate(-50%, -50%) rotate(-25deg);
     background-color: color-mix(in srgb, var(--club-primary) 55%, transparent);
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'%3E%3Crect x='10' y='20' width='160' height='80' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Cline x1='90' y1='20' x2='90' y2='100' stroke='%23fff' stroke-width='3'/%3E%3Crect x='10' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Crect x='140' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'%3E%3Crect x='10' y='20' width='160' height='80' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Cline x1='90' y1='20' x2='90' y2='100' stroke='%23fff' stroke-width='3'/%3E%3Crect x='10' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Crect x='140' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 240'%3E%3Cdefs%3E%3Cg id='p'%3E%3Crect x='10' y='20' width='160' height='80' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Cline x1='90' y1='20' x2='90' y2='100' stroke='%23fff' stroke-width='3'/%3E%3Crect x='10' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Crect x='140' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/g%3E%3C/defs%3E%3Cuse href='%23p' x='0' y='0'/%3E%3Cuse href='%23p' x='90' y='120'/%3E%3Cuse href='%23p' x='-90' y='120'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 240'%3E%3Cdefs%3E%3Cg id='p'%3E%3Crect x='10' y='20' width='160' height='80' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Cline x1='90' y1='20' x2='90' y2='100' stroke='%23fff' stroke-width='3'/%3E%3Crect x='10' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Crect x='140' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/g%3E%3C/defs%3E%3Cuse href='%23p' x='0' y='0'/%3E%3Cuse href='%23p' x='90' y='120'/%3E%3Cuse href='%23p' x='-90' y='120'/%3E%3C/svg%3E");
     -webkit-mask-repeat: repeat;
     mask-repeat: repeat;
-    -webkit-mask-size: 180px 120px;
-    mask-size: 180px 120px;
-    animation: landingPitchDrift 22s linear infinite;
+    -webkit-mask-size: 180px 240px;
+    mask-size: 180px 240px;
+    animation: landingPitchDrift 30s linear infinite;
   }
 
   /* Vignette + centre fade — see the real app's own CSS comment for the reasoning. */
@@ -92,9 +92,9 @@
     background: radial-gradient(
       ellipse at 50% 50%,
       var(--bg) 0%,
-      transparent 36%,
-      transparent 65%,
-      rgba(0, 0, 0, 0.55) 100%
+      transparent 32%,
+      transparent 58%,
+      rgba(0, 0, 0, 0.72) 100%
     );
   }
 
@@ -162,7 +162,7 @@
   /* ---- Landing screen animated background (kept identical to the real app) ---- */
   @keyframes landingPitchDrift {
     from { -webkit-mask-position: 0 0; mask-position: 0 0; }
-    to   { -webkit-mask-position: -180px 120px; mask-position: -180px 120px; }
+    to   { -webkit-mask-position: -180px 240px; mask-position: -180px 240px; }
   }
 
   @media (prefers-reduced-motion: reduce) {

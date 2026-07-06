@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FM Command Centre</title>
 <!-- Browser tab icon — the same FMCC badge shown in the hotbar/landing screen (see
-     .fmcc-badge's own comment). Starts on the app's default black-and-red theme
-     (#1a1a1a/#d81f2a — see :root's --club-primary/--club-secondary comment) as a sensible
+     .fmcc-badge's own comment). Starts on the app's default black-and-green theme
+     (#1a1a1a/#2CFF05 — see :root's --club-primary/--club-secondary comment) as a sensible
      value before any script has run, but is rebuilt with the real club colours by
      updateFaviconColours() (called from applyClubColours(), further down) the moment a
      save's colours load — a favicon can't just reference this page's CSS custom properties
      the way the in-page badge does, since it's loaded as its own standalone resource, so
      it's regenerated as a fresh data: URI with the actual hex values baked in instead. -->
-<link rel="icon" type="image/svg+xml" id="fmcc-favicon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='47' fill='rgba(8,11,16,0.94)'/%3E%3Ccircle cx='50' cy='50' r='34' fill='%231a1a1a'/%3E%3Ccircle cx='50' cy='50' r='34' fill='%23d81f2a' clip-path='inset(0 50%25 0 0)'/%3E%3Ccircle cx='50' cy='50' r='47' fill='none' stroke='rgba(255,255,255,0.55)' stroke-width='3'/%3E%3Ccircle cx='50' cy='50' r='34' fill='none' stroke='rgba(255,255,255,0.55)' stroke-width='1.6'/%3E%3Ccircle cx='10' cy='50' r='2.1' fill='%23fff'/%3E%3Ccircle cx='90' cy='50' r='2.1' fill='%23fff'/%3E%3Cg transform='rotate(290.0 12.41 36.32)'%3E%3Ctext x='12.41' y='36.32' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EF%3C/text%3E%3C/g%3E%3Cg transform='rotate(299.33 15.13 30.4)'%3E%3Ctext x='15.13' y='30.4' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EO%3C/text%3E%3C/g%3E%3Cg transform='rotate(308.67 18.77 25.01)'%3E%3Ctext x='18.77' y='25.01' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EO%3C/text%3E%3C/g%3E%3Cg transform='rotate(318.0 23.23 20.27)'%3E%3Ctext x='23.23' y='20.27' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3ET%3C/text%3E%3C/g%3E%3Cg transform='rotate(327.33 28.41 16.33)'%3E%3Ctext x='28.41' y='16.33' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EB%3C/text%3E%3C/g%3E%3Cg transform='rotate(336.67 34.16 13.27)'%3E%3Ctext x='34.16' y='13.27' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EA%3C/text%3E%3C/g%3E%3Cg transform='rotate(346.0 40.32 11.19)'%3E%3Ctext x='40.32' y='11.19' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EL%3C/text%3E%3C/g%3E%3Cg transform='rotate(355.33 46.75 10.13)'%3E%3Ctext x='46.75' y='10.13' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EL%3C/text%3E%3C/g%3E%3Cg transform='rotate(374.0 59.68 11.19)'%3E%3Ctext x='59.68' y='11.19' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EM%3C/text%3E%3C/g%3E%3Cg transform='rotate(383.33 65.84 13.27)'%3E%3Ctext x='65.84' y='13.27' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EA%3C/text%3E%3C/g%3E%3Cg transform='rotate(392.67 71.59 16.33)'%3E%3Ctext x='71.59' y='16.33' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EN%3C/text%3E%3C/g%3E%3Cg transform='rotate(402.0 76.77 20.27)'%3E%3Ctext x='76.77' y='20.27' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EA%3C/text%3E%3C/g%3E%3Cg transform='rotate(411.33 81.23 25.01)'%3E%3Ctext x='81.23' y='25.01' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EG%3C/text%3E%3C/g%3E%3Cg transform='rotate(420.67 84.87 30.4)'%3E%3Ctext x='84.87' y='30.4' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EE%3C/text%3E%3C/g%3E%3Cg transform='rotate(430.0 87.59 36.32)'%3E%3Ctext x='87.59' y='36.32' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3ER%3C/text%3E%3C/g%3E%3Cg transform='rotate(70.0 12.41 63.68)'%3E%3Ctext x='12.41' y='63.68' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EC%3C/text%3E%3C/g%3E%3Cg transform='rotate(59.23 15.63 70.46)'%3E%3Ctext x='15.63' y='70.46' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EO%3C/text%3E%3C/g%3E%3Cg transform='rotate(48.46 20.06 76.52)'%3E%3Ctext x='20.06' y='76.52' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EM%3C/text%3E%3C/g%3E%3Cg transform='rotate(37.69 25.54 81.65)'%3E%3Ctext x='25.54' y='81.65' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EM%3C/text%3E%3C/g%3E%3Cg transform='rotate(26.92 31.89 85.66)'%3E%3Ctext x='31.89' y='85.66' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EA%3C/text%3E%3C/g%3E%3Cg transform='rotate(16.15 38.87 88.42)'%3E%3Ctext x='38.87' y='88.42' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EN%3C/text%3E%3C/g%3E%3Cg transform='rotate(5.38 46.25 89.82)'%3E%3Ctext x='46.25' y='89.82' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3ED%3C/text%3E%3C/g%3E%3Cg transform='rotate(-16.15 61.13 88.42)'%3E%3Ctext x='61.13' y='88.42' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EC%3C/text%3E%3C/g%3E%3Cg transform='rotate(-26.92 68.11 85.66)'%3E%3Ctext x='68.11' y='85.66' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EE%3C/text%3E%3C/g%3E%3Cg transform='rotate(-37.69 74.46 81.65)'%3E%3Ctext x='74.46' y='81.65' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EN%3C/text%3E%3C/g%3E%3Cg transform='rotate(-48.46 79.94 76.52)'%3E%3Ctext x='79.94' y='76.52' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3ET%3C/text%3E%3C/g%3E%3Cg transform='rotate(-59.23 84.37 70.46)'%3E%3Ctext x='84.37' y='70.46' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3ER%3C/text%3E%3C/g%3E%3Cg transform='rotate(-70.0 87.59 63.68)'%3E%3Ctext x='87.59' y='63.68' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EE%3C/text%3E%3C/g%3E%3Ctext x='50' y='50' dy='0.35em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='800' font-size='16' fill='%23fff'%3EFMCC%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" id="fmcc-favicon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='47' fill='rgba(8,11,16,0.94)'/%3E%3Ccircle cx='50' cy='50' r='34' fill='%231a1a1a'/%3E%3Ccircle cx='50' cy='50' r='34' fill='%232CFF05' clip-path='inset(0 50%25 0 0)'/%3E%3Ccircle cx='50' cy='50' r='47' fill='none' stroke='rgba(255,255,255,0.55)' stroke-width='3'/%3E%3Ccircle cx='50' cy='50' r='34' fill='none' stroke='rgba(255,255,255,0.55)' stroke-width='1.6'/%3E%3Ccircle cx='10' cy='50' r='2.1' fill='%23fff'/%3E%3Ccircle cx='90' cy='50' r='2.1' fill='%23fff'/%3E%3Cg transform='rotate(290.0 12.41 36.32)'%3E%3Ctext x='12.41' y='36.32' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EF%3C/text%3E%3C/g%3E%3Cg transform='rotate(299.33 15.13 30.4)'%3E%3Ctext x='15.13' y='30.4' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EO%3C/text%3E%3C/g%3E%3Cg transform='rotate(308.67 18.77 25.01)'%3E%3Ctext x='18.77' y='25.01' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EO%3C/text%3E%3C/g%3E%3Cg transform='rotate(318.0 23.23 20.27)'%3E%3Ctext x='23.23' y='20.27' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3ET%3C/text%3E%3C/g%3E%3Cg transform='rotate(327.33 28.41 16.33)'%3E%3Ctext x='28.41' y='16.33' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EB%3C/text%3E%3C/g%3E%3Cg transform='rotate(336.67 34.16 13.27)'%3E%3Ctext x='34.16' y='13.27' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EA%3C/text%3E%3C/g%3E%3Cg transform='rotate(346.0 40.32 11.19)'%3E%3Ctext x='40.32' y='11.19' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EL%3C/text%3E%3C/g%3E%3Cg transform='rotate(355.33 46.75 10.13)'%3E%3Ctext x='46.75' y='10.13' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EL%3C/text%3E%3C/g%3E%3Cg transform='rotate(374.0 59.68 11.19)'%3E%3Ctext x='59.68' y='11.19' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EM%3C/text%3E%3C/g%3E%3Cg transform='rotate(383.33 65.84 13.27)'%3E%3Ctext x='65.84' y='13.27' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EA%3C/text%3E%3C/g%3E%3Cg transform='rotate(392.67 71.59 16.33)'%3E%3Ctext x='71.59' y='16.33' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EN%3C/text%3E%3C/g%3E%3Cg transform='rotate(402.0 76.77 20.27)'%3E%3Ctext x='76.77' y='20.27' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EA%3C/text%3E%3C/g%3E%3Cg transform='rotate(411.33 81.23 25.01)'%3E%3Ctext x='81.23' y='25.01' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EG%3C/text%3E%3C/g%3E%3Cg transform='rotate(420.67 84.87 30.4)'%3E%3Ctext x='84.87' y='30.4' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EE%3C/text%3E%3C/g%3E%3Cg transform='rotate(430.0 87.59 36.32)'%3E%3Ctext x='87.59' y='36.32' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3ER%3C/text%3E%3C/g%3E%3Cg transform='rotate(70.0 12.41 63.68)'%3E%3Ctext x='12.41' y='63.68' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EC%3C/text%3E%3C/g%3E%3Cg transform='rotate(59.23 15.63 70.46)'%3E%3Ctext x='15.63' y='70.46' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EO%3C/text%3E%3C/g%3E%3Cg transform='rotate(48.46 20.06 76.52)'%3E%3Ctext x='20.06' y='76.52' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EM%3C/text%3E%3C/g%3E%3Cg transform='rotate(37.69 25.54 81.65)'%3E%3Ctext x='25.54' y='81.65' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EM%3C/text%3E%3C/g%3E%3Cg transform='rotate(26.92 31.89 85.66)'%3E%3Ctext x='31.89' y='85.66' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EA%3C/text%3E%3C/g%3E%3Cg transform='rotate(16.15 38.87 88.42)'%3E%3Ctext x='38.87' y='88.42' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EN%3C/text%3E%3C/g%3E%3Cg transform='rotate(5.38 46.25 89.82)'%3E%3Ctext x='46.25' y='89.82' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3ED%3C/text%3E%3C/g%3E%3Cg transform='rotate(-16.15 61.13 88.42)'%3E%3Ctext x='61.13' y='88.42' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EC%3C/text%3E%3C/g%3E%3Cg transform='rotate(-26.92 68.11 85.66)'%3E%3Ctext x='68.11' y='85.66' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EE%3C/text%3E%3C/g%3E%3Cg transform='rotate(-37.69 74.46 81.65)'%3E%3Ctext x='74.46' y='81.65' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EN%3C/text%3E%3C/g%3E%3Cg transform='rotate(-48.46 79.94 76.52)'%3E%3Ctext x='79.94' y='76.52' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3ET%3C/text%3E%3C/g%3E%3Cg transform='rotate(-59.23 84.37 70.46)'%3E%3Ctext x='84.37' y='70.46' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3ER%3C/text%3E%3C/g%3E%3Cg transform='rotate(-70.0 87.59 63.68)'%3E%3Ctext x='87.59' y='63.68' dy='0.32em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='700' font-size='7.2' fill='%23fff'%3EE%3C/text%3E%3C/g%3E%3Ctext x='50' y='50' dy='0.35em' text-anchor='middle' font-family='Arial, Helvetica, sans-serif' font-weight='800' font-size='16' fill='%23fff'%3EFMCC%3C/text%3E%3C/svg%3E">
 
 <!-- FM's actual 2025 rebrand typeface ("FM Universe") is a custom cut of Pangram Pangram's
      commercial Formula font, built exclusively for Sports Interactive — not freely licensed,
@@ -27,11 +27,12 @@
   :root {
     /* Club colours: swapped at runtime once save data is loaded (see applyClubColours()).
        Base is dark/black regardless of club — these two only ever provide accent hints.
-       Black/red here is also the deliberate "no data loaded" theme — resetToBlankSlate()
+       Black/green here is also the deliberate "no data loaded" theme — resetToBlankSlate()
        re-applies these same two values explicitly, so a cleared app (or a first-ever open,
-       before any save's colours have loaded) reads as a neutral black-and-red app shell
-       rather than looking like it's still showing a leftover club's colours. */
-    --club-primary: #d81f2a;
+       before any save's colours have loaded) reads as a neutral black-and-green app shell
+       (matching the landing screen's own pitch-outline background) rather than looking
+       like it's still showing a leftover club's colours. */
+    --club-primary: #2CFF05;
     --club-secondary: #1a1a1a;
     --bg: #050505;
     --panel: #141414;
@@ -577,14 +578,18 @@
   /* ---- Landing screen animated background ---- */
   /* A tiled football-pitch outline (touchline + byline rectangle, halfway line, a penalty
      box at each end) repeating diagonally behind the logo/import button, panning slowly
-     from top-right toward bottom-left. Built as a single small SVG tile used as a CSS mask
-     rather than a background-image, so the line colour still tracks var(--club-primary) via
-     color-mix() — the SVG only supplies the shape (white strokes on a transparent canvas;
-     the browser's default luminance mask treats the transparent parts as invisible and the
-     white strokes as fully visible), same recolouring mechanism as every other club-coloured
-     element in the app (see .fmcc-badge's own comment). The masked layer itself is oversized
-     and rotated inside an overflow:hidden parent so the tilted grid never reveals a hard
-     edge at the container's corners. */
+     from top-right toward bottom-left. Each row of pitches is offset 50% (half a tile width)
+     from the row above/below it, so the rows brick-lay rather than lining up in a plain grid
+     — same trick as an offset-brick CSS pattern, just with a pitch outline as the motif
+     instead of a rectangle. Built as a single SVG tile (one full-width pitch, plus the row-2
+     pitch split into two <use> copies — one shifted +50%, one -50% — so the offset one wraps
+     seamlessly at the tile edge) used as a CSS mask rather than a background-image, so the
+     line colour still tracks var(--club-primary) via color-mix() — the SVG only supplies the
+     shape (white strokes on a transparent canvas; the browser's default luminance mask treats
+     the transparent parts as invisible and the white strokes as fully visible), same
+     recolouring mechanism as every other club-coloured element in the app (see .fmcc-badge's
+     own comment). The masked layer itself is oversized and rotated inside an overflow:hidden
+     parent so the tilted grid never reveals a hard edge at the container's corners. */
   #landing {
     position: relative;
     overflow: hidden;
@@ -607,20 +612,20 @@
     height: 220%;
     transform: translate(-50%, -50%) rotate(-25deg);
     background-color: color-mix(in srgb, var(--club-primary) 55%, transparent);
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'%3E%3Crect x='10' y='20' width='160' height='80' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Cline x1='90' y1='20' x2='90' y2='100' stroke='%23fff' stroke-width='3'/%3E%3Crect x='10' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Crect x='140' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'%3E%3Crect x='10' y='20' width='160' height='80' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Cline x1='90' y1='20' x2='90' y2='100' stroke='%23fff' stroke-width='3'/%3E%3Crect x='10' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Crect x='140' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 240'%3E%3Cdefs%3E%3Cg id='p'%3E%3Crect x='10' y='20' width='160' height='80' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Cline x1='90' y1='20' x2='90' y2='100' stroke='%23fff' stroke-width='3'/%3E%3Crect x='10' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Crect x='140' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/g%3E%3C/defs%3E%3Cuse href='%23p' x='0' y='0'/%3E%3Cuse href='%23p' x='90' y='120'/%3E%3Cuse href='%23p' x='-90' y='120'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 240'%3E%3Cdefs%3E%3Cg id='p'%3E%3Crect x='10' y='20' width='160' height='80' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Cline x1='90' y1='20' x2='90' y2='100' stroke='%23fff' stroke-width='3'/%3E%3Crect x='10' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Crect x='140' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/g%3E%3C/defs%3E%3Cuse href='%23p' x='0' y='0'/%3E%3Cuse href='%23p' x='90' y='120'/%3E%3Cuse href='%23p' x='-90' y='120'/%3E%3C/svg%3E");
     -webkit-mask-repeat: repeat;
     mask-repeat: repeat;
-    -webkit-mask-size: 180px 120px;
-    mask-size: 180px 120px;
-    animation: landingPitchDrift 22s linear infinite;
+    -webkit-mask-size: 180px 240px;
+    mask-size: 180px 240px;
+    animation: landingPitchDrift 30s linear infinite;
   }
 
   /* Vignette + centre fade — sits above the pitch pattern (painted after ::before within
      the same .landing-bg stacking context, so no extra z-index needed) and dims the
      pattern in two ways at once: an ellipse fading back to the page background colour
      right behind the badge/wordmark/buttons so the lines don't fight with the content for
-     attention, and a soft dark vignette at the screen's far corners for a bit of depth. */
+     attention, and a dark vignette at the screen's far corners for extra depth. */
   .landing-bg::after {
     content: '';
     position: absolute;
@@ -628,9 +633,9 @@
     background: radial-gradient(
       ellipse at 50% 50%,
       var(--bg) 0%,
-      transparent 36%,
-      transparent 65%,
-      rgba(0, 0, 0, 0.55) 100%
+      transparent 32%,
+      transparent 58%,
+      rgba(0, 0, 0, 0.72) 100%
     );
   }
 
@@ -641,7 +646,7 @@
 
   @keyframes landingPitchDrift {
     from { -webkit-mask-position: 0 0; mask-position: 0 0; }
-    to   { -webkit-mask-position: -180px 120px; mask-position: -180px 120px; }
+    to   { -webkit-mask-position: -180px 240px; mask-position: -180px 240px; }
   }
 
   /* Respect a real accessibility preference over a decorative flourish — freezes the
@@ -8807,11 +8812,11 @@
       document.getElementById('dashboard-normal-content').style.display = 'none';
       document.getElementById('dashboard-empty-state').style.display = 'flex';
 
-      // Neutral black-and-red app shell — matches the CSS :root defaults (see the comment
+      // Neutral black-and-green app shell — matches the CSS :root defaults (see the comment
       // there) — rather than leaving whatever club's colours happened to be showing before
       // Clear All Data ran. Real club colours come back the moment a save is loaded, via
       // loadSaveData_MetaluBuzau()'s or applyFullSaveData()'s own applyClubColours() calls.
-      applyClubColours('#d81f2a', '#1a1a1a');
+      applyClubColours('#2CFF05', '#1a1a1a');
 
       document.getElementById('hero-crest-initials').textContent = '??';
       document.getElementById('hero-club-name').textContent = 'Club not set';
