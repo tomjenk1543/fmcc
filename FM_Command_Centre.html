@@ -509,17 +509,28 @@
   }
 
   .view { display: none; }
-  /* A quick fade + slight rise whenever a view becomes active, so switching pages doesn't
-     just hard-cut/pop in — switchToView() (see the JS) removes .active from every view then
-     adds it fresh to the one being shown, which is exactly the kind of "wasn't there a moment
-     ago, now it is" class change a CSS animation (unlike a transition) can pick up even though
-     the element was display:none a moment before. Kept short and subtle on purpose - this is
-     a wayfinding cue, not a showcase. */
+  /* A quick fade whenever a view becomes active, so switching pages doesn't just hard-cut/pop
+     in — switchToView() (see the JS) removes .active from every view then adds it fresh to the
+     one being shown, which is exactly the kind of "wasn't there a moment ago, now it is" class
+     change a CSS animation (unlike a transition) can pick up even though the element was
+     display:none a moment before. Kept short and subtle on purpose - this is a wayfinding cue,
+     not a showcase.
+     Opacity only, deliberately no transform/translateY here: every .view is a direct child of
+     main, which has overflow-y:auto, and a transformed child's post-transform geometry
+     contributes to its scroll-container ancestor's scrollable overflow region per the CSS
+     Transforms spec. A translateY on this element briefly made main think the page was a few
+     pixels taller than it really was during the animation - invisible on most pages, but
+     Scouting's tiles/table measure their own real rendered height at that exact moment
+     (getScoutTilesRowBudget()/fitRowsToClip(), called from switchToView() right as the class
+     is added) to decide how many rows fit, so it could bake in a slightly-too-tall measurement
+     and leave a genuine, persistent sliver of extra scroll behind - not just a transient
+     animation artifact. Opacity never affects layout/scrollable overflow, so it can't cause
+     this class of bug on any page, present or future. */
   .view.active { display: block; animation: viewFadeIn 0.22s ease; }
 
   @keyframes viewFadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   @media (prefers-reduced-motion: reduce) {
