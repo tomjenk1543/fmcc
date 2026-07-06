@@ -533,8 +533,9 @@
   }
 
   /* Hides the hotbar (and with it, all nav) entirely while the landing screen is up —
-     toggled by enterLandingMode()/exitLandingMode(), not just left off permanently, so the
-     landing screen's own "Or go to Settings" link can bring it back without a reload. */
+     set by enterLandingMode() at boot when nothing's been imported yet. Comes back the
+     normal way: a successful import reloads the page (see runImportThenReload()), and that
+     fresh boot takes the "an import exists" branch straight to the normal app instead. */
   #app-scale-root.landing-mode .hotbar {
     display: none;
   }
@@ -571,12 +572,6 @@
 
   .landing-logo span {
     color: var(--club-text);
-  }
-
-  .landing-message {
-    color: var(--text-dim);
-    font-size: 14px;
-    line-height: 1.6;
   }
 
   /* ---- Landing screen animated background ---- */
@@ -633,9 +628,9 @@
     background: radial-gradient(
       ellipse at 50% 50%,
       var(--bg) 0%,
-      transparent 42%,
-      transparent 72%,
-      rgba(0, 0, 0, 0.38) 100%
+      transparent 36%,
+      transparent 65%,
+      rgba(0, 0, 0, 0.55) 100%
     );
   }
 
@@ -4592,15 +4587,16 @@
   <main>
 
     <!-- True "no data at all" landing screen — no hotbar, no nav, just the logo + a way to
-         import (see enterLandingMode()/exitLandingMode()). This is a .view like every other
-         page (see .view/.view.active), so it reuses the same show/hide mechanism, but it's
-         entered/exited by enterLandingMode()/exitLandingMode() directly rather than
-         switchToView() + a nav button, since there's no nav button for it (the hotbar itself
-         is hidden while this is the active view — see #app-scale-root.landing-mode .hotbar). -->
+         import (see enterLandingMode()). This is a .view like every other page (see
+         .view/.view.active), so it reuses the same show/hide mechanism, but it's entered
+         by enterLandingMode() directly rather than switchToView() + a nav button, since
+         there's no nav button for it (the hotbar itself is hidden while this is the active
+         view — see #app-scale-root.landing-mode .hotbar). -->
     <section id="landing" class="view">
-      <!-- Purely decorative angled, repeating pitch-stripe pattern behind the logo/import
-           button — see .landing-bg's own CSS comment for how it's built and why it's pure
-           CSS. aria-hidden since screen readers have nothing useful to announce here. -->
+      <!-- Purely decorative angled, repeating pitch-outline pattern (with a vignette/centre
+           fade on top) behind the logo/import button — see .landing-bg's own CSS comment for
+           how it's built and why it's pure CSS. aria-hidden since screen readers have
+           nothing useful to announce here. -->
       <div class="landing-bg" aria-hidden="true"></div>
       <div class="landing-content">
         <svg class="fmcc-badge landing-badge" viewBox="0 0 100 100" role="img" aria-label="FM Command Centre">
@@ -4645,9 +4641,7 @@
           <text x="50" y="50" dy="0.35em" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="16" fill="#fff">FMCC</text>
         </svg>
         <div class="landing-logo">FM <span>Command Centre</span></div>
-        <div class="landing-message">No save data loaded yet.</div>
         <button type="button" class="mini-btn dashboard-empty-import-btn" id="landing-import-btn">Import Club Data</button>
-        <button type="button" class="dashboard-empty-settings-link" id="landing-settings-btn">Or go to Settings for backup restore &amp; other options</button>
       </div>
     </section>
 
@@ -8789,8 +8783,8 @@
     // FM_TACTIC_SUMMARY, which applyFullSaveData() deliberately leaves alone when an import
     // omits tactics (so a partial import doesn't blank Tactical Analysis) but which a true
     // blank slate needs cleared outright.
-    // Enters/exits the true landing screen (#landing — no hotbar, just the logo + Import
-    // Save Data button) directly, rather than through switchToView(), since there's no nav
+    // Enters the true landing screen (#landing — just the logo, wordmark and Import Club
+    // Data button) directly, rather than through switchToView(), since there's no nav
     // button for it (the hotbar itself is hidden while it's up — see
     // #app-scale-root.landing-mode .hotbar). Deliberately doesn't reference the
     // navButtons/views/switchToView consts declared later in this file — resetToBlankSlate()
@@ -8801,21 +8795,13 @@
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.getElementById('landing').classList.add('active');
     }
-    // Only ever called from a click handler (the landing screen's own "Or go to Settings"
-    // link), well after the whole script — including navButtons/views/switchToView further
-    // down — has finished its first pass, so referencing switchToView() here is safe.
-    function exitLandingMode() {
-      document.getElementById('app-scale-root').classList.remove('landing-mode');
-      switchToView('settings');
-    }
 
     function resetToBlankSlate() {
       // The true landing screen (see enterLandingMode() above) is the actual "nothing
-      // loaded" experience now — no hotbar, no nav, just the logo + Import Save Data
-      // button. #dashboard-empty-state below is kept too, purely as a fallback: if someone
-      // uses the landing screen's "Or go to Settings" link (which exits landing mode) and
-      // then clicks over to Dashboard without having imported anything yet, it still shows
-      // a sensible blank state there instead of a page full of "Not set" placeholders.
+      // loaded" experience now — no hotbar, no nav, just the logo, wordmark and Import Club
+      // Data button. #dashboard-empty-state below is kept too, purely as a defensive
+      // fallback so Dashboard never shows a page full of "Not set" placeholders if this
+      // blank-slate state is ever reached some other way in future.
       enterLandingMode();
 
       document.getElementById('dashboard-normal-content').style.display = 'none';
@@ -9538,11 +9524,6 @@
     document.getElementById('landing-import-modal-backdrop').addEventListener('click', (e) => {
       if (e.target.id === 'landing-import-modal-backdrop') closeLandingImportModal();
     });
-
-    // Landing screen's escape hatch to the normal, navigable app — for backup restore or
-    // anything else in Settings. exitLandingMode() (defined next to enterLandingMode(),
-    // right above resetToBlankSlate()) un-hides the hotbar and switches to Settings.
-    document.getElementById('landing-settings-btn').addEventListener('click', exitLandingMode);
 
     document.getElementById('landing-import-validate-btn').addEventListener('click', () => {
       const { data, error } = parseImportTextareaValue(landingImportTextarea);

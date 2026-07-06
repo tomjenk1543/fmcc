@@ -92,9 +92,9 @@
     background: radial-gradient(
       ellipse at 50% 50%,
       var(--bg) 0%,
-      transparent 42%,
-      transparent 72%,
-      rgba(0, 0, 0, 0.38) 100%
+      transparent 36%,
+      transparent 65%,
+      rgba(0, 0, 0, 0.55) 100%
     );
   }
 
@@ -129,12 +129,6 @@
     color: var(--club-text);
   }
 
-  .landing-message {
-    color: var(--text-dim);
-    font-size: 14px;
-    line-height: 1.6;
-  }
-
   .mini-btn {
     background: none;
     border: 1px solid var(--panel-border);
@@ -163,21 +157,6 @@
     background: color-mix(in srgb, var(--club-primary) 85%, #fff 15%);
     border-color: color-mix(in srgb, var(--club-primary) 85%, #fff 15%);
     color: #fff;
-  }
-
-  .dashboard-empty-settings-link {
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    font-size: 12px;
-    text-decoration: underline;
-    cursor: pointer;
-    padding: 0;
-    font-family: inherit;
-  }
-
-  .dashboard-empty-settings-link:hover {
-    color: var(--club-text);
   }
 
   /* ---- Landing screen animated background (kept identical to the real app) ---- */
@@ -240,9 +219,7 @@
       <text x="50" y="50" dy="0.35em" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="16" fill="#fff">FMCC</text>
     </svg>
     <div class="landing-logo">FM <span>Command Centre</span></div>
-    <div class="landing-message">No save data loaded yet.</div>
     <button type="button" class="mini-btn dashboard-empty-import-btn">Import Club Data</button>
-    <button type="button" class="dashboard-empty-settings-link">Or go to Settings for backup restore &amp; other options</button>
   </div>
 </section>
 
