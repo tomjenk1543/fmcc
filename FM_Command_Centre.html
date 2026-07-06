@@ -579,6 +579,97 @@
     line-height: 1.6;
   }
 
+  /* ---- Landing screen animated background ---- */
+  /* Faint drifting pitch markings (a centre-circle arc + a corner arc) and floating
+     particles behind the logo/import button — pure CSS transforms/opacity only (no
+     layout-affecting properties), so it's cheap to run continuously and never interferes
+     with #app-scale-root's own scale-to-fit transform. Positioned bigger than its own corner
+     of the screen so drifting never reveals a hard edge underneath. Colour tracks
+     var(--club-primary) via currentColor, same mechanism as every other club-coloured
+     element in the app (see .fmcc-badge's own comment) — recolours instantly through
+     applyClubColours(), no extra JS needed here. */
+  #landing {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .landing-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    color: var(--club-primary);
+  }
+
+  .landing-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .landing-bg-line {
+    position: absolute;
+    opacity: 0.1;
+  }
+
+  .landing-bg-line-1 {
+    width: 46vw;
+    min-width: 320px;
+    top: -12%;
+    left: -10%;
+    animation: landingDriftA 50s ease-in-out infinite;
+  }
+
+  .landing-bg-line-2 {
+    width: 52vw;
+    min-width: 360px;
+    bottom: -16%;
+    right: -12%;
+    animation: landingDriftB 62s ease-in-out infinite;
+  }
+
+  .landing-bg-dot {
+    position: absolute;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.16;
+    filter: blur(1px);
+    animation: landingFloat 18s ease-in-out infinite;
+  }
+
+  /* Six dots at staggered sizes/positions/durations/delays (negative delays start each one
+     part-way through its own cycle instead of all six launching in visible lockstep) —
+     enough to read as organic drifting particles without a JS scene/canvas. */
+  .landing-bg-dot.dot-1 { width: 10px; height: 10px; top: 18%; left: 12%; animation-duration: 16s; }
+  .landing-bg-dot.dot-2 { width: 6px;  height: 6px;  top: 30%; left: 78%; animation-duration: 21s; animation-delay: -4s; }
+  .landing-bg-dot.dot-3 { width: 8px;  height: 8px;  top: 68%; left: 20%; animation-duration: 19s; animation-delay: -9s; }
+  .landing-bg-dot.dot-4 { width: 5px;  height: 5px;  top: 75%; left: 82%; animation-duration: 24s; animation-delay: -2s; }
+  .landing-bg-dot.dot-5 { width: 7px;  height: 7px;  top: 46%; left: 6%;  animation-duration: 22s; animation-delay: -12s; }
+  .landing-bg-dot.dot-6 { width: 6px;  height: 6px;  top: 10%; left: 60%; animation-duration: 17s; animation-delay: -6s; }
+
+  @keyframes landingDriftA {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(2.5vw, 2vh) rotate(6deg); }
+  }
+  @keyframes landingDriftB {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    50% { transform: translate(-3vw, -2.5vh) rotate(-5deg); }
+  }
+  @keyframes landingFloat {
+    0%, 100% { transform: translateY(0) translateX(0); }
+    50% { transform: translateY(-22px) translateX(6px); }
+  }
+
+  /* Respect a real accessibility preference over a decorative flourish — freezes every
+     background element in place rather than trying to find a "reduced but still moving"
+     middle ground. */
+  @media (prefers-reduced-motion: reduce) {
+    .landing-bg-line,
+    .landing-bg-dot {
+      animation: none;
+    }
+  }
+
   /* Tactic Builder's own scroll area and main panel both flex-grow to fill the view, and
      each phase's pitch is sized off the viewport (min(...) so it never overflows a small
      window) rather than the Tactical Analysis page's small fixed size — two full build panels
@@ -948,6 +1039,38 @@
 
   .import-status.is-error {
     color: #e8746a;
+  }
+
+  /* Brief loading state shown between clicking "Import & Reload" and the page actually
+     reloading — see runImportThenReload(). Without this, a fast import (parse/merge/save to
+     localStorage is near-instant) jumped straight from click to a blank reloading page with
+     no feedback in between at all. */
+  .import-status.is-loading {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--text-dim);
+  }
+
+  .import-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    flex: 0 0 auto;
+    border: 2px solid var(--panel-border);
+    border-top-color: var(--club-primary);
+    border-radius: 50%;
+    animation: importSpin 0.7s linear infinite;
+  }
+
+  @keyframes importSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .import-spinner {
+      animation-duration: 1.6s;
+    }
   }
 
   /* Settings > References & Sources — a plain list of links out to the external FM26
@@ -4487,6 +4610,24 @@
          switchToView() + a nav button, since there's no nav button for it (the hotbar itself
          is hidden while this is the active view — see #app-scale-root.landing-mode .hotbar). -->
     <section id="landing" class="view">
+      <!-- Purely decorative drifting pitch lines + floating particles behind the logo/
+           import button — see .landing-bg's own CSS comment for how it's built and why it's
+           pure CSS. aria-hidden since screen readers have nothing useful to announce here. -->
+      <div class="landing-bg" aria-hidden="true">
+        <svg class="landing-bg-line landing-bg-line-1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="100" cy="100" r="90" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="100" cy="100" r="3" fill="currentColor"/>
+        </svg>
+        <svg class="landing-bg-line landing-bg-line-2" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <path d="M 0 0 A 200 200 0 0 1 200 200" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+        <span class="landing-bg-dot dot-1"></span>
+        <span class="landing-bg-dot dot-2"></span>
+        <span class="landing-bg-dot dot-3"></span>
+        <span class="landing-bg-dot dot-4"></span>
+        <span class="landing-bg-dot dot-5"></span>
+        <span class="landing-bg-dot dot-6"></span>
+      </div>
       <div class="landing-content">
         <svg class="fmcc-badge landing-badge" viewBox="0 0 100 100" role="img" aria-label="FM Command Centre">
           <defs>
@@ -9236,6 +9377,22 @@
     }
     function setImportStatus(text, kind) { setImportStatusFor(importStatus, text, kind); }
 
+    // A few hundred ms of a visible spinner before the page actually reloads — every "Import
+    // & Reload" button below used to jump straight from click to a blank reloading page with
+    // no feedback at all in between, since the real work (parse/merge/save to localStorage)
+    // is fast enough to be genuinely invisible otherwise. applyFn does the actual data
+    // mutation (merge/restore) and always runs, just deliberately delayed so the spinner
+    // gets a paint frame first — this is purely a perceived-feedback delay, not real
+    // processing time.
+    const IMPORT_SPINNER_DELAY_MS = 450;
+    function runImportThenReload(statusEl, label, applyFn) {
+      setImportStatusFor(statusEl, `<span class="import-spinner"></span> ${label}`, 'loading');
+      setTimeout(() => {
+        applyFn();
+        location.reload();
+      }, IMPORT_SPINNER_DELAY_MS);
+    }
+
     function parseImportTextareaValue(textareaEl) {
       try {
         return { data: JSON.parse(textareaEl.value) };
@@ -9311,10 +9468,10 @@
           'can\'t be undone.'
         );
         if (!ok) return;
-        restoreFullBackup(data);
-        localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
-        setImportStatus('Backup restored — reloading...', 'ok');
-        location.reload();
+        runImportThenReload(importStatus, 'Restoring backup…', () => {
+          restoreFullBackup(data);
+          localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
+        });
         return;
       }
 
@@ -9325,13 +9482,13 @@
       }
       // Merges onto whatever squad/tactic data is already stored, rather than replacing the
       // whole blob — a club-only paste shouldn't wipe out a squad or tactic imported earlier.
-      mergeAndSaveImportedData(data);
-      // A real import always wins at boot regardless of this flag (see the boot sequence
-      // above), but clear it anyway so it doesn't linger — otherwise clicking "Clear All
-      // Data" again later with nothing re-imported yet would look like it did nothing.
-      localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
-      setImportStatus('Imported — reloading...', 'ok');
-      location.reload();
+      // A real import always wins at boot regardless of BLANK_SLATE_STORAGE_KEY (see the boot
+      // sequence above), but clear it anyway so it doesn't linger — otherwise clicking "Clear
+      // All Data" again later with nothing re-imported yet would look like it did nothing.
+      runImportThenReload(importStatus, 'Importing…', () => {
+        mergeAndSaveImportedData(data);
+        localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
+      });
     });
 
     document.getElementById('import-load-example-btn').addEventListener('click', () => {
@@ -9441,10 +9598,10 @@
           'can\'t be undone.'
         );
         if (!ok) return;
-        restoreFullBackup(data);
-        localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
-        setImportStatusFor(landingImportStatus, 'Backup restored — reloading...', 'ok');
-        location.reload();
+        runImportThenReload(landingImportStatus, 'Restoring backup…', () => {
+          restoreFullBackup(data);
+          localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
+        });
         return;
       }
 
@@ -9453,10 +9610,10 @@
         setImportStatusFor(landingImportStatus, 'Cannot import — fix these first:<br>' + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
         return;
       }
-      mergeAndSaveImportedData(data);
-      localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
-      setImportStatusFor(landingImportStatus, 'Imported — reloading...', 'ok');
-      location.reload();
+      runImportThenReload(landingImportStatus, 'Importing…', () => {
+        mergeAndSaveImportedData(data);
+        localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
+      });
     });
 
     document.getElementById('landing-import-load-example-btn').addEventListener('click', () => {
@@ -9514,10 +9671,10 @@
       // JSON.parse() result only ever has the keys that were actually present in the pasted
       // text, so this can't accidentally stamp an explicit `undefined` over an existing
       // club/tacticIP key the way constructing a new object with all three names would.
-      mergeAndSaveImportedData(data);
-      localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
-      setImportStatusFor(squadImportStatus, 'Imported — reloading...', 'ok');
-      location.reload();
+      runImportThenReload(squadImportStatus, 'Importing…', () => {
+        mergeAndSaveImportedData(data);
+        localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
+      });
     });
 
     document.getElementById('squad-import-load-example-btn').addEventListener('click', () => {
@@ -9563,10 +9720,10 @@
       // Same reasoning as the squad box above — merge the whole parsed object, not a
       // manually-reconstructed subset, so an omitted tacticOOP/fmTacticSummary key stays
       // omitted rather than overwriting a previous import's value with `undefined`.
-      mergeAndSaveImportedData(data);
-      localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
-      setImportStatusFor(tacticsImportStatus, 'Imported — reloading...', 'ok');
-      location.reload();
+      runImportThenReload(tacticsImportStatus, 'Importing…', () => {
+        mergeAndSaveImportedData(data);
+        localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
+      });
     });
 
     document.getElementById('tactics-import-load-example-btn').addEventListener('click', () => {
@@ -14273,6 +14430,14 @@
     const navButtons = document.querySelectorAll('.nav-btn');
     const views = document.querySelectorAll('.view');
 
+    // Remembers the last page you were on across a refresh, so reloading (or the browser
+    // restoring the tab) doesn't dump you back on Dashboard every time — same
+    // read/write-with-try/catch pattern as gapThreshold/NAV_GROUP_COLLAPSE_STORAGE_KEY/etc
+    // elsewhere in the app. Only ever read once, right after boot (see further down, after
+    // the initial nav-button wiring) — switchToView() just needs to keep it up to date on
+    // every real navigation.
+    const LAST_VIEW_STORAGE_KEY = 'fmcc_lastView';
+
     // Shared nav function so other elements (e.g. the Best Players tile) can
     // jump to a view the same way the hotbar buttons do.
     function switchToView(viewName) {
@@ -14281,6 +14446,8 @@
 
       document.querySelector(`.nav-btn[data-view="${viewName}"]`).classList.add('active');
       document.getElementById(viewName).classList.add('active');
+
+      try { localStorage.setItem(LAST_VIEW_STORAGE_KEY, viewName); } catch (e) { /* storage unavailable */ }
 
       // Squad Breakdown's Recommended Focus panel and Tactical Analysis's IP/OOP gap
       // panels measure their own real rendered height (fitRowsToClip(), see
@@ -14310,6 +14477,25 @@
     navButtons.forEach(btn => {
       btn.addEventListener('click', () => switchToView(btn.dataset.view));
     });
+
+    // Restore whichever page was active before the last refresh — Dashboard is only the
+    // static HTML default (see #dashboard's class="view active" in the markup), not
+    // something worth re-asserting here. Skipped entirely while the true landing screen is
+    // up (#app-scale-root.landing-mode — see enterLandingMode()/resetToBlankSlate()): there's
+    // no real data loaded yet in that case, so there's no other page to usefully return to,
+    // and switching away would just hide the landing screen's own Import Save Data button.
+    // Guards against a stored view from an older version of the app that no longer exists
+    // (checks a real nav button is there for it) rather than trusting the stored string blindly.
+    {
+      const isLanding = document.getElementById('app-scale-root').classList.contains('landing-mode');
+      if (!isLanding) {
+        let lastView = null;
+        try { lastView = localStorage.getItem(LAST_VIEW_STORAGE_KEY); } catch (e) { /* storage unavailable */ }
+        if (lastView && lastView !== 'dashboard' && document.querySelector(`.nav-btn[data-view="${lastView}"]`)) {
+          switchToView(lastView);
+        }
+      }
+    }
 
     // Collapsible nav groups ("Squad", "Tactics") — click a .nav-group-label to hide/show
     // its own .nav-btn-sub items, so the sidebar can be trimmed down to just the groups

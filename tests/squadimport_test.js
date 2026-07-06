@@ -14,6 +14,15 @@ function check(name, cond) {
   else { fail++; console.error('FAIL:', name); }
 }
 
+// "Import & Reload" now goes through runImportThenReload() (FM_Command_Centre.html — added
+// for the brief loading-spinner feature), which defers the actual merge + location.reload()
+// by IMPORT_SPINNER_DELAY_MS via a real setTimeout rather than running them synchronously in
+// the click handler. A real setTimeout only fires once this script's synchronous portion
+// finishes and control returns to Node's event loop — so the one check below that depends on
+// the merge/reload having actually happened needs to await past that delay first.
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+const IMPORT_WAIT_MS = 450 + 150;
+
 // --- Opening/closing the modal, from both entry points -------------------------------------
 {
   const backdrop = document.getElementById('squad-import-modal-backdrop');
@@ -100,6 +109,8 @@ function check(name, cond) {
   })());
 }
 
+(async () => {
+
 // --- Import & Reload: merges onto existing club/tactic data instead of replacing it -----------
 {
   localStorage.setItem('fmCommandCentre.importedSaveData', JSON.stringify({
@@ -115,16 +126,19 @@ function check(name, cond) {
   let reloaded = false;
   global.location.reload = () => { reloaded = true; };
   document.getElementById('squad-import-apply-btn').fire('click');
+  check('clicking Import & Reload shows the loading spinner first', status.className.includes('is-loading'));
+  await sleep(IMPORT_WAIT_MS);
 
   const stored = JSON.parse(localStorage.getItem('fmCommandCentre.importedSaveData'));
   check('Import & Reload replaces the "squad" key with the new data', stored.squad.length === 2 && stored.squad[0].name === 'New Player One');
   check('Import & Reload leaves "club" from the earlier import untouched', stored.club && stored.club.name === 'Existing Club');
   check('Import & Reload leaves "tacticIP" from the earlier import untouched', Array.isArray(stored.tacticIP) && stored.tacticIP.length === 1);
   check('Import & Reload reloads the page', reloaded);
-  check('Import & Reload does not report an error', !status.className.includes('is-error'));
 }
 
 // --- Import & Reload: an invalid payload is blocked, not silently merged ----------------------
+// Unaffected by the spinner delay — a validation failure returns before ever reaching
+// runImportThenReload(), so this stays fully synchronous with no wait needed.
 {
   localStorage.setItem('fmCommandCentre.importedSaveData', JSON.stringify({ club: { name: 'Guard Club' }, squad: [{ name: 'Guard Player' }] }));
   const ta = document.getElementById('squad-import-textarea');
@@ -163,3 +177,5 @@ function check(name, cond) {
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exitCode = 1;
+
+})();
