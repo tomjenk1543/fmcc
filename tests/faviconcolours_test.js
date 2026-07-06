@@ -6,9 +6,10 @@
 // real hex values baked in, since a <link> favicon can't read this page's CSS custom
 // properties the way the in-page .fmcc-badge does.
 //
-// This is the original two-tone split-circle badge (see .fmcc-badge's own comment for the
-// full story on why it's back after a run of football-styled redesigns — black ball,
-// pentagon, spokes, rim chords, equator band — that Tom tried and then asked to revert).
+// Two-tone split-circle badge (see .fmcc-badge's own comment) with a black equator band
+// across the middle of the ball, carrying a plain white "FMCC" monogram sized to fit
+// inside that band — club-colour-independent, so it stays readable regardless of which
+// two colours the split halves end up using.
 
 let pass = 0, fail = 0;
 function check(name, cond) {
@@ -41,13 +42,12 @@ function check(name, cond) {
   const decoded = decodeURIComponent(href.slice('data:image/svg+xml,'.length));
   check('the decoded favicon SVG starts with an <svg> tag', decoded.trim().startsWith('<svg'));
   check('the decoded favicon SVG ends with a closing </svg> tag', decoded.trim().endsWith('</svg>'));
-  // Monogram is split across two <tspan>s (rather than one plain "FMCC" text node) and
-  // each half is cross-matched against the club colour it sits in front of — see
+  // Monogram is a single plain "FMCC" text node in white, sitting on the black equator
+  // band rather than split into per-half cross-matched tspans — see
   // updateFaviconColours()'s own comment.
-  check('the decoded favicon SVG still has the "FM" half of the monogram', decoded.includes('>FM</tspan>'));
-  check('the decoded favicon SVG still has the "CC" half of the monogram', decoded.includes('>CC</tspan>'));
-  check('"FM" is filled with the secondary colour (it sits over the primary half)', decoded.includes("fill='#4C7CBE'>FM"));
-  check('"CC" is filled with the primary colour (it sits over the secondary half)', decoded.includes("fill='#14305A'>CC"));
+  check('the decoded favicon SVG has the plain "FMCC" monogram', decoded.includes(">FMCC</text>"));
+  check('the monogram is filled white so it stays readable on the black band regardless of club colours', decoded.includes("fill='#fff'>FMCC"));
+  check('the decoded favicon SVG has the black equator band, clipped to the ball', decoded.includes("fill='#0a0a0c' clip-path='circle(34px at 50px 50px)'"));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
