@@ -84,6 +84,20 @@
     animation: landingPitchDrift 22s linear infinite;
   }
 
+  /* Vignette + centre fade — see the real app's own CSS comment for the reasoning. */
+  .landing-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at 50% 50%,
+      var(--bg) 0%,
+      transparent 42%,
+      transparent 72%,
+      rgba(0, 0, 0, 0.38) 100%
+    );
+  }
+
   .landing-content {
     position: relative;
     z-index: 1;

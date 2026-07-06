@@ -621,6 +621,24 @@
     animation: landingPitchDrift 22s linear infinite;
   }
 
+  /* Vignette + centre fade — sits above the pitch pattern (painted after ::before within
+     the same .landing-bg stacking context, so no extra z-index needed) and dims the
+     pattern in two ways at once: an ellipse fading back to the page background colour
+     right behind the badge/wordmark/buttons so the lines don't fight with the content for
+     attention, and a soft dark vignette at the screen's far corners for a bit of depth. */
+  .landing-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at 50% 50%,
+      var(--bg) 0%,
+      transparent 42%,
+      transparent 72%,
+      rgba(0, 0, 0, 0.38) 100%
+    );
+  }
+
   .landing-content {
     position: relative;
     z-index: 1;
