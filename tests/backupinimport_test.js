@@ -26,9 +26,9 @@ function check(name, cond) {
 }
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-// Matches IMPORT_SPINNER_DELAY_MS in FM_Command_Centre.html (450ms) plus a buffer so a slow
+// Matches IMPORT_SPINNER_DELAY_MS in FM_Command_Centre.html (900ms) plus a buffer so a slow
 // CI machine scheduling the timer a little late still passes.
-const IMPORT_WAIT_MS = 450 + 150;
+const IMPORT_WAIT_MS = 900 + 150;
 
 const BACKUP_JSON = JSON.stringify({
   _meta: { app: 'FM Command Centre', kind: 'full-backup', exportedAt: '2026-07-01T00:00:00.000Z' },
