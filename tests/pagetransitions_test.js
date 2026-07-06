@@ -73,5 +73,27 @@ function ruleBodyFor(selector) {
   check('overlayFadeIn keyframes exist', /@keyframes overlayFadeIn\s*\{/.test(styleBlock));
 }
 
+// --- Hover-lift tiles (translateY on hover, used all over the app) can't nudge page scroll ----
+// Tom reported the whole page moving a few px on hovering a tile. A hover-lift transform's
+// post-transform geometry counts toward its scroll-container ancestor's scrollable overflow
+// (same mechanism as the viewFadeIn bug above), and browsers run "scroll anchoring" to keep
+// content stable whenever a scroll container's bounds change — exactly what a hover-driven
+// scrollHeight blip triggers. overflow-anchor:none on both real scroll containers (main, the
+// fallback; .view-scroll-area, the one that actually scrolls day to day) turns that
+// compensation off, so no hover-lift anywhere in the app can move the scroll position.
+{
+  const mainRule = ruleBodyFor('main');
+  check('main opts out of scroll anchoring', /overflow-anchor:\s*none/.test(mainRule));
+
+  // Not ruleBodyFor() here — that helper's selector regex has no boundary check, so it would
+  // happily match the FIRST "...\.view-scroll-area\s*\{" it finds in the file, which is the
+  // earlier per-ID override "#tacticbuilder .view-scroll-area {" rather than the base rule.
+  // Anchored on a line start (or opening brace) immediately before the dot instead, so this
+  // targets only the real standalone ".view-scroll-area { ... }" declaration.
+  const scrollAreaMatch = styleBlock.match(/[\n{]\s*\.view-scroll-area\s*\{([^}]*)\}/);
+  const scrollAreaRule = scrollAreaMatch ? scrollAreaMatch[1] : '';
+  check('.view-scroll-area (the real per-page scroll container) opts out of scroll anchoring', /overflow-anchor:\s*none/.test(scrollAreaRule));
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exitCode = 1;

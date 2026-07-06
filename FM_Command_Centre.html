@@ -506,6 +506,9 @@
     height: var(--design-height);
     overflow-y: auto;
     padding: 28px 32px;
+    /* See .view-scroll-area's own comment below — same reasoning applies here as this
+       element's own fallback scrollbar. */
+    overflow-anchor: none;
   }
 
   .view { display: none; }
@@ -803,6 +806,20 @@
     min-height: 0;
     overflow-y: auto;
     padding-right: 4px;
+    /* Tom reported the whole page nudging up/down by a few pixels whenever hovering a tile —
+       every hover-lift across the app (.dashboard-panel, .best-players-panel, #league-slot,
+       etc.) uses transform: translateY(...) for the "physical lift" effect, and a transformed
+       descendant's post-transform geometry counts toward this scroll area's own scrollable
+       overflow (same underlying mechanism as the Scouting page-switch scroll bug fixed just
+       before this). That alone wouldn't be visible - a scrollHeight a couple of px larger
+       doesn't move anything by itself - but browsers additionally run "scroll anchoring" to
+       keep the visible content stable whenever a scroll container's content bounds change, and
+       a hover-driven scrollHeight blip is exactly the kind of change that triggers it, nudging
+       scrollTop by those same few pixels. overflow-anchor:none turns that compensation off for
+       this element, so a tile's hover transform can no longer move the scroll position at all -
+       root-caused here rather than stripping translateY off every hover-lift declaration across
+       the app one by one. */
+    overflow-anchor: none;
   }
 
   /* Dashboard-only: its scroll area is itself a flex column so .dashboard-panels-grid (the
