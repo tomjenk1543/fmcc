@@ -64,7 +64,15 @@
     z-index: 0;
     pointer-events: none;
     overflow: hidden;
-    color: var(--club-primary);
+    background-image: repeating-linear-gradient(
+      25deg,
+      color-mix(in srgb, var(--club-primary) 12%, transparent) 0px,
+      color-mix(in srgb, var(--club-primary) 12%, transparent) 70px,
+      transparent 70px,
+      transparent 140px
+    );
+    background-size: 200% 200%;
+    animation: landingPitchPan 16s linear infinite;
   }
 
   .landing-content {
@@ -150,59 +158,13 @@
   }
 
   /* ---- Landing screen animated background (kept identical to the real app) ---- */
-  .landing-bg-line {
-    position: absolute;
-    opacity: 0.1;
-  }
-
-  .landing-bg-line-1 {
-    width: 46vw;
-    min-width: 320px;
-    top: -12%;
-    left: -10%;
-    animation: landingDriftA 30s ease-in-out infinite;
-  }
-
-  .landing-bg-line-2 {
-    width: 52vw;
-    min-width: 360px;
-    bottom: -16%;
-    right: -12%;
-    animation: landingDriftB 38s ease-in-out infinite;
-  }
-
-  .landing-bg-dot {
-    position: absolute;
-    border-radius: 50%;
-    background: currentColor;
-    opacity: 0.16;
-    filter: blur(1px);
-    animation: landingFloat 12s ease-in-out infinite;
-  }
-
-  .landing-bg-dot.dot-1 { width: 10px; height: 10px; top: 18%; left: 12%; animation-duration: 10s; }
-  .landing-bg-dot.dot-2 { width: 6px;  height: 6px;  top: 30%; left: 78%; animation-duration: 13s; animation-delay: -3s; }
-  .landing-bg-dot.dot-3 { width: 8px;  height: 8px;  top: 68%; left: 20%; animation-duration: 12s; animation-delay: -6s; }
-  .landing-bg-dot.dot-4 { width: 5px;  height: 5px;  top: 75%; left: 82%; animation-duration: 15s; animation-delay: -1s; }
-  .landing-bg-dot.dot-5 { width: 7px;  height: 7px;  top: 46%; left: 6%;  animation-duration: 14s; animation-delay: -8s; }
-  .landing-bg-dot.dot-6 { width: 6px;  height: 6px;  top: 10%; left: 60%; animation-duration: 11s; animation-delay: -4s; }
-
-  @keyframes landingDriftA {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    50% { transform: translate(2.5vw, 2vh) rotate(6deg); }
-  }
-  @keyframes landingDriftB {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    50% { transform: translate(-3vw, -2.5vh) rotate(-5deg); }
-  }
-  @keyframes landingFloat {
-    0%, 100% { transform: translateY(0) translateX(0); }
-    50% { transform: translateY(-22px) translateX(6px); }
+  @keyframes landingPitchPan {
+    from { background-position: 0 0; }
+    to { background-position: 140px 140px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .landing-bg-line,
-    .landing-bg-dot {
+    .landing-bg {
       animation: none;
     }
   }
@@ -211,21 +173,7 @@
 <body>
 
 <section id="landing">
-  <div class="landing-bg" aria-hidden="true">
-    <svg class="landing-bg-line landing-bg-line-1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="100" cy="100" r="90" fill="none" stroke="currentColor" stroke-width="1.5"/>
-      <circle cx="100" cy="100" r="3" fill="currentColor"/>
-    </svg>
-    <svg class="landing-bg-line landing-bg-line-2" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-      <path d="M 0 0 A 200 200 0 0 1 200 200" fill="none" stroke="currentColor" stroke-width="1.5"/>
-    </svg>
-    <span class="landing-bg-dot dot-1"></span>
-    <span class="landing-bg-dot dot-2"></span>
-    <span class="landing-bg-dot dot-3"></span>
-    <span class="landing-bg-dot dot-4"></span>
-    <span class="landing-bg-dot dot-5"></span>
-    <span class="landing-bg-dot dot-6"></span>
-  </div>
+  <div class="landing-bg" aria-hidden="true"></div>
   <div class="landing-content">
     <svg class="landing-badge" viewBox="0 0 100 100" role="img" aria-label="FM Command Centre">
       <defs>
