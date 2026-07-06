@@ -74,13 +74,20 @@ function ruleBodyFor(selector) {
 }
 
 // --- Hover-lift tiles (translateY on hover, used all over the app) can't nudge page scroll ----
-// Tom reported the whole page moving a few px on hovering a tile. A hover-lift transform's
-// post-transform geometry counts toward its scroll-container ancestor's scrollable overflow
-// (same mechanism as the viewFadeIn bug above), and browsers run "scroll anchoring" to keep
-// content stable whenever a scroll container's bounds change — exactly what a hover-driven
-// scrollHeight blip triggers. overflow-anchor:none on both real scroll containers (main, the
-// fallback; .view-scroll-area, the one that actually scrolls day to day) turns that
-// compensation off, so no hover-lift anywhere in the app can move the scroll position.
+// Tom reported the whole page moving a few px on hovering a tile. First attempt was
+// overflow-anchor:none on both real scroll containers (main, the fallback; .view-scroll-area,
+// the one that actually scrolls day to day) — a hover-lift transform's post-transform
+// geometry counts toward its scroll-container ancestor's scrollable overflow, and browsers
+// run "scroll anchoring" to keep content stable whenever a scroll container's bounds change,
+// which is exactly what a hover-driven scrollHeight blip triggers. That's left in place below
+// (harmless, and correct in its own right), but Tom reported the page still moving after it
+// shipped — evidently some engines act on a transform-driven scrollHeight change more directly
+// than anchoring compensation alone accounts for. The only fix that's correct regardless of
+// engine/anchoring-support differences is removing the transform itself: box-shadow and
+// border-color changes are pure paint and can never contribute to scrollable overflow, so
+// every hover-lift in the app (.best-players-panel, #league-slot, .position-card.gaps-
+// clickable, .tb-synergy-panel.clickable, .gaps-clickable) dropped its translateY, keeping
+// only the shadow/border-colour half of the "elevated card" hover language.
 {
   const mainRule = ruleBodyFor('main');
   check('main opts out of scroll anchoring', /overflow-anchor:\s*none/.test(mainRule));
@@ -93,6 +100,13 @@ function ruleBodyFor(selector) {
   const scrollAreaMatch = styleBlock.match(/[\n{]\s*\.view-scroll-area\s*\{([^}]*)\}/);
   const scrollAreaRule = scrollAreaMatch ? scrollAreaMatch[1] : '';
   check('.view-scroll-area (the real per-page scroll container) opts out of scroll anchoring', /overflow-anchor:\s*none/.test(scrollAreaRule));
+
+  // The actual fix: no hover rule anywhere in the app moves anything via transform any more.
+  // Broad on purpose (not scoped to the five known offenders) so a *new* hover-lift added
+  // later can't quietly reintroduce this bug class.
+  const hoverRuleMatches = styleBlock.match(/:hover(?:,[^{]*)?\s*\{[^}]*\}/g) || [];
+  const hoverRulesWithTransform = hoverRuleMatches.filter(r => /transform:\s*(?!none)/.test(r));
+  check('no :hover rule in the app sets a transform (translateY/scale/etc. all moved off hover)', hoverRulesWithTransform.length === 0);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
