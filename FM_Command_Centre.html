@@ -376,7 +376,8 @@
     font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.3px;
-    padding: 9px 20px;
+    padding: 13px 20px;
+    margin-top: 10px;
     border-left: 3px solid transparent;
     cursor: pointer;
     user-select: none;
@@ -414,7 +415,7 @@
     font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.3px;
-    padding: 9px 20px;
+    padding: 13px 20px;
     text-align: left;
     cursor: pointer;
     border-left: 3px solid transparent;
@@ -485,6 +486,53 @@
     color: var(--text-dim);
     margin-top: 1px;
     text-transform: none;
+  }
+
+  /* Sits directly under <nav class="nav-links"> as its own flex:0 0 auto block - nav-links'
+     flex:1 already stretches to fill the sidebar's leftover height, so this footer lands
+     right at the bottom edge rather than needing margin-top:auto of its own. Two outbound
+     links straight to the repo's GitHub Issues (one pre-labelled "bug", one "enhancement"),
+     same target="_blank" rel="noopener" pattern Settings > Data Sources' .reference-list
+     already uses for outbound links. Plain <a> tags, not .nav-btn - they're outbound links,
+     not app views, so switchToView()/the .nav-btn click-listener loop should never see them. */
+  .sidebar-footer {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--panel-border);
+  }
+
+  .sidebar-footer-link {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    color: var(--text-dim);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  .sidebar-footer-link:hover,
+  .sidebar-footer-link:focus-visible {
+    color: var(--text);
+    background: color-mix(in srgb, var(--club-primary) 8%, transparent);
+  }
+
+  .sidebar-footer-link:focus-visible {
+    outline: 2px solid var(--club-text, #f2f2f2);
+    outline-offset: -3px;
+  }
+
+  .sidebar-footer-icon {
+    font-size: 14px;
+    line-height: 1;
+    flex-shrink: 0;
   }
 
   /* ---------- MAIN ---------- */
@@ -4761,6 +4809,10 @@
       <button class="nav-btn" data-view="scout">Scouting</button>
       <button class="nav-btn" data-view="settings">Settings</button>
     </nav>
+    <div class="sidebar-footer">
+      <a class="sidebar-footer-link" href="https://github.com/tomjenk1543/fmcc/issues/new?labels=bug" target="_blank" rel="noopener"><span class="sidebar-footer-icon">&#128027;</span>Report a Bug</a>
+      <a class="sidebar-footer-link" href="https://github.com/tomjenk1543/fmcc/issues/new?labels=enhancement" target="_blank" rel="noopener"><span class="sidebar-footer-icon">&#128161;</span>Suggest an Improvement</a>
+    </div>
   </div>
 
   <main>
