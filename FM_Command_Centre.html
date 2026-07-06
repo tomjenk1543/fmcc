@@ -5593,7 +5593,7 @@
     <section id="tacticbuilder" class="view">
       <div class="view-header">
         <h1>Tactic <span class="accent">Builder</span></h1>
-        <div class="subtitle">Best XI for a formation, based on who's actually in the squad — build both phases, then take it to Tactical Analysis</div>
+        <div class="subtitle">Best XI for a formation, based on who's actually in the squad. Build both phases, then take it to Tactical Analysis</div>
       </div>
       <div class="view-scroll-area">
         <div class="dashboard-panel tactics-main-panel">
@@ -5714,9 +5714,9 @@
             <h3>Save / Load Full Backup</h3>
           </div>
           <p class="settings-help">
-            Downloads everything currently stored locally — the imported save, scouted
+            Downloads everything currently stored locally: the imported save, scouted
             shortlist, position group overrides, Tactic Builder's tactic, the uploaded
-            crest, and your Attribute Threshold setting — as one JSON file. Load it back
+            crest, and your Attribute Threshold setting, as one JSON file. Load it back
             in any time (after clearing, importing a different save, or on a different
             computer) to restore this exact state, without re-capturing screenshots or
             re-pasting JSON.
@@ -5737,7 +5737,7 @@
           </div>
           <p class="settings-help">
             Auto-load a club crest or league/competition logo straight from FM's graphics
-            folder by ID — handy if you're using a custom logo pack. You can also just click
+            folder by ID. Handy if you're using a custom logo pack. You can also just click
             the crest in the hero card to upload an image directly.
           </p>
           <button class="mini-btn" id="connect-fm-folder">Connect FM folder</button>
@@ -5773,7 +5773,7 @@
           </div>
           <p class="settings-help">
             An attribute below this value counts as a squad-wide gap on the Tactics and
-            Squad Breakdown pages — lower it for a weaker squad, raise it if you expect more.
+            Squad Breakdown pages. Lower it for a weaker squad, raise it if you expect more.
             One value applies across the whole app.
           </p>
           <div class="gap-threshold-control">
@@ -6784,7 +6784,7 @@
       best-fit recommended player from your squad. The two pitches show this tactic's
       different shapes in and out of possession — squad-wide gaps for each are in the
       two tiles below.`;
-    const BUILDER_TACTIC_NOTE = `This is the XI the Tactic Builder assigned — built independently for each phase, same
+    const BUILDER_TACTIC_NOTE = `This is the XI the Tactic Builder assigned, built independently for each phase, same
       as a real FM tactic needs. Click a position for its key attributes and who's been
       assigned. Squad-wide gaps for whichever tactic is active are in the two tiles below.
       Build a different tactic any time from the Tactic Builder page.`;
@@ -7201,7 +7201,7 @@
         rolesB: ['Inside Wing-Back'],
         sameSide: false,
         label: 'Half Back + Inside Wing-Back',
-        tip: 'The Half Back drops between the centre-backs to form a back three while the Inside Wing-Backs invert into a double pivot — a very secure 3-2 build-up shape.',
+        tip: 'The Half Back drops between the centre-backs to form a back three while the Inside Wing-Backs invert into a double pivot: a very secure 3-2 build-up shape.',
         diagram: {
           roleA: { label: 'HB', from: { x: 60, y: 58 }, to: { x: 60, y: 82 } },
           roleB: { label: 'IWB', from: { x: 14, y: 52 }, to: { x: 32, y: 56 } }
@@ -7256,7 +7256,7 @@
         rolesB: ['Defensive Midfielder'],
         sameSide: false,
         label: 'Box-to-Box Midfielder + Defensive Midfielder',
-        tip: 'The DM stays deep as insurance while the BBM makes late bursting runs into the box — dynamic attacking threat without leaving the defence exposed.',
+        tip: 'The DM stays deep as insurance while the BBM makes late bursting runs into the box: dynamic attacking threat without leaving the defence exposed.',
         diagram: {
           roleA: { label: 'BBM', from: { x: 38, y: 50 }, to: { x: 38, y: 18 } },
           roleB: { label: 'DM', from: { x: 66, y: 66 }, to: null }
@@ -7462,7 +7462,7 @@
           </div>
         </div>
       `).join('');
-      openGapsModal(`Role Synergy — ${found.length} Detected`, bodyHtml);
+      openGapsModal(`Role Synergy: ${found.length} Detected`, bodyHtml);
     }
 
     // How much roleFitScore we're willing to give up on a slot's own best-fitting role in
@@ -8419,7 +8419,7 @@
 
     if (!('showDirectoryPicker' in window)) {
       connectBtn.disabled = true;
-      connectBtn.title = 'Needs Chrome or Edge — not supported in this browser';
+      connectBtn.title = 'Needs Chrome or Edge (not supported in this browser)';
       crestStatus.textContent = 'Folder auto-lookup needs Chrome/Edge. Use the crest click-to-upload instead.';
     }
 
@@ -8649,7 +8649,7 @@
             await saveDirHandle(fmGraphicsDirHandle);
             return;
           }
-          crestStatus.textContent = 'Permission not granted for the remembered folder — pick a folder below instead.';
+          crestStatus.textContent = 'Permission not granted for the remembered folder. Pick a folder below instead.';
           fmGraphicsDirHandle = null;
         }
         const handle = await window.showDirectoryPicker();
@@ -8684,7 +8684,7 @@
         }
       } catch (e) { /* handle from a previous browser/profile — ignore, fall through */ }
       connectBtn.textContent = 'Reconnect FM folder';
-      crestStatus.textContent = 'FM folder remembered — click to reconnect (one click, no need to re-browse).';
+      crestStatus.textContent = 'FM folder remembered. Click to reconnect (one click, no need to re-browse).';
       if (fmCrestMap) {
         crestIdRow.style.display = 'flex';
         leagueLogoIdRow.style.display = 'flex';
@@ -8751,8 +8751,8 @@
       // No mapping, or the mapping's path didn't resolve to a real file — fall back to
       // searching the whole tree by filename.
       statusEl.textContent = rawPath
-        ? `Found a mapping for ID ${id} but not at the expected path — searching the whole folder...`
-        : `No ${label} mapping for ID ${id} — searching the whole folder by filename...`;
+        ? `Found a mapping for ID ${id} but not at the expected path. Searching the whole folder...`
+        : `No ${label} mapping for ID ${id}. Searching the whole folder by filename...`;
       try {
         const idVariants = idSuffixes.map(suffix => id + suffix);
         const fileHandle = await findFileByIdInTree(fmGraphicsDirHandle, idVariants, extensions);
@@ -9625,7 +9625,7 @@
         const reader = new FileReader();
         reader.onload = () => {
           textareaEl.value = reader.result;
-          setImportStatusFor(statusEl, `Loaded "${file.name}" — click "Validate" to check it, then "Import &amp; Reload" to apply.`, null);
+          setImportStatusFor(statusEl, `Loaded "${file.name}". Click "Validate" to check it, then "Import &amp; Reload" to apply.`, null);
         };
         reader.onerror = () => setImportStatusFor(statusEl, 'Could not read that file.', 'error');
         reader.readAsText(file);
@@ -9638,14 +9638,14 @@
       if (error) { setImportStatus(error, 'error'); return; }
       if (isFullBackupShape(data)) {
         const club = data.importedSaveData && data.importedSaveData.club;
-        setImportStatus(`This is a Full Backup file${club && club.name ? ' (' + club.name + ')' : ''} — it also restores the scouting shortlist, position groups, Tactic Builder tactic, crest/kit images and gap threshold, not just club data. Click "Import &amp; Reload" to restore all of it.`, 'ok');
+        setImportStatus(`This is a Full Backup file${club && club.name ? ' (' + club.name + ')' : ''}. It also restores the scouting shortlist, position groups, Tactic Builder tactic, crest/kit images and gap threshold, not just club data. Click "Import &amp; Reload" to restore all of it.`, 'ok');
         return;
       }
       const errors = validateClubImportData(data);
       if (errors.length) {
         setImportStatus(`Found ${errors.length} issue(s):<br>` + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
       } else {
-        setImportStatus(`Looks good — club "${data.club.name}". Click "Import &amp; Reload" to apply.`, 'ok');
+        setImportStatus(`Looks good: club "${data.club.name}". Click "Import &amp; Reload" to apply.`, 'ok');
       }
     });
 
@@ -9655,9 +9655,9 @@
 
       if (isFullBackupShape(data)) {
         const ok = confirm(
-          'This is a Full Backup file. Restore it? It overwrites everything currently stored — ' +
+          'This is a Full Backup file. Restore it? It overwrites everything currently stored: ' +
           'the imported save, scouted shortlist, position group overrides, Tactic Builder\'s ' +
-          'tactic, crest, kit images and Attribute Threshold — with what\'s in the file. This ' +
+          'tactic, crest, kit images and Attribute Threshold, with what\'s in the file. This ' +
           'can\'t be undone.'
         );
         if (!ok) return;
@@ -9670,7 +9670,7 @@
 
       const errors = validateClubImportData(data);
       if (errors.length) {
-        setImportStatus('Cannot import — fix these first:<br>' + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
+        setImportStatus('Cannot import. Fix these first:<br>' + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
         return;
       }
       // Merges onto whatever squad/tactic data is already stored, rather than replacing the
@@ -9686,7 +9686,7 @@
 
     document.getElementById('import-load-example-btn').addEventListener('click', () => {
       importTextarea.value = JSON.stringify(IMPORT_EXAMPLE_TEMPLATE, null, 2);
-      setImportStatus('Example template loaded — replace the placeholder values with your own club data, following the same shape.', null);
+      setImportStatus('Example template loaded. Replace the placeholder values with your own club data, following the same shape.', null);
     });
 
     wireImportFileUpload('import-upload-btn', 'import-file-input', importTextarea, importStatus);
@@ -9712,7 +9712,7 @@
       const ok = confirm(
         'Clear all save data? This removes the imported save, scouted shortlist, uploaded ' +
         'performance data, position group overrides, Tactic Builder\'s built tactic, and the ' +
-        'uploaded club crest, kit images and league logo — back to a genuinely empty app ' +
+        'uploaded club crest, kit images and league logo, back to a genuinely empty app ' +
         '(not the Metalul Buzău example) ready for a fresh import. Use "Save Full Backup" ' +
         'first if you want to restore the current save later. This can\'t be undone.'
       );
@@ -9731,7 +9731,7 @@
       localStorage.removeItem(KIT_STORAGE_KEYS.third);
       localStorage.setItem(BLANK_SLATE_STORAGE_KEY, 'true');
 
-      setImportStatus('Cleared — reloading to a blank slate...', 'ok');
+      setImportStatus('Cleared. Reloading to a blank slate...', 'ok');
       location.reload();
     });
 
@@ -9763,14 +9763,14 @@
       if (error) { setImportStatusFor(landingImportStatus, error, 'error'); return; }
       if (isFullBackupShape(data)) {
         const club = data.importedSaveData && data.importedSaveData.club;
-        setImportStatusFor(landingImportStatus, `This is a Full Backup file${club && club.name ? ' (' + club.name + ')' : ''} — it also restores the scouting shortlist, position groups, Tactic Builder tactic, crest/kit images and gap threshold, not just club data. Click "Import &amp; Reload" to restore all of it.`, 'ok');
+        setImportStatusFor(landingImportStatus, `This is a Full Backup file${club && club.name ? ' (' + club.name + ')' : ''}. It also restores the scouting shortlist, position groups, Tactic Builder tactic, crest/kit images and gap threshold, not just club data. Click "Import &amp; Reload" to restore all of it.`, 'ok');
         return;
       }
       const errors = validateClubImportData(data);
       if (errors.length) {
         setImportStatusFor(landingImportStatus, `Found ${errors.length} issue(s):<br>` + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
       } else {
-        setImportStatusFor(landingImportStatus, `Looks good — club "${data.club.name}". Click "Import &amp; Reload" to apply.`, 'ok');
+        setImportStatusFor(landingImportStatus, `Looks good: club "${data.club.name}". Click "Import &amp; Reload" to apply.`, 'ok');
       }
     });
 
@@ -9780,9 +9780,9 @@
 
       if (isFullBackupShape(data)) {
         const ok = confirm(
-          'This is a Full Backup file. Restore it? It overwrites everything currently stored — ' +
+          'This is a Full Backup file. Restore it? It overwrites everything currently stored: ' +
           'the imported save, scouted shortlist, position group overrides, Tactic Builder\'s ' +
-          'tactic, crest, kit images and Attribute Threshold — with what\'s in the file. This ' +
+          'tactic, crest, kit images and Attribute Threshold, with what\'s in the file. This ' +
           'can\'t be undone.'
         );
         if (!ok) return;
@@ -9796,7 +9796,7 @@
 
       const errors = validateClubImportData(data);
       if (errors.length) {
-        setImportStatusFor(landingImportStatus, 'Cannot import — fix these first:<br>' + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
+        setImportStatusFor(landingImportStatus, 'Cannot import. Fix these first:<br>' + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
         return;
       }
       runImportThenReload(landingImportStatus, 'Importing…', () => {
@@ -9808,7 +9808,7 @@
 
     document.getElementById('landing-import-load-example-btn').addEventListener('click', () => {
       landingImportTextarea.value = JSON.stringify(IMPORT_EXAMPLE_TEMPLATE, null, 2);
-      setImportStatusFor(landingImportStatus, 'Example template loaded — replace the placeholder values with your own club data, following the same shape.', null);
+      setImportStatusFor(landingImportStatus, 'Example template loaded. Replace the placeholder values with your own club data, following the same shape.', null);
     });
 
     wireImportFileUpload('landing-import-upload-btn', 'landing-import-file-input', landingImportTextarea, landingImportStatus);
@@ -9833,8 +9833,8 @@
     // three different boxes all accept a pasted JSON object — flagged as a hint, not an error,
     // since validateSquadImportData() itself doesn't treat data.club as invalid.
     function clubHintSuffix(data) {
-      if (isFullBackupShape(data)) return '<br><br>This looks like a Full Backup file — restore it from Settings &gt; Save / Load Full Backup instead.';
-      if (data && data.club) return '<br><br>This also has a "club" object in it — club data has its own import on the landing page or Settings.';
+      if (isFullBackupShape(data)) return '<br><br>This looks like a Full Backup file. Restore it from Settings &gt; Save / Load Full Backup instead.';
+      if (data && data.club) return '<br><br>This also has a "club" object in it. Club data has its own import on the landing page or Settings.';
       return '';
     }
 
@@ -9845,7 +9845,7 @@
       if (errors.length) {
         setImportStatusFor(squadImportStatus, `Found ${errors.length} issue(s):<br>` + errors.map(e => '&bull; ' + e).join('<br>') + clubHintSuffix(data), 'error');
       } else {
-        setImportStatusFor(squadImportStatus, `Looks good — ${data.squad.length} player(s). Click "Import &amp; Reload" to apply.` + clubHintSuffix(data), 'ok');
+        setImportStatusFor(squadImportStatus, `Looks good: ${data.squad.length} player(s). Click "Import &amp; Reload" to apply.` + clubHintSuffix(data), 'ok');
       }
     });
 
@@ -9854,7 +9854,7 @@
       if (error) { setImportStatusFor(squadImportStatus, error, 'error'); return; }
       const errors = validateSquadImportData(data);
       if (errors.length) {
-        setImportStatusFor(squadImportStatus, 'Cannot import — fix these first:<br>' + errors.map(e => '&bull; ' + e).join('<br>') + clubHintSuffix(data), 'error');
+        setImportStatusFor(squadImportStatus, 'Cannot import. Fix these first:<br>' + errors.map(e => '&bull; ' + e).join('<br>') + clubHintSuffix(data), 'error');
         return;
       }
       // Merges the whole parsed object (not just a manually-picked "squad" subset) — a plain
@@ -9869,7 +9869,7 @@
 
     document.getElementById('squad-import-load-example-btn').addEventListener('click', () => {
       squadImportTextarea.value = JSON.stringify(SQUAD_IMPORT_EXAMPLE_TEMPLATE, null, 2);
-      setImportStatusFor(squadImportStatus, 'Example template loaded — replace the placeholder values with your own squad data, following the same shape.', null);
+      setImportStatusFor(squadImportStatus, 'Example template loaded. Replace the placeholder values with your own squad data, following the same shape.', null);
     });
 
     wireImportFileUpload('squad-import-upload-btn', 'squad-import-file-input', squadImportTextarea, squadImportStatus);
@@ -9895,7 +9895,7 @@
       if (errors.length) {
         setImportStatusFor(tacticsImportStatus, `Found ${errors.length} issue(s):<br>` + errors.map(e => '&bull; ' + e).join('<br>') + clubHintSuffix(data), 'error');
       } else {
-        setImportStatusFor(tacticsImportStatus, `Looks good — ${data.tacticIP.length} position(s). Click "Import &amp; Reload" to apply.` + clubHintSuffix(data), 'ok');
+        setImportStatusFor(tacticsImportStatus, `Looks good: ${data.tacticIP.length} position(s). Click "Import &amp; Reload" to apply.` + clubHintSuffix(data), 'ok');
       }
     });
 
@@ -9904,7 +9904,7 @@
       if (error) { setImportStatusFor(tacticsImportStatus, error, 'error'); return; }
       const errors = validateTacticImportData(data);
       if (errors.length) {
-        setImportStatusFor(tacticsImportStatus, 'Cannot import — fix these first:<br>' + errors.map(e => '&bull; ' + e).join('<br>') + clubHintSuffix(data), 'error');
+        setImportStatusFor(tacticsImportStatus, 'Cannot import. Fix these first:<br>' + errors.map(e => '&bull; ' + e).join('<br>') + clubHintSuffix(data), 'error');
         return;
       }
       // Same reasoning as the squad box above — merge the whole parsed object, not a
@@ -9918,7 +9918,7 @@
 
     document.getElementById('tactics-import-load-example-btn').addEventListener('click', () => {
       tacticsImportTextarea.value = JSON.stringify(TACTIC_IMPORT_EXAMPLE_TEMPLATE, null, 2);
-      setImportStatusFor(tacticsImportStatus, 'Example template loaded — replace the placeholder values with your own tactic data, following the same shape.', null);
+      setImportStatusFor(tacticsImportStatus, 'Example template loaded. Replace the placeholder values with your own tactic data, following the same shape.', null);
     });
 
     wireImportFileUpload('tactics-import-upload-btn', 'tactics-import-file-input', tacticsImportTextarea, tacticsImportStatus);
@@ -10095,7 +10095,7 @@
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      setBackupStatus(`Saved ${filename} — keep it somewhere safe; "Load Backup File" below restores everything from it.`, 'ok');
+      setBackupStatus(`Saved ${filename}. Keep it somewhere safe; "Load Backup File" below restores everything from it.`, 'ok');
     });
 
     document.getElementById('backup-load-btn').addEventListener('click', () => {
@@ -10112,20 +10112,20 @@
         try {
           backup = JSON.parse(reader.result);
         } catch (err) {
-          setBackupStatus('That file isn\'t valid JSON — pick a backup file saved from this page\'s "Save Full Backup" button.', 'error');
+          setBackupStatus('That file isn\'t valid JSON. Pick a backup file saved from this page\'s "Save Full Backup" button.', 'error');
           e.target.value = '';
           return;
         }
         if (!backup || typeof backup !== 'object' || !backup._meta || backup._meta.app !== 'FM Command Centre') {
-          setBackupStatus('That doesn\'t look like an FM Command Centre backup file — pick one saved from "Save Full Backup".', 'error');
+          setBackupStatus('That doesn\'t look like an FM Command Centre backup file. Pick one saved from "Save Full Backup".', 'error');
           e.target.value = '';
           return;
         }
 
         const ok = confirm(
-          'Load this backup? It overwrites everything currently stored — the imported save, ' +
+          'Load this backup? It overwrites everything currently stored: the imported save, ' +
           'scouted shortlist, position group overrides, Tactic Builder\'s tactic, crest, and ' +
-          'Attribute Threshold — with what\'s in the file. This can\'t be undone.'
+          'Attribute Threshold, with what\'s in the file. This can\'t be undone.'
         );
         e.target.value = ''; // reset so picking the same file again still fires 'change'
         if (!ok) return;
@@ -10592,8 +10592,8 @@
       let reason;
       if (isHeadcountGap) {
         reason = g.groupPlayers.length === 0
-          ? 'No senior cover at all — recommend prioritising this position.'
-          : 'Only one recognised option — a good position to scout backup for.';
+          ? 'No senior cover at all. Prioritise this position.'
+          : 'Only one recognised option. A good position to scout backup for.';
       } else {
         // Key and Preferred each get their own line (see .gap-attrs-line) rather than
         // being run together — same layout as the Tactics gap rows.
@@ -10660,7 +10660,7 @@
           <div class="filter-criteria-position"><strong>Position:</strong> ${positionLabel}</div>
           ${roleLine}
           ${note ? `<div class="filter-criteria-note">${note}</div>` : ''}
-          ${sections.join('') || '<div class="position-detail-empty">No specific attribute shortfall — any senior-quality option for this position would help.</div>'}
+          ${sections.join('') || '<div class="position-detail-empty">No specific attribute shortfall. Any senior-quality option for this position would help.</div>'}
           <div class="filter-criteria-howto">${howto}</div>
         </div>
       `;
@@ -10681,14 +10681,14 @@
         weakKey = g.quality.weakKey;
         weakPreferred = g.quality.weakPreferred;
         note = isHeadcountGap
-          ? `This position is also short on numbers — even players who clear these attributes are worth signing as backup.`
+          ? `This position is also short on numbers. Even players who clear these attributes are worth signing as backup.`
           : null;
       } else {
         // Pure headcount gap with no attribute data to react to yet — fall back to the
         // group's own reference Key/Preferred attributes as a sensible baseline to filter for.
         weakKey = def.keyAttributes.map(name => ({ name }));
         weakPreferred = (def.preferredAttributes || []).map(name => ({ name }));
-        note = `This is a squad-depth gap rather than a specific attribute shortfall — use ${gapThreshold}+ across this position's usual Key/Preferred attributes as a starting baseline.`;
+        note = `This is a squad-depth gap rather than a specific attribute shortfall. Use ${gapThreshold}+ across this position's usual Key/Preferred attributes as a starting baseline.`;
       }
 
       const html = buildFilterCriteriaHtml(positionLabel, weakKey, weakPreferred, note);
@@ -10771,7 +10771,7 @@
         .sort((a, b) => POSITION_GROUP_ORDER.indexOf(a.name) - POSITION_GROUP_ORDER.indexOf(b.name));
 
       if (focusAreas.length === 0) {
-        focusList.innerHTML = `<div class="scouting-focus-empty">No headcount or attribute gaps right now (threshold: ${gapThreshold}) — every position has adequate cover and clears the bar.</div>`;
+        focusList.innerHTML = `<div class="scouting-focus-empty">No headcount or attribute gaps right now (threshold: ${gapThreshold}). Every position has adequate cover and clears the bar.</div>`;
         return;
       }
 
@@ -10929,7 +10929,7 @@
       const focus = computeScoutingFocus(players, 3);
 
       if (focus.length === 0) {
-        list.innerHTML = '<div class="improvement-row empty">No pressing needs right now — squad looks well covered.</div>';
+        list.innerHTML = '<div class="improvement-row empty">No pressing needs right now. Squad looks well covered.</div>';
         return;
       }
 
@@ -11376,7 +11376,7 @@
       const currentOverride = slot.playerOverride || '';
       const playerOptionHtml = p => {
         const score = roleFitScore(p, profile);
-        return `<option value="${p.name}" ${p.name === currentOverride ? 'selected' : ''}>${p.name} (${score.toFixed(1)} — ${fitScoreLabel(score).text})</option>`;
+        return `<option value="${p.name}" ${p.name === currentOverride ? 'selected' : ''}>${p.name} (${score.toFixed(1)}: ${fitScoreLabel(score).text})</option>`;
       };
       const playerOptions = `
         <option value="">&mdash; Leave unassigned &mdash;</option>
@@ -11417,7 +11417,7 @@
         </div>
       ` : `
         <div class="rec-player-label">Assigned Player</div>
-        <div class="detail-placeholder">No player is assigned to this slot — pick one above, or run Recommend Formation to auto-fill it.</div>
+        <div class="detail-placeholder">No player is assigned to this slot. Pick one above, or run Recommend Formation to auto-fill it.</div>
       `;
 
       detail.innerHTML = `
@@ -11508,7 +11508,7 @@
       if (!el) return;
       const found = detectRoleSynergies(slots);
       if (!found.length) {
-        el.innerHTML = '<div class="tb-synergy-empty">No known role synergies detected yet in this formation — try Recommend Roles, or see the fit score above for role ideas.</div>';
+        el.innerHTML = '<div class="tb-synergy-empty">No known role synergies detected yet in this formation. Try Recommend Roles, or see the fit score above for role ideas.</div>';
         el.classList.remove('clickable');
         el.onclick = null;
         return;
@@ -11694,11 +11694,11 @@
         const profile = ROLE_ATTRIBUTES[g.roleName] || { key: [], preferred: [] };
         weakKey = profile.key.map(name => ({ name }));
         weakPreferred = (profile.preferred || []).map(name => ({ name }));
-        note = `No eligible player currently fills this slot at all — use ${gapThreshold}+ across this role's usual Key/Preferred attributes as a starting baseline.`;
+        note = `No eligible player currently fills this slot at all. Use ${gapThreshold}+ across this role's usual Key/Preferred attributes as a starting baseline.`;
       }
 
       const html = buildFilterCriteriaHtml(g.position, weakKey, weakPreferred, note, g.roleName);
-      openGapsModal(`${g.position} · ${g.roleName} — Filter Criteria`, html);
+      openGapsModal(`${g.position} · ${g.roleName}: Filter Criteria`, html);
     }
 
     // Attaches click handlers to already-rendered .gap-row elements, positionally matched to
@@ -11951,7 +11951,7 @@
       const combined = [...ipTop, ...oopTop];
 
       if (combined.length === 0) {
-        list.innerHTML = '<div class="improvement-row empty">No pressing needs right now — every role clears the bar.</div>';
+        list.innerHTML = '<div class="improvement-row empty">No pressing needs right now. Every role clears the bar.</div>';
         return;
       }
 
@@ -12020,7 +12020,7 @@
       const gapRows = computeTacticGapRows(roles);
 
       if (gapRows.length === 0) {
-        list.innerHTML = `<div class="gap-empty">No squad-wide gaps found at a threshold of ${gapThreshold} — every position has at least one eligible player who clears ${gapThreshold}+ in each attribute the role needs.</div>`;
+        list.innerHTML = `<div class="gap-empty">No squad-wide gaps found at a threshold of ${gapThreshold}. Every position has at least one eligible player who clears ${gapThreshold}+ in each attribute the role needs.</div>`;
         return;
       }
 
@@ -12104,7 +12104,7 @@
     // been pasted in.
     function buildLeagueTableHtml() {
       if (!leagueTableData || leagueTableData.length === 0) {
-        return `<div class="empty-state"><div class="icon">&#127942;</div>Full league table not captured yet — only ${document.getElementById('hero-club-name').textContent || 'your club'}'s own row (above) is available.</div>`;
+        return `<div class="empty-state"><div class="icon">&#127942;</div>Full league table not captured yet. Only ${document.getElementById('hero-club-name').textContent || 'your club'}'s own row (above) is available.</div>`;
       }
       const ourClub = (document.getElementById('hero-club-name').textContent || '').trim().toLowerCase();
       const rows = leagueTableData.map(r => {
@@ -12806,7 +12806,7 @@
       if (mission.maxValueM) ceilingParts.push(`£${mission.maxValueM}M-`);
       const ceilingText = ceilingParts.length ? ` (${ceilingParts.join(', ')})` : '';
 
-      openGapsModal(`${mission.role}${ceilingText} — Candidates`, buildMissionCandidatesHtml(mission));
+      openGapsModal(`${mission.role}${ceilingText}: Candidates`, buildMissionCandidatesHtml(mission));
 
       document.getElementById('gaps-modal-body').querySelectorAll('.mission-candidate-row').forEach(row => {
         row.addEventListener('click', () => openScoutProfile(parseInt(row.dataset.index, 10)));
@@ -12826,7 +12826,7 @@
       const listEl = document.getElementById('recruitment-missions-list');
       if (!listEl) return;
       if (recruitmentMissions.length === 0) {
-        listEl.innerHTML = '<div class="scout-tile-empty">No missions yet — set a role/age/wage target above to track candidates against it.</div>';
+        listEl.innerHTML = '<div class="scout-tile-empty">No missions yet. Set a role/age/wage target above to track candidates against it.</div>';
         return;
       }
       const priorityOrder = { high: 0, medium: 1, low: 2 };
@@ -12841,7 +12841,7 @@
         if (m.maxWageK) ceilingParts.push(`£${m.maxWageK}K-`);
         if (m.maxValueM) ceilingParts.push(`£${m.maxValueM}M-`);
         const ceilingText = ceilingParts.length ? ` (${ceilingParts.join(', ')})` : '';
-        const bestText = evalResult.best ? ` — best: ${evalResult.best.name}` : '';
+        const bestText = evalResult.best ? ` (best: ${evalResult.best.name})` : '';
         return `
           <div class="mission-row" data-mission-index="${i}">
             <div class="mission-row-main">
@@ -13113,7 +13113,7 @@
       if (errors.length) {
         setScoutImportStatus(`Found ${errors.length} issue(s):<br>` + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
       } else {
-        setScoutImportStatus(`Looks good — ${parsed.length} player(s). Click "Add to Shortlist" to apply.`, 'ok');
+        setScoutImportStatus(`Looks good: ${parsed.length} player(s). Click "Add to Shortlist" to apply.`, 'ok');
       }
     });
 
@@ -13145,7 +13145,7 @@
 
     document.getElementById('scout-load-example-btn').addEventListener('click', () => {
       scoutTextarea.value = JSON.stringify(SCOUT_EXAMPLE_TEMPLATE, null, 2);
-      setScoutImportStatus('Example template loaded — replace with your own scouted player(s) in the same shape, then click "Add to Shortlist".', null);
+      setScoutImportStatus('Example template loaded. Replace with your own scouted player(s) in the same shape, then click "Add to Shortlist".', null);
     });
 
     // Scouted-player detail modal — mirrors openPlayerProfile's structure (same attribute
@@ -13212,7 +13212,7 @@
       const formationLabel = getActiveTacticFormationLabel();
       let tacticFitInner;
       if (tacticFit.noTactic) {
-        tacticFitInner = `No tactic set yet — visit Tactical Analysis to pick or build one.`;
+        tacticFitInner = `No tactic set yet. Visit Tactical Analysis to pick or build one.`;
       } else if (tacticFit.noAttributes) {
         tacticFitInner = `Fit against the active tactic (<strong>${formationLabel}</strong>) needs attribute data, not captured yet for this player.`;
       } else if (!tacticFit.best) {
@@ -13230,7 +13230,7 @@
         const weakAttrsHtml = (label.text !== 'Very Suited' && weakAttrs.length)
           ? `<div class="scout-tactic-fit-weak">Held back by <strong>${weakAttrs.join(', ')}</strong>.</div>`
           : '';
-        tacticFitInner = `<div>Best role in <strong>${formationLabel}</strong>: <strong>${tacticFit.best.roleName}</strong> (${tacticFit.best.position}) — <span class="scout-tactic-fit-highlight ${label.cls}">${label.text}</span>.</div>${weakAttrsHtml}`;
+        tacticFitInner = `<div>Best role in <strong>${formationLabel}</strong>: <strong>${tacticFit.best.roleName}</strong> (${tacticFit.best.position}): <span class="scout-tactic-fit-highlight ${label.cls}">${label.text}</span>.</div>${weakAttrsHtml}`;
       }
       const tacticFitLineHtml = `<div class="scout-tactic-fit-line" id="sm-tactic-fit">${tacticFitInner}</div>`;
 
@@ -13259,9 +13259,9 @@
         const isHeadcountGap = e.status.key === 'critical' || e.status.key === 'thin';
         let needLine;
         if (isHeadcountGap) {
-          needLine = `Squad status in <strong>${e.groupName}</strong>: <strong>${e.status.label}</strong> — <span class="scout-addresses-gap">this player would help fill that gap</span>.`;
+          needLine = `Squad status in <strong>${e.groupName}</strong>: <strong>${e.status.label}</strong>. <span class="scout-addresses-gap">This player would help fill that gap</span>.`;
         } else if (e.weakAttrsHit.length) {
-          needLine = `Squad status in <strong>${e.groupName}</strong>: <strong>${e.status.label}</strong> on headcount, but the squad's current options are weak in ${e.weakAttrsHit.join(', ')} — <span class="scout-addresses-gap">this player would raise the level there</span>.`;
+          needLine = `Squad status in <strong>${e.groupName}</strong>: <strong>${e.status.label}</strong> on headcount, but the squad's current options are weak in ${e.weakAttrsHit.join(', ')}. <span class="scout-addresses-gap">This player would raise the level there</span>.`;
         } else {
           needLine = `Squad status in <strong>${e.groupName}</strong>: <strong>${e.status.label}</strong>.`;
         }
@@ -13861,7 +13861,7 @@
         : null;
 
       document.getElementById('performance-overview-modal-title').textContent =
-        `${cat.label} — Full Overview (${performanceSeason}, ${performanceLatestSnapshot.date})`;
+        `${cat.label}: Full Overview (${performanceSeason}, ${performanceLatestSnapshot.date})`;
 
       const { headHtml, bodyHtml } = buildPerformanceTableHtml(cat, players, prevByName);
       document.getElementById('performance-overview-table-head').innerHTML = headHtml;
@@ -14071,7 +14071,7 @@
         const topCrosser = crossers.slice().sort((a, b) => b.crossesAttempted - a.crossesAttempted)[0];
         const totalCrosses = crossers.reduce((sum, p) => sum + p.crossesAttempted, 0);
         if (topCrosser.crossesAttempted >= 100) {
-          assumptions.push(`<strong>${topCrosser.name}</strong> has attempted <strong>${topCrosser.crossesAttempted}</strong> crosses, well ahead of the rest of the squad — this suggests attacks are being funnelled through them on the flank fairly heavily.`);
+          assumptions.push(`<strong>${topCrosser.name}</strong> has attempted <strong>${topCrosser.crossesAttempted}</strong> crosses, well ahead of the rest of the squad. This suggests attacks are being funnelled through them on the flank fairly heavily.`);
         } else if (totalCrosses < 50) {
           assumptions.push(`Cross attempts are low across the board (highest is <strong>${topCrosser.name}</strong> with ${topCrosser.crossesAttempted}), suggesting the team builds attacks through the middle rather than from wide areas.`);
         }
@@ -14084,7 +14084,7 @@
         const topScorer = scorers.slice().sort((a, b) => b.goals - a.goals)[0];
         const share = totalGoals > 0 ? (topScorer.goals / totalGoals) * 100 : 0;
         if (share >= 30) {
-          assumptions.push(`<strong>${topScorer.name}</strong> accounts for <strong>${share.toFixed(0)}%</strong> of the squad's captured goals (${topScorer.goals} of ${totalGoals}) — the team may be over-reliant on one source of goals.`);
+          assumptions.push(`<strong>${topScorer.name}</strong> accounts for <strong>${share.toFixed(0)}%</strong> of the squad's captured goals (${topScorer.goals} of ${totalGoals}). The team may be over-reliant on one source of goals.`);
         }
       }
 
@@ -14104,8 +14104,8 @@
       if (categoryKey === 'goalkeeping' && keeperDiffs.length) {
         const totalApps = keeperDiffs.reduce((sum, p) => sum + p.apps, 0);
         const weightedDiff = totalApps > 0 ? keeperDiffs.reduce((sum, p) => sum + p.diff * p.apps, 0) / totalApps : 0;
-        const tone = weightedDiff >= 1.5 ? 'goalkeeping is outperforming the model — shot-stopping looks like a strength right now'
-          : weightedDiff <= -1.5 ? "goalkeeping is underperforming the model — shot-stopping is costing goals relative to expectation"
+        const tone = weightedDiff >= 1.5 ? 'goalkeeping is outperforming the model; shot-stopping looks like a strength right now'
+          : weightedDiff <= -1.5 ? "goalkeeping is underperforming the model; shot-stopping is costing goals relative to expectation"
           : "goalkeeping is broadly in line with the model's expectation";
         assumptions.push(`Across ${keeperDiffs.length} keeper${keeperDiffs.length === 1 ? '' : 's'} with a meaningful sample, Sv% is running <strong>${weightedDiff >= 0 ? '+' : ''}${weightedDiff.toFixed(1)}pts</strong> vs expected, suggesting ${tone}.`);
       }
@@ -14116,16 +14116,16 @@
         const totalShots = withConversion.reduce((sum, p) => sum + p.shots, 0);
         const tone = squadConversion >= 15 ? 'a clinical, high-conversion group in front of goal'
           : squadConversion >= 10 ? 'a fairly average conversion rate for the level'
-          : "a below-par conversion rate — chances are going down more often than they're being taken";
+          : "a below-par conversion rate; chances are going down more often than they're being taken";
         assumptions.push(`The squad is converting <strong>${squadConversion.toFixed(1)}%</strong> of shots (${totalGoals} goals from ${totalShots} shots, among players with 5+ shots), suggesting ${tone}.`);
       }
 
       if (!assumptions.length) {
         const fallbacks = {
-          attacking: "Not enough goal data yet to draw attacking assumptions — capture Goals for more players (30%+ share from one scorer is what this looks for) to see observations here.",
+          attacking: "Not enough goal data yet to draw attacking assumptions. Capture Goals for more players (30%+ share from one scorer is what this looks for) to see observations here.",
           goalkeeping: "Not enough goalkeeping appearances yet (need 3+ per keeper) to draw a squad-wide shot-stopping assumption.",
-          discipline: "Not enough tackling/fouls data captured yet to draw a discipline assumption — add Fouls Made and Tackles Attempted to see this here.",
-          generalplay: "Not enough passing or crossing data captured yet to draw general play assumptions — add Pass % and Crosses Attempted to see this here.",
+          discipline: "Not enough tackling/fouls data captured yet to draw a discipline assumption. Add Fouls Made and Tackles Attempted to see this here.",
+          generalplay: "Not enough passing or crossing data captured yet to draw general play assumptions. Add Pass % and Crosses Attempted to see this here.",
           goalattempts: "Not enough shot data yet (need 5+ shots per player) to draw a conversion-rate assumption.",
         };
         assumptions.push(fallbacks[categoryKey] || 'Not enough data captured yet to draw an assumption for this category.');
@@ -14135,7 +14135,7 @@
       if (categoryKey === 'attacking' && underperformers.length) {
         const names = underperformers.map(p => `${p.name} (${p.goals} goals from ${p.xG.toFixed(1)} xG)`).join(', ');
         improvements.push({
-          text: `Finishing looks like a coaching priority for: <strong>${names}</strong> — each is scoring meaningfully below the chances they're getting.`,
+          text: `Finishing looks like a coaching priority for: <strong>${names}</strong>. Each is scoring meaningfully below the chances they're getting.`,
           players: underperformers.map(p => p.name),
         });
       }
@@ -14144,7 +14144,7 @@
       if (categoryKey === 'goalkeeping' && gkUnder.length) {
         const names = gkUnder.map(p => `${p.name} (${p.diff.toFixed(1)}pts below expected)`).join(', ');
         improvements.push({
-          text: `Shot-stopping is underperforming the model for: <strong>${names}</strong> — worth a look at goalkeeping coaching or confidence.`,
+          text: `Shot-stopping is underperforming the model for: <strong>${names}</strong>. Worth a look at goalkeeping coaching or confidence.`,
           players: gkUnder.map(p => p.name),
         });
       }
@@ -14155,7 +14155,7 @@
         const backup = keepersWithApps[1];
         if (typeof backup.svPct === 'number' && typeof starter.svPct === 'number' && (starter.svPct - backup.svPct) >= 8) {
           improvements.push({
-            text: `There's a meaningful save-percentage gap between ${starter.name} (${starter.svPct}%) and backup ${backup.name} (${backup.svPct}%) — goalkeeping depth looks like a squad-building priority if ${starter.name} picks up an injury or suspension.`,
+            text: `There's a meaningful save-percentage gap between ${starter.name} (${starter.svPct}%) and backup ${backup.name} (${backup.svPct}%). Goalkeeping depth looks like a squad-building priority if ${starter.name} picks up an injury or suspension.`,
             players: [starter.name, backup.name],
           });
         }
@@ -14167,7 +14167,7 @@
       if (categoryKey === 'discipline' && dirtyTacklers.length) {
         const worst = dirtyTacklers[0];
         improvements.push({
-          text: `<strong>${worst.name}</strong> commits more fouls (${worst.foulsMade}) than successful tackles (${worst.tacklesWon}) — their tackle timing/discipline looks like a training focus.`,
+          text: `<strong>${worst.name}</strong> commits more fouls (${worst.foulsMade}) than successful tackles (${worst.tacklesWon}). Their tackle timing/discipline looks like a training focus.`,
           players: [worst.name],
         });
       }
@@ -14177,7 +14177,7 @@
         const worstPasser = passers.filter(p => p.passesAttempted >= 100).sort((a, b) => a.passPct - b.passPct)[0];
         if (worstPasser && worstPasser.passPct < 85) {
           improvements.push({
-            text: `<strong>${worstPasser.name}</strong>'s pass completion (${worstPasser.passPct.toFixed(0)}%) is the weakest among regular passers — distribution under pressure may be worth targeting in training.`,
+            text: `<strong>${worstPasser.name}</strong>'s pass completion (${worstPasser.passPct.toFixed(0)}%) is the weakest among regular passers. Distribution under pressure may be worth targeting in training.`,
             players: [worstPasser.name],
           });
         }
@@ -14187,7 +14187,7 @@
       if (categoryKey === 'goalattempts' && conversionUnder.length) {
         const names = conversionUnder.map(p => `${p.name} (${p.conversion.toFixed(0)}% from ${p.shots} shots)`).join(', ');
         improvements.push({
-          text: `Conversion rate looks like a concern for: <strong>${names}</strong> — well below the squad's own average of ${squadConversion.toFixed(1)}%.`,
+          text: `Conversion rate looks like a concern for: <strong>${names}</strong>, well below the squad's own average of ${squadConversion.toFixed(1)}%.`,
           players: conversionUnder.map(p => p.name),
         });
       }
@@ -14197,7 +14197,7 @@
         const rate = (worstPenTaker.pensScored / worstPenTaker.pensTaken) * 100;
         if (rate < 70) {
           improvements.push({
-            text: `<strong>${worstPenTaker.name}</strong> has scored ${worstPenTaker.pensScored} of ${worstPenTaker.pensTaken} penalties (${rate.toFixed(0)}%) — penalty-taking reliability looks worth addressing.`,
+            text: `<strong>${worstPenTaker.name}</strong> has scored ${worstPenTaker.pensScored} of ${worstPenTaker.pensTaken} penalties (${rate.toFixed(0)}%). Penalty-taking reliability looks worth addressing.`,
             players: [worstPenTaker.name],
           });
         }
@@ -14207,18 +14207,18 @@
       if (categoryKey === 'goalattempts' && droughts.length) {
         const worstDrought = droughts[0];
         improvements.push({
-          text: `<strong>${worstDrought.name}</strong> hasn't scored in ${worstDrought.minsSinceLastGoal} minutes despite regular shot volume — a finishing drought worth monitoring.`,
+          text: `<strong>${worstDrought.name}</strong> hasn't scored in ${worstDrought.minsSinceLastGoal} minutes despite regular shot volume, a finishing drought worth monitoring.`,
           players: [worstDrought.name],
         });
       }
 
       if (!improvements.length) {
         const fallbacks = {
-          attacking: 'No clear finishing concerns stood out from this snapshot — add more snapshots over time to spot developing trends.',
-          goalkeeping: 'No clear goalkeeping concerns stood out from this snapshot — add more snapshots over time to spot developing trends.',
-          discipline: 'No clear discipline concerns stood out from this snapshot — add more snapshots over time to spot developing trends.',
-          generalplay: 'No clear passing concerns stood out from this snapshot — add more snapshots over time to spot developing trends.',
-          goalattempts: 'No clear conversion, penalty, or drought concerns stood out from this snapshot — add more snapshots over time to spot developing trends.',
+          attacking: 'No clear finishing concerns stood out from this snapshot. Add more snapshots over time to spot developing trends.',
+          goalkeeping: 'No clear goalkeeping concerns stood out from this snapshot. Add more snapshots over time to spot developing trends.',
+          discipline: 'No clear discipline concerns stood out from this snapshot. Add more snapshots over time to spot developing trends.',
+          generalplay: 'No clear passing concerns stood out from this snapshot. Add more snapshots over time to spot developing trends.',
+          goalattempts: 'No clear conversion, penalty, or drought concerns stood out from this snapshot. Add more snapshots over time to spot developing trends.',
         };
         improvements.push({ text: fallbacks[categoryKey] || 'No clear improvement areas stood out from this snapshot.', players: [] });
       }
@@ -14230,8 +14230,8 @@
       const overUnderEmptyMessages = {
         attacking: 'Not enough shot data yet (need 5+ shots) to rank finishing over/underperformers.',
         goalkeeping: 'Not enough goalkeeping appearances yet (need 3+) to rank shot-stopping over/underperformers.',
-        discipline: 'Discipline has no expected-value baseline to rank over/underperformers against — see Areas for Improvement instead.',
-        generalplay: 'General Play has no expected-value baseline to rank over/underperformers against — see Areas for Improvement instead.',
+        discipline: 'Discipline has no expected-value baseline to rank over/underperformers against. See Areas for Improvement instead.',
+        generalplay: 'General Play has no expected-value baseline to rank over/underperformers against. See Areas for Improvement instead.',
         goalattempts: 'Not enough shot data yet (need 5+ shots) to rank conversion over/underperformers.',
       };
       if (categoryKey === 'attacking') {
@@ -14376,7 +14376,7 @@
       if (!performanceLatestSnapshot) return;
       const cat = PERFORMANCE_CATEGORIES[performanceCategory];
       const insights = computePerformanceInsights(performanceLatestSnapshot, performanceCategory);
-      openGapsModal(`Analysis — ${cat.label}`, buildPerformanceInsightsHtml(insights));
+      openGapsModal(`Analysis: ${cat.label}`, buildPerformanceInsightsHtml(insights));
       attachScoutSuggestionHandlers(document.getElementById('gaps-modal-body'));
     }
 
@@ -14393,7 +14393,7 @@
       const captionHtml = chartRows.length
         ? `<div class="perf-chart-caption">${buildPerformanceChartCaption(cat, chartRows.length, true)}</div>`
         : '';
-      openGapsModal(`Chart — ${cat.label}`, `${captionHtml}${buildPerformanceBarChartHtml(chartRows)}`);
+      openGapsModal(`Chart: ${cat.label}`, `${captionHtml}${buildPerformanceBarChartHtml(chartRows)}`);
     }
 
     function renderPerformanceHistory(snapshots) {
@@ -14497,7 +14497,7 @@
       performanceLatestSnapshot = snapshots[snapshots.length - 1];
       performancePreviousSnapshot = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
 
-      subtitle.textContent = `${performanceSeason} — latest snapshot: ${performanceLatestSnapshot.date} (${snapshots.length} snapshot${snapshots.length === 1 ? '' : 's'} this season, ${performanceLatestSnapshot.players.length} players)`;
+      subtitle.textContent = `${performanceSeason}, latest snapshot: ${performanceLatestSnapshot.date} (${snapshots.length} snapshot${snapshots.length === 1 ? '' : 's'} this season, ${performanceLatestSnapshot.players.length} players)`;
       document.getElementById('performance-latest-label').textContent = `- ${performanceLatestSnapshot.date}`;
 
       ensurePerformanceCategorySelect();
@@ -14535,7 +14535,7 @@
         setPerformanceImportStatus(`Found ${errors.length} issue(s):<br>` + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
       } else {
         const count = Array.isArray(parsed) ? parsed.length : 1;
-        setPerformanceImportStatus(`Looks good — ${count} snapshot(s). Click "Add Snapshot" to apply.`, 'ok');
+        setPerformanceImportStatus(`Looks good: ${count} snapshot(s). Click "Add Snapshot" to apply.`, 'ok');
       }
     });
 
@@ -14563,7 +14563,7 @@
 
     document.getElementById('performance-load-example-btn').addEventListener('click', () => {
       performanceTextarea.value = JSON.stringify(PERFORMANCE_EXAMPLE_TEMPLATE, null, 2);
-      setPerformanceImportStatus('Example template loaded — replace with your own captured snapshot (or an array of them) in the same shape, then click "Add Snapshot".', null);
+      setPerformanceImportStatus('Example template loaded. Replace with your own captured snapshot (or an array of them) in the same shape, then click "Add Snapshot".', null);
     });
 
     function openPerformanceAddModal() {

@@ -241,7 +241,7 @@ const gkInlineHtml = document.getElementById('performance-insights-content').inn
 check('inline Analysis tile has an Assumptions section', /Assumptions/.test(gkInlineHtml));
 check('inline Analysis tile has an Areas for Improvement section', /Areas for Improvement/.test(gkInlineHtml));
 check('inline Analysis tile has no Over/Under section (that stays behind the click)', !/Over \/ Underperforming/.test(gkInlineHtml));
-check('inline Analysis tile includes the goalkeeping depth-gap improvement naming both keepers', /Pol/.test(gkInlineHtml) && /goalkeeping depth/.test(gkInlineHtml));
+check('inline Analysis tile includes the goalkeeping depth-gap improvement naming both keepers', /Pol/.test(gkInlineHtml) && /Goalkeeping depth/.test(gkInlineHtml));
 check('inline Analysis tile does NOT show the Discipline dirty-tackler improvement', !/Michael Botha/.test(gkInlineHtml));
 check('inline Analysis tile has a "View full breakdown" button', /View full breakdown/.test(gkInlineHtml));
 check('goalkeeping depth-gap improvement suggests the shortlisted Scouted Keeper', /Scouted option/.test(gkInlineHtml) && /Scouted Keeper/.test(gkInlineHtml));
@@ -264,7 +264,7 @@ check('clicking the Analysis tile opens the shared gaps-modal', document.getElem
 check('the gaps-modal title names the Goalkeeping category', /Goalkeeping/.test(document.getElementById('gaps-modal-title').textContent));
 const gkModalHtml = document.getElementById('gaps-modal-body').innerHTML;
 check('goalkeeping full breakdown flags Sergio Acosta as underperforming xSv%', /Sergio Acosta/.test(gkModalHtml) && /underperforming xSv%/.test(gkModalHtml));
-check('goalkeeping full breakdown includes the depth-gap improvement naming both keepers', /Pol/.test(gkModalHtml) && /goalkeeping depth/.test(gkModalHtml));
+check('goalkeeping full breakdown includes the depth-gap improvement naming both keepers', /Pol/.test(gkModalHtml) && /Goalkeeping depth/.test(gkModalHtml));
 check('goalkeeping full breakdown does NOT show the Attacking category\'s over/underperformer labels', !/overperforming xG/.test(gkModalHtml) && !/underperforming xG/.test(gkModalHtml));
 check('goalkeeping full breakdown does NOT show the Discipline dirty-tackler improvement', !/Michael Botha/.test(gkModalHtml));
 check('goalkeeping full breakdown also carries the scouted-keeper suggestion', /Scouted Keeper/.test(gkModalHtml));
@@ -383,7 +383,7 @@ closeGapsModal();
 renderPerformanceOverviewModal();
 check('Full Overview modal opens', document.getElementById('performance-overview-modal-backdrop').classList.contains('open'));
 check('Full Overview modal title names the category, season, and latest date',
-  document.getElementById('performance-overview-modal-title').textContent === 'Attacking (xG) — Full Overview (2037/38, 2037-04-11)');
+  document.getElementById('performance-overview-modal-title').textContent === 'Attacking (xG): Full Overview (2037/38, 2037-04-11)');
 
 const overviewBodyHtml = document.getElementById('performance-overview-table-body').innerHTML;
 const overviewRowCount = (overviewBodyHtml.match(/<tr>/g) || []).length;
