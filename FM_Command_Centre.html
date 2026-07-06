@@ -617,7 +617,7 @@
     min-width: 320px;
     top: -12%;
     left: -10%;
-    animation: landingDriftA 50s ease-in-out infinite;
+    animation: landingDriftA 30s ease-in-out infinite;
   }
 
   .landing-bg-line-2 {
@@ -625,7 +625,7 @@
     min-width: 360px;
     bottom: -16%;
     right: -12%;
-    animation: landingDriftB 62s ease-in-out infinite;
+    animation: landingDriftB 38s ease-in-out infinite;
   }
 
   .landing-bg-dot {
@@ -634,18 +634,20 @@
     background: currentColor;
     opacity: 0.16;
     filter: blur(1px);
-    animation: landingFloat 18s ease-in-out infinite;
+    animation: landingFloat 12s ease-in-out infinite;
   }
 
   /* Six dots at staggered sizes/positions/durations/delays (negative delays start each one
      part-way through its own cycle instead of all six launching in visible lockstep) —
-     enough to read as organic drifting particles without a JS scene/canvas. */
-  .landing-bg-dot.dot-1 { width: 10px; height: 10px; top: 18%; left: 12%; animation-duration: 16s; }
-  .landing-bg-dot.dot-2 { width: 6px;  height: 6px;  top: 30%; left: 78%; animation-duration: 21s; animation-delay: -4s; }
-  .landing-bg-dot.dot-3 { width: 8px;  height: 8px;  top: 68%; left: 20%; animation-duration: 19s; animation-delay: -9s; }
-  .landing-bg-dot.dot-4 { width: 5px;  height: 5px;  top: 75%; left: 82%; animation-duration: 24s; animation-delay: -2s; }
-  .landing-bg-dot.dot-5 { width: 7px;  height: 7px;  top: 46%; left: 6%;  animation-duration: 22s; animation-delay: -12s; }
-  .landing-bg-dot.dot-6 { width: 6px;  height: 6px;  top: 10%; left: 60%; animation-duration: 17s; animation-delay: -6s; }
+     enough to read as organic drifting particles without a JS scene/canvas. Durations
+     trimmed down from their original ~35-40% longer values per feedback that the whole
+     background read as too slow/static — same relative stagger between dots, just quicker. */
+  .landing-bg-dot.dot-1 { width: 10px; height: 10px; top: 18%; left: 12%; animation-duration: 10s; }
+  .landing-bg-dot.dot-2 { width: 6px;  height: 6px;  top: 30%; left: 78%; animation-duration: 13s; animation-delay: -3s; }
+  .landing-bg-dot.dot-3 { width: 8px;  height: 8px;  top: 68%; left: 20%; animation-duration: 12s; animation-delay: -6s; }
+  .landing-bg-dot.dot-4 { width: 5px;  height: 5px;  top: 75%; left: 82%; animation-duration: 15s; animation-delay: -1s; }
+  .landing-bg-dot.dot-5 { width: 7px;  height: 7px;  top: 46%; left: 6%;  animation-duration: 14s; animation-delay: -8s; }
+  .landing-bg-dot.dot-6 { width: 6px;  height: 6px;  top: 10%; left: 60%; animation-duration: 11s; animation-delay: -4s; }
 
   @keyframes landingDriftA {
     0%, 100% { transform: translate(0, 0) rotate(0deg); }
