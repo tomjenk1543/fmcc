@@ -580,12 +580,16 @@
   }
 
   /* ---- Landing screen animated background ---- */
-  /* An angled, repeating mown-pitch stripe pattern behind the logo/import button — the
-     alternating light/dark bands groundskeepers cut into a real football pitch, done as a
-     single tiled CSS background-image (no SVG/JS/canvas needed), slowly panning along the
-     angle of the stripes. Colour tracks var(--club-primary) via color-mix(), same mechanism
-     as every other club-coloured element in the app (see .fmcc-badge's own comment) —
-     recolours instantly through applyClubColours(), no extra JS needed here. */
+  /* A tiled football-pitch outline (touchline + byline rectangle, halfway line, a penalty
+     box at each end) repeating diagonally behind the logo/import button, panning slowly
+     from top-right toward bottom-left. Built as a single small SVG tile used as a CSS mask
+     rather than a background-image, so the line colour still tracks var(--club-primary) via
+     color-mix() — the SVG only supplies the shape (white strokes on a transparent canvas;
+     the browser's default luminance mask treats the transparent parts as invisible and the
+     white strokes as fully visible), same recolouring mechanism as every other club-coloured
+     element in the app (see .fmcc-badge's own comment). The masked layer itself is oversized
+     and rotated inside an overflow:hidden parent so the tilted grid never reveals a hard
+     edge at the container's corners. */
   #landing {
     position: relative;
     overflow: hidden;
@@ -597,15 +601,24 @@
     z-index: 0;
     pointer-events: none;
     overflow: hidden;
-    background-image: repeating-linear-gradient(
-      25deg,
-      color-mix(in srgb, var(--club-primary) 12%, transparent) 0px,
-      color-mix(in srgb, var(--club-primary) 12%, transparent) 70px,
-      transparent 70px,
-      transparent 140px
-    );
-    background-size: 200% 200%;
-    animation: landingPitchPan 16s linear infinite;
+  }
+
+  .landing-bg::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 220%;
+    height: 220%;
+    transform: translate(-50%, -50%) rotate(-25deg);
+    background-color: color-mix(in srgb, var(--club-primary) 55%, transparent);
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'%3E%3Crect x='10' y='20' width='160' height='80' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Cline x1='90' y1='20' x2='90' y2='100' stroke='%23fff' stroke-width='3'/%3E%3Crect x='10' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Crect x='140' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'%3E%3Crect x='10' y='20' width='160' height='80' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Cline x1='90' y1='20' x2='90' y2='100' stroke='%23fff' stroke-width='3'/%3E%3Crect x='10' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Crect x='140' y='40' width='30' height='40' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E");
+    -webkit-mask-repeat: repeat;
+    mask-repeat: repeat;
+    -webkit-mask-size: 180px 120px;
+    mask-size: 180px 120px;
+    animation: landingPitchDrift 22s linear infinite;
   }
 
   .landing-content {
@@ -613,16 +626,16 @@
     z-index: 1;
   }
 
-  @keyframes landingPitchPan {
-    from { background-position: 0 0; }
-    to { background-position: 140px 140px; }
+  @keyframes landingPitchDrift {
+    from { -webkit-mask-position: 0 0; mask-position: 0 0; }
+    to   { -webkit-mask-position: -180px 120px; mask-position: -180px 120px; }
   }
 
   /* Respect a real accessibility preference over a decorative flourish — freezes the
-     stripe pattern in place rather than trying to find a "reduced but still moving"
+     pitch-outline pattern in place rather than trying to find a "reduced but still moving"
      middle ground. */
   @media (prefers-reduced-motion: reduce) {
-    .landing-bg {
+    .landing-bg::before {
       animation: none;
     }
   }
