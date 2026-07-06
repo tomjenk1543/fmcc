@@ -5166,6 +5166,9 @@
         </p>
         <textarea id="scout-json-textarea" class="import-json-textarea" placeholder="Paste one or more scouted players as a JSON array here..." spellcheck="false"></textarea>
         <div class="import-actions">
+          <button class="mini-btn" id="scout-add-upload-btn">Upload JSON File</button>
+          <input type="file" id="scout-add-file-input" accept=".json,application/json" style="display:none;">
+          <button class="mini-btn" id="scout-add-validate-btn">Validate</button>
           <button class="mini-btn" id="scout-add-btn">Add to Shortlist</button>
           <button class="mini-btn" id="scout-load-example-btn">Load Example Template</button>
         </div>
@@ -5321,6 +5324,9 @@
         </p>
         <textarea id="performance-json-textarea" class="import-json-textarea" placeholder="Paste a snapshot (or array of snapshots) as JSON here..." spellcheck="false"></textarea>
         <div class="import-actions">
+          <button class="mini-btn" id="performance-upload-btn">Upload JSON File</button>
+          <input type="file" id="performance-file-input" accept=".json,application/json" style="display:none;">
+          <button class="mini-btn" id="performance-validate-btn">Validate</button>
           <button class="mini-btn" id="performance-add-btn">Add Snapshot</button>
           <button class="mini-btn" id="performance-load-example-btn">Load Example Template</button>
         </div>
@@ -12880,6 +12886,33 @@
       scoutImportStatus.innerHTML = text;
     }
 
+    // Lets a JSON file be picked instead of pasted, same as every other import screen — see
+    // wireImportFileUpload's own comment for why it deliberately only fills the textarea
+    // rather than jumping straight to Validate/Add.
+    wireImportFileUpload('scout-add-upload-btn', 'scout-add-file-input', scoutTextarea, scoutImportStatus);
+
+    // A dedicated Validate step, matching Squad/Tactic/Club Data's own import screens — added
+    // because this modal used to only have "Add to Shortlist" itself, which both validated and
+    // applied in one click with no way to check the JSON first. Re-pasting the same players'
+    // data (e.g. after re-scouting them) silently merges into their existing rows rather than
+    // adding new ones, which can look like "nothing happened" if the status message underneath
+    // the buttons goes unnoticed — Validate gives an explicit checkpoint before that happens.
+    document.getElementById('scout-add-validate-btn').addEventListener('click', () => {
+      let parsed;
+      try {
+        parsed = JSON.parse(scoutTextarea.value);
+      } catch (e) {
+        setScoutImportStatus('Invalid JSON: ' + e.message, 'error');
+        return;
+      }
+      const errors = validateScoutedPlayers(parsed);
+      if (errors.length) {
+        setScoutImportStatus(`Found ${errors.length} issue(s):<br>` + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
+      } else {
+        setScoutImportStatus(`Looks good — ${parsed.length} player(s). Click "Add to Shortlist" to apply.`, 'ok');
+      }
+    });
+
     document.getElementById('scout-add-btn').addEventListener('click', () => {
       let parsed;
       try {
@@ -14275,6 +14308,32 @@
       performanceImportStatus.className = 'import-status' + (kind ? ' is-' + kind : '');
       performanceImportStatus.innerHTML = text;
     }
+
+    // Lets a JSON file be picked instead of pasted, same as every other import screen — see
+    // wireImportFileUpload's own comment for why it deliberately only fills the textarea
+    // rather than jumping straight to Validate/Add.
+    wireImportFileUpload('performance-upload-btn', 'performance-file-input', performanceTextarea, performanceImportStatus);
+
+    // A dedicated Validate step, matching Squad/Tactic/Club Data's own import screens — this
+    // modal used to only have "Add Snapshot" itself, which both validated and applied in one
+    // click with no way to check the JSON first. Validate gives an explicit checkpoint before
+    // that happens.
+    document.getElementById('performance-validate-btn').addEventListener('click', () => {
+      let parsed;
+      try {
+        parsed = JSON.parse(performanceTextarea.value);
+      } catch (e) {
+        setPerformanceImportStatus('Invalid JSON: ' + e.message, 'error');
+        return;
+      }
+      const errors = validatePerformanceSnapshots(parsed);
+      if (errors.length) {
+        setPerformanceImportStatus(`Found ${errors.length} issue(s):<br>` + errors.map(e => '&bull; ' + e).join('<br>'), 'error');
+      } else {
+        const count = Array.isArray(parsed) ? parsed.length : 1;
+        setPerformanceImportStatus(`Looks good — ${count} snapshot(s). Click "Add Snapshot" to apply.`, 'ok');
+      }
+    });
 
     document.getElementById('performance-add-btn').addEventListener('click', () => {
       let parsed;
