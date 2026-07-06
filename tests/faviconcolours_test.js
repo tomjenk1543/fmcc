@@ -8,10 +8,16 @@
 // solid black ball with a central pentagon and 5 straight, symmetric lines running out to the
 // ball's edge (an earlier pass tried curved/bowed lines with extra rim-connector arcs, but Tom
 // preferred the straight symmetric look of the original reference) — a black equator band and
-// plain white "FMCC" text sit on top — see updateFaviconColours()'s own comment. The ball's
-// black background/band/text stay fixed regardless of club colours, but the panel lines (the
-// polygon plus all 5 straight lines) are drawn in the actual primary colour passed in, so the
-// favicon's panel-line colour changes whenever a different club's colours load.
+// plain white "FMCC" text sit on top — see updateFaviconColours()'s own comment. The band is
+// narrow (46 wide) rather than spanning the ball's full width: an earlier, wider version of
+// the band completely erased the two nearly-horizontal side spokes (they only ever poke out
+// past a band's *sides*, never its top/bottom), which made the badge stop reading as a
+// football — Tom caught this ("still missing some of the spokes"). Narrowing the band instead
+// of shortening it keeps the FMCC text fully covered while letting the outer half of every
+// spoke reach the rim. The ball's black background/band/text stay fixed regardless of club
+// colours, but the panel lines (the polygon plus all 5 straight lines) are drawn in the actual
+// primary colour passed in, so the favicon's panel-line colour changes whenever a different
+// club's colours load.
 
 let pass = 0, fail = 0;
 function check(name, cond) {
@@ -54,7 +60,13 @@ function check(name, cond) {
   check('the decoded favicon SVG has all 5 straight radiating panel lines in the primary colour', (decoded.match(/<line [^>]*stroke='#14305A'/g) || []).length === 5);
   check('the pentagon outline itself is also in the primary colour', decoded.includes("stroke='#14305A'") && decoded.includes('<polygon'));
   check('the decoded favicon SVG has the black equator band clipped to the ball', decoded.includes("clip-path='url(#fmccBallClipFavicon)'"));
-  check('the equator band is the enlarged size (24 tall, not the old 18)', decoded.includes("y='38' width='80' height='24'"));
+  check('the equator band is narrow (46 wide), not spanning the ball\'s full width', decoded.includes("x='27' y='41' width='46' height='18'"));
+  // Regression guard for the actual bug: both side spokes' rim endpoints (x=16.69 and x=83.31)
+  // must fall outside the band's x-range (27 to 73), otherwise the band would be wide enough
+  // to swallow those spokes completely again, same as the earlier 80-wide version did.
+  const bandX0 = 27, bandX1 = 27 + 46;
+  check('the left spoke\'s rim endpoint sits outside the band\'s x-range (would vanish otherwise)', decoded.includes("x2='16.69'") && 16.69 < bandX0);
+  check('the right spoke\'s rim endpoint sits outside the band\'s x-range (would vanish otherwise)', decoded.includes("x2='83.31'") && 83.31 > bandX1);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
