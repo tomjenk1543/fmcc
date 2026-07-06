@@ -9002,6 +9002,17 @@
     // linger and re-blank a future import.
     const BLANK_SLATE_STORAGE_KEY = 'fmCommandCentre.blankSlate';
 
+    // Landing-screen imports (both a normal club import and a Full Backup restore dropped in
+    // the same box) should always land you on the Dashboard once the reload completes, never
+    // wherever LAST_VIEW_STORAGE_KEY happened to be pointing from before the app was last blanked
+    // — that's a stale page from a previous save, not somewhere useful to land straight after
+    // setting up a new one. Writes the same key switchToView() reads at boot (see further down,
+    // near LAST_VIEW_STORAGE_KEY's own definition); 'dashboard' is treated as a no-op by that
+    // boot check, so this just needs to overwrite whatever was there before.
+    function goToDashboardOnNextLoad() {
+      try { localStorage.setItem('fmcc_lastView', 'dashboard'); } catch (e) { /* storage unavailable */ }
+    }
+
     // Only requires saved.club.name now, not a squad array too — squad is imported
     // separately on the Squad List page and may not exist yet the moment club data lands
     // (e.g. a fresh save where club data was just pasted on the landing page, squad still to
@@ -9663,6 +9674,7 @@
         runImportThenReload(landingImportStatus, 'Restoring backup…', () => {
           restoreFullBackup(data);
           localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
+          goToDashboardOnNextLoad();
         });
         return;
       }
@@ -9675,6 +9687,7 @@
       runImportThenReload(landingImportStatus, 'Importing…', () => {
         mergeAndSaveImportedData(data);
         localStorage.removeItem(BLANK_SLATE_STORAGE_KEY);
+        goToDashboardOnNextLoad();
       });
     });
 

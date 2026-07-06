@@ -86,5 +86,34 @@ function check(name, cond) {
   check('Import & Reload blocks an invalid payload with an error message', status.className.includes('is-error'));
 }
 
+// --- Import & Reload always points the next boot at Dashboard, not a stale lastView --------
+// Tom reported that importing from the landing screen could leave you on whatever page you
+// were on before the app was last blanked (e.g. Squad List), rather than Dashboard — a
+// leftover fmcc_lastView from an old save, not somewhere useful to land on a freshly
+// (re)imported one. goToDashboardOnNextLoad() (FM_Command_Centre.html) overwrites that key
+// as part of the deferred applyFn runImportThenReload() runs, so this needs the same
+// sleep-past-the-delay pattern as backupinimport_test.js/squadimport_test.js/etc.
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+const IMPORT_WAIT_MS = 2000 + 150;
+
+(async () => {
+
+{
+  const ta = document.getElementById('landing-import-textarea');
+  localStorage.setItem('fmcc_lastView', 'squad'); // simulate a stale view from before blanking
+  global.__confirmResult = true;
+  let reloaded = false;
+  global.location.reload = () => { reloaded = true; };
+
+  ta.value = JSON.stringify({ club: { name: 'Landing Import FC' } });
+  document.getElementById('landing-import-apply-btn').fire('click');
+  await sleep(IMPORT_WAIT_MS);
+
+  check('a successful landing import reloads', reloaded);
+  check('a successful landing import overwrites a stale lastView to dashboard', localStorage.getItem('fmcc_lastView') === 'dashboard');
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exitCode = 1;
+
+})();

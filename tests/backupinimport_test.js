@@ -102,6 +102,7 @@ const BACKUP_JSON = JSON.stringify({
   check('landing modal Validate recognizes a backup file as ok', !landingStatus.className.includes('is-error'));
   check('landing modal Validate identifies it as a Full Backup file', landingStatus.innerHTML.includes('Full Backup'));
 
+  localStorage.setItem('fmcc_lastView', 'tactics'); // simulate a stale view from before blanking
   global.__confirmResult = true;
   let reloaded = false;
   global.location.reload = () => { reloaded = true; };
@@ -110,6 +111,7 @@ const BACKUP_JSON = JSON.stringify({
 
   check('landing modal Import & Reload restores the backup too', localStorage.getItem('fmCommandCentre.importedSaveData') === JSON.stringify({ club: { name: 'Backup FC' }, squad: [{ name: 'Backup Player' }] }));
   check('landing modal Import & Reload reloads after restoring', reloaded);
+  check('landing modal backup restore also points the next boot at dashboard', localStorage.getItem('fmcc_lastView') === 'dashboard');
 }
 
 // --- A normal (non-backup) save-data import is completely unaffected ----------------------
