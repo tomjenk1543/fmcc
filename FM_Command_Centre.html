@@ -509,7 +509,22 @@
   }
 
   .view { display: none; }
-  .view.active { display: block; }
+  /* A quick fade + slight rise whenever a view becomes active, so switching pages doesn't
+     just hard-cut/pop in — switchToView() (see the JS) removes .active from every view then
+     adds it fresh to the one being shown, which is exactly the kind of "wasn't there a moment
+     ago, now it is" class change a CSS animation (unlike a transition) can pick up even though
+     the element was display:none a moment before. Kept short and subtle on purpose - this is
+     a wayfinding cue, not a showcase. */
+  .view.active { display: block; animation: viewFadeIn 0.22s ease; }
+
+  @keyframes viewFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .view.active { animation: none; }
+  }
 
   /* Squad view stretches to fill all of main's height so its table tile can flex-grow
      down to the bottom of the screen — see .squad-table-panel/.squad-table-scroll below. */
@@ -1105,6 +1120,18 @@
 
   .import-loading-overlay.open {
     display: flex;
+    animation: overlayFadeIn 0.18s ease;
+  }
+
+  @keyframes overlayFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .import-loading-overlay.open {
+      animation: none;
+    }
   }
 
   .import-loading-overlay-spinner {
@@ -2428,19 +2455,55 @@
     margin-top: 0;
   }
 
-  /* Player profile modal */
+  /* Player profile modal — this same .player-modal-backdrop/.player-modal pair backs every
+     popup in the app (player/scout detail, gaps view-all, every Import & Reload box, the
+     Performance Data overview, etc.), so the fade/scale transition below applies everywhere
+     at once rather than needing a per-modal copy.
+     Kept permanently in the flex layout (rather than the old display:none/flex toggle driven
+     entirely by .open) specifically so opacity/transform have something to actually transition
+     between — display can't be animated, so a hard none-to-flex swap always looks like a pop
+     regardless of what other properties say. visibility supplies the "actually removed from
+     tab order and click-through when closed" behaviour display used to, just with a transition
+     delay so it only takes effect once the fade has finished closing. */
   .player-modal-backdrop {
-    display: none;
+    display: flex;
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.65);
     z-index: 200;
     align-items: center;
     justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.16s ease, visibility 0s linear 0.16s;
   }
 
   .player-modal-backdrop.open {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.16s ease;
+  }
+
+  /* The card itself rises/settles slightly rather than just fading in place — subtle, not a
+     bounce or slide. */
+  .player-modal-backdrop .player-modal {
+    transform: translateY(8px) scale(0.98);
+    transition: transform 0.16s ease;
+  }
+
+  .player-modal-backdrop.open .player-modal {
+    transform: translateY(0) scale(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .player-modal-backdrop,
+    .player-modal-backdrop.open,
+    .player-modal-backdrop .player-modal,
+    .player-modal-backdrop.open .player-modal {
+      transition: none;
+    }
   }
 
   /* #player-modal-backdrop/#scout-modal-backdrop (a squad/scouted player's own detail
