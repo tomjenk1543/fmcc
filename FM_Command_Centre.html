@@ -1449,7 +1449,7 @@
     border: 1px solid var(--panel-border);
     border-left: 3px solid var(--club-primary);
     border-radius: var(--radius-sm);
-    transition: box-shadow 0.15s ease;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
   }
 
   .league-slot.placeholder {
@@ -1462,10 +1462,10 @@
      clickable instance of this class (see the JS click handler on that id further down);
      .save-overview-season-stats' own .league-slot:hover further up is a plain position
      display, not clickable, and keeps its separate background-tint treatment untouched.
-     No transform any more - see .best-players-panel:hover's own comment below for why every
-     hover-lift in the app dropped its translateY. */
+     Lift restored alongside .best-players-panel's own - see that rule's comment. */
   #league-slot:hover {
     box-shadow: var(--shadow-card);
+    transform: translateY(-1px);
   }
 
   .league-slot-pos {
@@ -1974,29 +1974,23 @@
 
   /* Best players tile — clickable variant of dashboard-panel.
      redesign-explore originally had hover read as a physical lift (deeper shadow + a couple
-     of px of translateY) rather than a background-colour shift, to fit the elevated-card
-     language better than tinting a card that's already meant to look "raised". Dropped the
-     translateY app-wide since then: every hover-lift like this one lives inside
-     .view-scroll-area (overflow-y:auto), and a transformed descendant's post-transform
-     geometry counts toward that scroll container's own scrollable overflow per the CSS
-     Transforms spec. Tom reported the whole page nudging up/down a few px on hovering a tile
-     — overflow-anchor:none on .view-scroll-area (see its own comment) addressed the
-     scroll-anchoring half of that but the page kept moving regardless, which means some
-     browsers act on the transform-driven scrollHeight change more directly than anchoring
-     alone accounts for. Removing the transform itself is the only fix that's correct
-     regardless of engine/anchoring-support differences: box-shadow and border-color changes
-     are pure paint, they can never contribute to scrollable overflow, so hovering a tile can
-     no longer move anything on the page, full stop. The deeper shadow + border-top-color
-     change alone still reads clearly as "this card is elevated/interactive" without the lift
-     motion. */
+     of px of translateY). That translateY got dropped for a while (every hover-lift like this
+     one lives inside .view-scroll-area, overflow-y:auto, and a transformed descendant's
+     post-transform geometry counts toward that scroll container's own scrollable overflow per
+     the CSS Transforms spec, which was nudging the whole page up/down a few px on hover -
+     overflow-anchor:none on .view-scroll-area, see its own comment, only fixed half of that).
+     Restored at Tom's request since the paint-only version didn't read as clearly "elevated" -
+     if the page-nudge comes back, that's why, and the fix is to drop transform back to just
+     the box-shadow/border-top-color pair below. */
   .best-players-panel {
     cursor: pointer;
-    transition: box-shadow 0.15s ease, border-top-color 0.15s ease;
+    transition: box-shadow 0.15s ease, border-top-color 0.15s ease, transform 0.15s ease;
   }
 
   .best-players-panel:hover {
     box-shadow: var(--shadow-card-hover);
     border-top-color: var(--club-text);
+    transform: translateY(-2px);
   }
 
   /* min-height:0 lets this shrink below its content's natural height instead of pushing
@@ -2398,7 +2392,7 @@
     border-left: 3px solid var(--club-primary);
     border-radius: var(--radius-sm);
     padding: 16px 18px;
-    transition: border-left-color 0.15s ease;
+    transition: border-left-color 0.15s ease, transform 0.15s ease;
   }
 
   /* Flex column's default align-items:stretch would otherwise stretch this <span> to the
@@ -2408,18 +2402,16 @@
     align-self: flex-start;
   }
 
-  /* Matches the dashboard tiles' hover language — a border accent shift, no background tint
-     (see .best-players-panel:hover) — just on border-left-color instead of border-top-color
-     since this card uses a left accent bar, not a top one. box-shadow:none explicitly
-     overrides the generic .gaps-clickable:hover rule below (which does set a box-shadow) —
-     this card is nested inside "Current Squad Breakdown"'s own shadowed panel (see this
-     card's own comment above), so stacking a second one on top just looked heavy.
-     No transform/lift any more — see .best-players-panel:hover's own comment for why every
-     hover-lift in the app dropped its translateY (it was moving the whole scrollable page a
-     few px on hover, not just this card). */
+  /* Matches the dashboard tiles' hover language — a border accent shift plus a lift, no
+     background tint (see .best-players-panel:hover) — just on border-left-color instead of
+     border-top-color since this card uses a left accent bar, not a top one. box-shadow:none
+     explicitly overrides the generic .gaps-clickable:hover rule below (which does set a
+     box-shadow) — this card is nested inside "Current Squad Breakdown"'s own shadowed panel
+     (see this card's own comment above), so stacking a second one on top just looked heavy. */
   .position-card.gaps-clickable:hover {
     border-left-color: var(--club-text);
     box-shadow: none;
+    transform: translateY(-2px);
   }
 
   .position-card h3 {
@@ -3571,15 +3563,15 @@
      the click handler itself is attached/removed in renderRoleSynergyPanel(). */
   .tb-synergy-panel.clickable {
     cursor: pointer;
-    transition: border-color 0.15s ease;
+    transition: border-color 0.15s ease, transform 0.15s ease;
   }
 
-  /* Matches the dashboard tiles' hover language — border accent, no background tint (see
-     .best-players-panel:hover / .gaps-clickable:hover). Still no box-shadow (see
-     .position-card's own comment for why - a recessed nested panel, not a raised card).
-     No transform/lift any more either — same reason as .best-players-panel:hover. */
+  /* Matches the dashboard tiles' hover language — border accent plus a lift, no background
+     tint (see .best-players-panel:hover / .gaps-clickable:hover). Still no box-shadow (see
+     .position-card's own comment for why - a recessed nested panel, not a raised card). */
   .tb-synergy-panel.clickable:hover {
     border-color: var(--club-primary);
+    transform: translateY(-2px);
   }
 
   .tb-synergy-title {
@@ -3721,21 +3713,20 @@
      "View all" can reuse the same clickable-tile treatment (Scouting's own Recommended
      Focus panel included). */
   /* Same hover treatment as .best-players-panel/#league-slot — shadow + a border accent
-     shift, no background tint. This is a top-level .dashboard-panel tile like those two (see
-     .best-players-panel:hover's own comment for why a tint was dropped in favour of the
-     border-top-colour shift, and why the lift/transform was dropped entirely after that), so
-     it now matches exactly rather than having its own tint-based hover style.
+     shift + a lift, no background tint. This is a top-level .dashboard-panel tile like those
+     two, so it now matches exactly rather than having its own tint-based hover style.
      .position-card's own more specific .position-card.gaps-clickable:hover rule (above)
      still wins for that one nested case and deliberately skips the shadow, per its own
      comment. */
   .gaps-clickable {
     cursor: pointer;
-    transition: border-top-color 0.15s ease, box-shadow 0.15s ease;
+    transition: border-top-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
   }
 
   .gaps-clickable:hover {
     border-top-color: var(--club-text);
     box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
   }
 
   /* Shown when a tile's gap rows don't all fit (see fitRowsToClip()) — opens the full list

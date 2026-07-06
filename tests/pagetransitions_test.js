@@ -73,21 +73,22 @@ function ruleBodyFor(selector) {
   check('overlayFadeIn keyframes exist', /@keyframes overlayFadeIn\s*\{/.test(styleBlock));
 }
 
-// --- Hover-lift tiles (translateY on hover, used all over the app) can't nudge page scroll ----
-// Tom reported the whole page moving a few px on hovering a tile. First attempt was
+// --- Hover-lift tiles (translateY on hover, used all over the app) -------------------------
+// Tom originally reported the whole page moving a few px on hovering a tile. First attempt was
 // overflow-anchor:none on both real scroll containers (main, the fallback; .view-scroll-area,
 // the one that actually scrolls day to day) — a hover-lift transform's post-transform
 // geometry counts toward its scroll-container ancestor's scrollable overflow, and browsers
 // run "scroll anchoring" to keep content stable whenever a scroll container's bounds change,
 // which is exactly what a hover-driven scrollHeight blip triggers. That's left in place below
-// (harmless, and correct in its own right), but Tom reported the page still moving after it
-// shipped — evidently some engines act on a transform-driven scrollHeight change more directly
-// than anchoring compensation alone accounts for. The only fix that's correct regardless of
-// engine/anchoring-support differences is removing the transform itself: box-shadow and
-// border-color changes are pure paint and can never contribute to scrollable overflow, so
-// every hover-lift in the app (.best-players-panel, #league-slot, .position-card.gaps-
-// clickable, .tb-synergy-panel.clickable, .gaps-clickable) dropped its translateY, keeping
-// only the shadow/border-colour half of the "elevated card" hover language.
+// (harmless, and correct in its own right), but the page kept moving after it shipped, so every
+// hover-lift in the app dropped its translateY entirely for a while, keeping only the
+// shadow/border-colour half of the "elevated card" hover language.
+// Tom later asked for the lift motion back anyway — the paint-only version didn't read as
+// clearly "elevated" — accepting the risk that the page-nudge bug could return. So the five
+// known hover-lift tiles (.best-players-panel, #league-slot, .position-card.gaps-clickable,
+// .tb-synergy-panel.clickable, .gaps-clickable) have their translateY back; the checks below
+// lock in that they still have it, on top of the scroll-anchoring opt-outs (still worth keeping
+// regardless, and the only thing standing between hover and a repeat of the original bug).
 {
   const mainRule = ruleBodyFor('main');
   check('main opts out of scroll anchoring', /overflow-anchor:\s*none/.test(mainRule));
@@ -101,12 +102,11 @@ function ruleBodyFor(selector) {
   const scrollAreaRule = scrollAreaMatch ? scrollAreaMatch[1] : '';
   check('.view-scroll-area (the real per-page scroll container) opts out of scroll anchoring', /overflow-anchor:\s*none/.test(scrollAreaRule));
 
-  // The actual fix: no hover rule anywhere in the app moves anything via transform any more.
-  // Broad on purpose (not scoped to the five known offenders) so a *new* hover-lift added
-  // later can't quietly reintroduce this bug class.
-  const hoverRuleMatches = styleBlock.match(/:hover(?:,[^{]*)?\s*\{[^}]*\}/g) || [];
-  const hoverRulesWithTransform = hoverRuleMatches.filter(r => /transform:\s*(?!none)/.test(r));
-  check('no :hover rule in the app sets a transform (translateY/scale/etc. all moved off hover)', hoverRulesWithTransform.length === 0);
+  check('.best-players-panel:hover lifts via translateY', /\.best-players-panel:hover\s*\{[^}]*transform:\s*translateY\(-2px\)/.test(styleBlock));
+  check('#league-slot:hover lifts via translateY', /#league-slot:hover\s*\{[^}]*transform:\s*translateY\(-1px\)/.test(styleBlock));
+  check('.position-card.gaps-clickable:hover lifts via translateY', /\.position-card\.gaps-clickable:hover\s*\{[^}]*transform:\s*translateY\(-2px\)/.test(styleBlock));
+  check('.tb-synergy-panel.clickable:hover lifts via translateY', /\.tb-synergy-panel\.clickable:hover\s*\{[^}]*transform:\s*translateY\(-2px\)/.test(styleBlock));
+  check('.gaps-clickable:hover lifts via translateY', /\.gaps-clickable:hover\s*\{[^}]*transform:\s*translateY\(-2px\)/.test(styleBlock));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
