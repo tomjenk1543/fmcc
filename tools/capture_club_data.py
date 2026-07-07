@@ -49,6 +49,7 @@ Move your mouse to any corner of the screen at any time to trigger
 pyautogui's built-in failsafe and abort immediately.
 """
 
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -63,7 +64,25 @@ except ImportError:
 pyautogui.FAILSAFE = True  # slam mouse into a screen corner to abort
 pyautogui.PAUSE = 0.15     # small delay after every pyautogui call
 
-OUTPUT_DIR = Path.home() / "Desktop" / "FMCC Screenshots"
+# Lives inside the FMCC project itself (tools/../screenshots), right next to
+# FM_Command_Centre.html, rather than off on the Desktop somewhere - the idea
+# being that everything for the app lives under one folder. Same 3 filenames
+# every run, so a fresh capture just overwrites the last one instead of
+# piling up dated subfolders.
+OUTPUT_DIR = Path(__file__).resolve().parent.parent / "screenshots"
+
+
+def open_in_file_manager(path):
+    """Best-effort - if neither works, the printed path still gets you there."""
+    try:
+        if sys.platform == "darwin":
+            subprocess.run(["open", str(path)], check=False)
+        elif sys.platform.startswith("win"):
+            subprocess.run(["explorer", str(path)], check=False)
+        else:
+            subprocess.run(["xdg-open", str(path)], check=False)
+    except Exception:
+        pass
 
 
 def wait_for_enter(prompt):
@@ -156,6 +175,7 @@ def main():
     print(f"  {OUTPUT_DIR}")
     print("\nAttach all three to a Claude chat along with the Step 1: Club Data")
     print("JSON template from the FMCC Setup Guide, and ask Claude to fill it in.")
+    open_in_file_manager(OUTPUT_DIR)
 
 
 if __name__ == "__main__":

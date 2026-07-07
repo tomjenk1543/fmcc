@@ -3,8 +3,12 @@
 ## capture_club_data.py
 
 Walks Football Manager to the three screens needed for the Setup Guide's
-"Step 1: Club Data" and screenshots each one, saving them to
-`~/Desktop/FMCC Screenshots/`.
+"Step 1: Club Data" and screenshots each one, saving them to a
+`screenshots/` folder inside the FMCC project itself (next to
+`FM_Command_Centre.html`), then opens that folder for you once done. The
+same three filenames get overwritten each run rather than piling up dated
+copies - it's meant to hold one fresh set for whatever save you're
+currently working with.
 
 **Setup (one-time):**
 1. `pip install pyautogui`
