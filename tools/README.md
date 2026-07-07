@@ -18,20 +18,26 @@ currently working with.
 4. On Mac, the first run prompts you to grant your terminal app both
    Accessibility and Input Monitoring permissions (System Settings > Privacy
    & Security). Both are needed - Accessibility for the clicks/screenshots,
-   Input Monitoring for the F8 hotkey below to register while FM has focus.
+   Input Monitoring for the hotkey below to register while FM has focus. If
+   it doesn't seem to register, fully quit and reopen your terminal app
+   after granting both.
 
 **Running it:**
 ```
 python3 capture_club_data.py
 ```
-Switch to Football Manager, then press F8 at every checkpoint to confirm and
-move on (Esc aborts). F8 is a global hotkey, so you never need to alt-tab
-back to the terminal - just keep FM focused the whole time and press F8 when
-you're ready. The script pauses before every screenshot so you can
-double-check (and manually fix, if needed) what's on screen before it
-captures - Football Manager's exact menu state varies by save (mid-season
-vs. off-season, whether your league has playoffs, etc.), so this isn't fully
-blind automation, but it does the clicking for you.
+Switch to Football Manager, then press Ctrl+Option+C at every checkpoint to
+confirm and move on (Ctrl+Option+X aborts). That's a global hotkey, so you
+never need to alt-tab back to the terminal - just keep FM focused the whole
+time. It's a three-key combo rather than something simpler like F8 because
+Mac keyboards route F-keys through hardware media/brightness/volume
+controls first, which never reach a script at all, and a modifier combo
+also won't collide with any of FM's own single-key shortcuts (like Space).
+The script pauses before every screenshot so you can double-check (and
+manually fix, if needed) what's on screen before it captures - Football
+Manager's exact menu state varies by save (mid-season vs. off-season,
+whether your league has playoffs, etc.), so this isn't fully blind
+automation, but it does the clicking for you.
 
 Works on both Mac and Windows - it calibrates itself against your actual
 screen/window by asking you to point at two fixed landmarks (the words

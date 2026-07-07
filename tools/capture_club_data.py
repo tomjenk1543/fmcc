@@ -28,10 +28,15 @@ position, and Mac or Windows alike.
 STAYING ON FM THE WHOLE TIME
 ------------------------------
 Every checkpoint (calibration points, screenshot confirmations) is confirmed
-with a HOTKEY - press F8 - rather than pressing Enter in the terminal. F8 is
-a global hotkey, so you never need to alt-tab back to this terminal window
-to continue - keep Football Manager focused the entire time. Press Esc
-instead of F8 at any checkpoint to abort cleanly.
+with a HOTKEY - Ctrl+Option+C - rather than pressing Enter in the terminal.
+That's a global hotkey, so you never need to alt-tab back to this terminal
+window to continue - keep Football Manager focused the entire time. Press
+Ctrl+Option+X instead at any checkpoint to abort cleanly. (A single function
+key like F8 seems simpler, but on most Mac keyboards F-keys double as
+hardware media/brightness/volume controls, which macOS intercepts before
+any app - including this one - ever sees the keypress. A three-key modifier
+combo sidesteps that, and is unlikely to collide with any of FM's own
+single-key shortcuts.)
 
 BEFORE YOU RUN THIS
 --------------------
@@ -46,8 +51,9 @@ BEFORE YOU RUN THIS
 5. On Mac, the first run will prompt you to grant your terminal app
    Accessibility AND Input Monitoring permissions (System Settings > Privacy
    & Security). Both are needed - Accessibility for the clicks/screenshots,
-   Input Monitoring for the F8/Esc hotkey to work while FM has focus. If F8
-   doesn't seem to register, check both of those lists.
+   Input Monitoring for the hotkey to work while FM has focus. If the hotkey
+   doesn't seem to register, check both of those lists, and make sure you
+   fully quit and reopened your terminal app after granting them.
 
 WHAT TO EXPECT WHILE IT RUNS
 ------------------------------
@@ -55,12 +61,12 @@ Football Manager's exact menu state can differ from save to save (mid-season
 vs. off-season, whether your league uses playoffs, how many competitions
 you're still in, etc.), so this script pauses before every screenshot and
 shows you what it's about to capture. If a click landed somewhere odd, fix
-it manually with your own mouse before pressing F8 to continue - the
-screenshot only fires once you confirm.
+it manually with your own mouse before pressing Ctrl+Option+C to continue -
+the screenshot only fires once you confirm.
 
 Move your mouse to any corner of the screen at any time to trigger
-pyautogui's built-in failsafe and abort immediately. Pressing Esc at any
-F8 checkpoint aborts too.
+pyautogui's built-in failsafe and abort immediately. Ctrl+Option+X at any
+checkpoint aborts too.
 """
 
 import subprocess
@@ -85,7 +91,13 @@ except ImportError:
 pyautogui.FAILSAFE = True  # slam mouse into a screen corner to abort
 pyautogui.PAUSE = 0.15     # small delay after every pyautogui call
 
-HOTKEY = keyboard.Key.f8
+# Modifier combo rather than a single function key - see the module docstring
+# ("STAYING ON FM THE WHOLE TIME") for why F8 alone doesn't reliably work on
+# Mac keyboards (media-key interception).
+CONFIRM_CHAR = "c"
+ABORT_CHAR = "x"
+_CTRL_KEYS = (keyboard.Key.ctrl, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r)
+_ALT_KEYS = (keyboard.Key.alt, keyboard.Key.alt_l, keyboard.Key.alt_r)
 
 # Lives inside the FMCC project itself (tools/../screenshots), right next to
 # FM_Command_Centre.html, rather than off on the Desktop somewhere - the idea
@@ -113,20 +125,40 @@ def open_in_file_manager(path):
 
 
 def wait_for_hotkey(prompt):
-    """Blocks until F8 is pressed, WITHOUT needing this terminal to be
-    focused - a global hotkey listener, so Football Manager can stay the
-    frontmost window the entire time. Esc aborts instead."""
-    print(f"{prompt}\n>>> Press F8 when ready (keep FM focused - no need to alt-tab). Esc to abort.")
+    """Blocks until Ctrl+Option+C is pressed, WITHOUT needing this terminal
+    to be focused - a global hotkey listener, so Football Manager can stay
+    the frontmost window the entire time. Ctrl+Option+X aborts instead.
+    Tracks modifier state manually (rather than using a single key like F8)
+    since Mac keyboards route F-keys through the hardware media-key layer,
+    which never reaches a normal key listener."""
+    print(f"{prompt}\n>>> Press Ctrl+Option+C when ready (keep FM focused - no need to alt-tab). "
+          f"Ctrl+Option+X to abort.")
     result = {"aborted": False}
+    held = {"ctrl": False, "alt": False}
 
     def on_press(key):
-        if key == HOTKEY:
-            return False
-        if key == keyboard.Key.esc:
-            result["aborted"] = True
-            return False
+        if key in _CTRL_KEYS:
+            held["ctrl"] = True
+            return None
+        if key in _ALT_KEYS:
+            held["alt"] = True
+            return None
+        if held["ctrl"] and held["alt"]:
+            ch = getattr(key, "char", None)
+            if ch and ch.lower() == CONFIRM_CHAR:
+                return False
+            if ch and ch.lower() == ABORT_CHAR:
+                result["aborted"] = True
+                return False
+        return None
 
-    with keyboard.Listener(on_press=on_press) as listener:
+    def on_release(key):
+        if key in _CTRL_KEYS:
+            held["ctrl"] = False
+        elif key in _ALT_KEYS:
+            held["alt"] = False
+
+    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
         listener.join()
 
     if result["aborted"]:
@@ -228,6 +260,6 @@ if __name__ == "__main__":
     except pyautogui.FailSafeException:
         print("\nAborted (mouse hit a screen corner).")
     except Aborted:
-        print("\nAborted (Esc pressed).")
+        print("\nAborted (Ctrl+Option+X pressed).")
     except KeyboardInterrupt:
         print("\nAborted (Ctrl+C).")
