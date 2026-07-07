@@ -56,6 +56,11 @@ BEFORE YOU RUN THIS
    Preferences > Your World > (Show Unique IDs) BEFORE running this - that's
    a one-off toggle this script doesn't touch.
 4. pip3 install pyautogui pillow   (one-time)
+5. On Mac: System Settings > Privacy & Security > Screen Recording -> turn
+   this on for whichever app you're running the script from (Terminal,
+   iTerm, etc). Without it, every screenshot fails with "could not create
+   image from display". Fully quit and reopen that app after granting it -
+   the toggle doesn't take effect until you do.
 
 WHAT TO EXPECT WHILE IT RUNS
 ------------------------------

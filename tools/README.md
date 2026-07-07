@@ -15,6 +15,11 @@ currently working with.
 2. In FM: Preferences > Interface > Screen Resolution -> set to 1920x1080.
 3. If you want fmClubId/fmCompetitionId auto-loaded in FMCC: Preferences >
    Your World > turn on "Show Unique IDs" before running the script.
+4. On Mac: System Settings > Privacy & Security > Screen Recording -> turn
+   this on for whichever app you're running the script from (Terminal,
+   iTerm, etc). Without it every screenshot fails with "could not create
+   image from display". Fully quit and reopen that app afterward, the
+   toggle doesn't take effect until you do.
 
 **Running it:**
 ```
