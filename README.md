@@ -12,6 +12,9 @@ plain HTML/CSS/JS with no build step, no dependencies, and no server. Open
 - `sample-data/` — small, synthetic example JSON files used by the tests / for trying out
   the Setup Wizard's import feature without needing a real save export.
 - `docs/` — setup / data-collection guides.
+- `tools/` — optional helper scripts, e.g. `capture_club_data.py`, which automates the
+  screenshots for the Setup Guide's Club Data step. Only comes with the full project
+  (clone or download the whole repo), not with a standalone copy of just the HTML file.
 
 ## Running the tests
 
