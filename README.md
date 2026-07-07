@@ -24,9 +24,20 @@ If you already know your way around git, cloning the repo directly works too:
 git clone https://github.com/tomjenk1543/fmcc.git
 ```
 
+## Running it as a desktop app (Mac)
+
+`FM Command Centre.app` opens the HTML file in a plain, tab-free browser window
+(Chrome/Edge/Brave app mode) instead of a normal browser tab, so it looks and behaves
+like a standalone app rather than a webpage. Double-click it, or drag it to the Dock.
+It always points at `~/Documents/FMCC/FM_Command_Centre.html`, so it works from
+wherever you move the launcher itself. It shows up as "Google Chrome" in the Dock and
+Cmd+Tab, since it's Chrome running without its normal window chrome rather than a
+fully separate program.
+
 ## Layout
 
 - `FM_Command_Centre.html` — the entire app (markup, styles, and script all in one file).
+- `FM Command Centre.app` — Mac desktop-app launcher. See above.
 - `setup.py` — first-run installer for someone who only has the HTML file; sets up the
   full project under `~/Documents/FMCC/`. See "Getting it" above.
 - `tests/` — a regression test suite run against a small mock-DOM harness under plain
