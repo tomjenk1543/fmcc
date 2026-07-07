@@ -11,21 +11,27 @@ copies - it's meant to hold one fresh set for whatever save you're
 currently working with.
 
 **Setup (one-time):**
-1. `pip install pyautogui`
+1. `pip3 install pyautogui pynput pillow`
 2. In FM: Preferences > Interface > Screen Resolution -> set to 1920x1080.
 3. If you want fmClubId/fmCompetitionId auto-loaded in FMCC: Preferences >
    Your World > turn on "Show Unique IDs" before running the script.
+4. On Mac, the first run prompts you to grant your terminal app both
+   Accessibility and Input Monitoring permissions (System Settings > Privacy
+   & Security). Both are needed - Accessibility for the clicks/screenshots,
+   Input Monitoring for the F8 hotkey below to register while FM has focus.
 
 **Running it:**
 ```
 python3 capture_club_data.py
 ```
-Switch to Football Manager, then follow the prompts in your terminal. The
-script pauses before every screenshot so you can double-check (and manually
-fix, if needed) what's on screen before it captures - Football Manager's
-exact menu state varies by save (mid-season vs. off-season, whether your
-league has playoffs, etc.), so this isn't fully blind automation, but it
-does the clicking for you.
+Switch to Football Manager, then press F8 at every checkpoint to confirm and
+move on (Esc aborts). F8 is a global hotkey, so you never need to alt-tab
+back to the terminal - just keep FM focused the whole time and press F8 when
+you're ready. The script pauses before every screenshot so you can
+double-check (and manually fix, if needed) what's on screen before it
+captures - Football Manager's exact menu state varies by save (mid-season
+vs. off-season, whether your league has playoffs, etc.), so this isn't fully
+blind automation, but it does the clicking for you.
 
 Works on both Mac and Windows - it calibrates itself against your actual
 screen/window by asking you to point at two fixed landmarks (the words

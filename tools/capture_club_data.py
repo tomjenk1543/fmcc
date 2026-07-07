@@ -25,6 +25,14 @@ the start of each run, you point at those two words once; every other click
 is computed from that, so it self-adjusts to your resolution, your window
 position, and Mac or Windows alike.
 
+STAYING ON FM THE WHOLE TIME
+------------------------------
+Every checkpoint (calibration points, screenshot confirmations) is confirmed
+with a HOTKEY - press F8 - rather than pressing Enter in the terminal. F8 is
+a global hotkey, so you never need to alt-tab back to this terminal window
+to continue - keep Football Manager focused the entire time. Press Esc
+instead of F8 at any checkpoint to abort cleanly.
+
 BEFORE YOU RUN THIS
 --------------------
 1. Football Manager should already be open, on any screen (the top nav bar
@@ -34,7 +42,12 @@ BEFORE YOU RUN THIS
 3. If you want fmClubId/fmCompetitionId auto-loaded in FMCC, turn on
    Preferences > Your World > (Show Unique IDs) BEFORE running this - that's
    a one-off toggle this script doesn't touch.
-4. pip install pyautogui   (one-time; also pulls in Pillow for screenshots)
+4. pip3 install pyautogui pynput pillow   (one-time)
+5. On Mac, the first run will prompt you to grant your terminal app
+   Accessibility AND Input Monitoring permissions (System Settings > Privacy
+   & Security). Both are needed - Accessibility for the clicks/screenshots,
+   Input Monitoring for the F8/Esc hotkey to work while FM has focus. If F8
+   doesn't seem to register, check both of those lists.
 
 WHAT TO EXPECT WHILE IT RUNS
 ------------------------------
@@ -42,11 +55,12 @@ Football Manager's exact menu state can differ from save to save (mid-season
 vs. off-season, whether your league uses playoffs, how many competitions
 you're still in, etc.), so this script pauses before every screenshot and
 shows you what it's about to capture. If a click landed somewhere odd, fix
-it manually with your own mouse before pressing Enter to continue - the
+it manually with your own mouse before pressing F8 to continue - the
 screenshot only fires once you confirm.
 
 Move your mouse to any corner of the screen at any time to trigger
-pyautogui's built-in failsafe and abort immediately.
+pyautogui's built-in failsafe and abort immediately. Pressing Esc at any
+F8 checkpoint aborts too.
 """
 
 import subprocess
@@ -58,11 +72,20 @@ try:
     import pyautogui
 except ImportError:
     print("This script needs the pyautogui package. Install it with:")
-    print("    pip install pyautogui")
+    print("    pip3 install pyautogui")
+    sys.exit(1)
+
+try:
+    from pynput import keyboard
+except ImportError:
+    print("This script needs the pynput package (for the F8 hotkey). Install it with:")
+    print("    pip3 install pynput")
     sys.exit(1)
 
 pyautogui.FAILSAFE = True  # slam mouse into a screen corner to abort
 pyautogui.PAUSE = 0.15     # small delay after every pyautogui call
+
+HOTKEY = keyboard.Key.f8
 
 # Lives inside the FMCC project itself (tools/../screenshots), right next to
 # FM_Command_Centre.html, rather than off on the Desktop somewhere - the idea
@@ -70,6 +93,10 @@ pyautogui.PAUSE = 0.15     # small delay after every pyautogui call
 # every run, so a fresh capture just overwrites the last one instead of
 # piling up dated subfolders.
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "screenshots"
+
+
+class Aborted(Exception):
+    pass
 
 
 def open_in_file_manager(path):
@@ -85,12 +112,29 @@ def open_in_file_manager(path):
         pass
 
 
-def wait_for_enter(prompt):
-    input(f"{prompt}\n>>> Press Enter when ready... ")
+def wait_for_hotkey(prompt):
+    """Blocks until F8 is pressed, WITHOUT needing this terminal to be
+    focused - a global hotkey listener, so Football Manager can stay the
+    frontmost window the entire time. Esc aborts instead."""
+    print(f"{prompt}\n>>> Press F8 when ready (keep FM focused - no need to alt-tab). Esc to abort.")
+    result = {"aborted": False}
+
+    def on_press(key):
+        if key == HOTKEY:
+            return False
+        if key == keyboard.Key.esc:
+            result["aborted"] = True
+            return False
+
+    with keyboard.Listener(on_press=on_press) as listener:
+        listener.join()
+
+    if result["aborted"]:
+        raise Aborted()
 
 
 def get_point(label):
-    wait_for_enter(f'Move your mouse to the exact center of "{label}" in FM\'s top navigation bar.')
+    wait_for_hotkey(f'Move your mouse to the exact center of "{label}" in FM\'s top navigation bar.')
     pos = pyautogui.position()
     print(f"  Got {label} at {pos}")
     return pos
@@ -129,8 +173,8 @@ def click(pt_fn, dx_ratio, dy_ratio, settle=0.6):
 def capture(filename, note):
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUTPUT_DIR / filename
-    wait_for_enter(f"About to save this screen as {filename} ({note}).\n"
-                    f"Check it's showing the right thing - fix it manually first if not.")
+    wait_for_hotkey(f"About to save this screen as {filename} ({note}).\n"
+                     f"Check it's showing the right thing - fix it manually first if not.")
     img = pyautogui.screenshot()
     img.save(path)
     print(f"  Saved {path}\n")
@@ -138,7 +182,7 @@ def capture(filename, note):
 
 def main():
     print(__doc__)
-    wait_for_enter("Ready to start? Make sure Football Manager is the frontmost window")
+    wait_for_hotkey("Ready to start? Make sure Football Manager is the frontmost window")
     anchor, scale = calibrate()
     pt = make_pt_fn(anchor, scale)
 
@@ -183,5 +227,7 @@ if __name__ == "__main__":
         main()
     except pyautogui.FailSafeException:
         print("\nAborted (mouse hit a screen corner).")
+    except Aborted:
+        print("\nAborted (Esc pressed).")
     except KeyboardInterrupt:
         print("\nAborted (Ctrl+C).")
