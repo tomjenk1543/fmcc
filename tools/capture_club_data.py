@@ -36,6 +36,12 @@ fullscreen games), so no key combo actually reached the script while FM had
 focus - it only ever reached FM itself. A countdown needs nothing from the
 keyboard at all, so it works no matter what FM does with key events.
 
+Every countdown is also SPOKEN OUT LOUD (macOS 'say' command, or a Windows
+equivalent) - not just printed - since you can't see the terminal at all
+once FM covers the whole screen. You'll hear what to do, then hear the last
+few seconds counted down, then hear "capturing" right before a screenshot
+actually fires.
+
 To ABORT at any point, move your mouse to any corner of the screen - this is
 checked throughout every countdown and click sequence, the same failsafe
 pyautogui itself uses.
@@ -110,25 +116,48 @@ def _mouse_in_a_corner():
     return any(abs(x - cx) <= CORNER_MARGIN and abs(y - cy) <= CORNER_MARGIN for cx, cy in corners)
 
 
-def countdown(seconds, prompt):
+def speak(text):
+    """Best-effort, non-blocking text-to-speech - see the module docstring
+    ("STAYING ON FM THE WHOLE TIME") for why this exists: once FM covers the
+    whole screen, printed terminal text is invisible, but you can still hear
+    it. Silently does nothing on platforms without a bundled TTS command."""
+    try:
+        if sys.platform == "darwin":
+            subprocess.Popen(["say", text], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        elif sys.platform.startswith("win"):
+            ps_cmd = ("Add-Type -AssemblyName System.Speech; "
+                      f"(New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('{text}')")
+            subprocess.Popen(["powershell", "-Command", ps_cmd],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+
+def countdown(seconds, prompt, announce=None):
     """Doesn't need any keyboard input at all - see the module docstring
     ("STAYING ON FM THE WHOLE TIME") for why. Checked against the same
     screen-corner abort pyautogui's own FAILSAFE uses, every tenth of a
-    second, so aborting stays responsive even mid-countdown."""
+    second, so aborting stays responsive even mid-countdown. Speaks the
+    prompt out loud (a short version, via `announce`) plus the final few
+    seconds, since the terminal itself is invisible once FM has focus."""
     print(prompt)
-    ticks = int(seconds * 10)
-    for i in range(ticks, 0, -1):
-        remaining = (i + 9) // 10
+    speak(announce or prompt)
+    seconds = int(seconds)
+    for remaining in range(seconds, 0, -1):
         print(f"  ...{remaining} ", end="\r")
-        if _mouse_in_a_corner():
-            print()
-            raise Aborted()
-        time.sleep(0.1)
+        if remaining <= 3:
+            speak(str(remaining))
+        for _ in range(10):
+            if _mouse_in_a_corner():
+                print()
+                raise Aborted()
+            time.sleep(0.1)
     print(" " * 20, end="\r")
 
 
 def get_point(label):
-    countdown(5, f'Move your mouse to the exact center of "{label}" in FM\'s top navigation bar.')
+    countdown(5, f'Move your mouse to the exact center of "{label}" in FM\'s top navigation bar.',
+               announce=f"Move your mouse to {label}")
     pos = pyautogui.position()
     print(f"  Got {label} at {pos}")
     return pos
@@ -164,11 +193,13 @@ def click(pt_fn, dx_ratio, dy_ratio, settle=0.6):
     time.sleep(settle)
 
 
-def capture(filename, note):
+def capture(filename, note, announce):
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUTPUT_DIR / filename
     countdown(8, f"About to save this screen as {filename} ({note}).\n"
-                 f"Check it's showing the right thing - fix it manually first if not.")
+                 f"Check it's showing the right thing - fix it manually first if not.",
+              announce=announce)
+    speak("capturing")
     img = pyautogui.screenshot()
     img.save(path)
     print(f"  Saved {path}\n")
@@ -176,7 +207,8 @@ def capture(filename, note):
 
 def main():
     print(__doc__)
-    countdown(5, "Ready to start? Make sure Football Manager is the frontmost window.")
+    countdown(5, "Ready to start? Make sure Football Manager is the frontmost window.",
+              announce="Ready to start. Make sure Football Manager is focused.")
     anchor, scale = calibrate()
     pt = make_pt_fn(anchor, scale)
 
@@ -185,7 +217,8 @@ def main():
     click(pt, 0.852, 0.000)   # CLUB tab
     click(pt, -0.005, 0.074)  # Overview sub-tab
     capture("club_overview.png",
-            "name/division/stadium + Honours + Club History panels")
+            "name/division/stadium + Honours + Club History panels",
+            announce="Capturing club overview")
 
     # --- Screen 2: League Table --------------------------------------------
     print("--- Screen 2: League Table ---")
@@ -198,13 +231,15 @@ def main():
     print('top-left of the table panel to switch to "League Table" / "Overall"')
     print('yourself before the countdown ends, if needed.')
     capture("league_table.png",
-            "full standings (covers Season Stats + League Table)")
+            "full standings (covers Season Stats + League Table)",
+            announce="Capturing league table. Switch it manually now if this is a playoff bracket.")
 
     # --- Screen 3: Career History -------------------------------------------
     print("--- Screen 3: Career History ---")
     click(pt, 1.000, 0.000)   # CAREER tab
     click(pt, 0.970, 0.074, settle=1.0)  # My History sub-tab (opens a popup)
-    capture("career_history.png", "year-by-year history + manager bio")
+    capture("career_history.png", "year-by-year history + manager bio",
+            announce="Capturing career history")
 
     # Close the popup so FM is left in a tidy state.
     click(pt, 1.759, 0.3187)

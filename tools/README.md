@@ -28,6 +28,12 @@ odd, fix it manually with your own mouse before the countdown for that step
 runs out. To abort at any point, move your mouse into any corner of the
 screen (the same failsafe pyautogui itself uses).
 
+Every countdown is also spoken out loud (macOS `say`, or a Windows
+equivalent), not just printed to the terminal, since the terminal is
+completely hidden once FM covers the screen. You'll hear what's about to
+happen, hear the last few seconds counted down, and hear "capturing" right
+before each screenshot fires - so you never need to see the terminal at all.
+
 Earlier versions of this script used a keyboard hotkey to confirm each step
 instead of a countdown, but Football Manager grabs raw keyboard input
 directly while it's the focused window (common for fullscreen games), so no
