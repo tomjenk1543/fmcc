@@ -20,6 +20,11 @@ currently working with.
    iTerm, etc). Without it every screenshot fails with "could not create
    image from display". Fully quit and reopen that app afterward, the
    toggle doesn't take effect until you do.
+5. Also on Mac: macOS Sequoia can still show a one-off "is requesting to
+   bypass the system private window picker" popup even with Screen
+   Recording already granted, and if it lands mid-run it gets captured
+   instead of FM. Clear it first: run `screencapture -x /tmp/test.png` by
+   hand, click Allow, then run the real script.
 
 **Running it:**
 ```
@@ -32,6 +37,11 @@ then acts (clicking, or taking a screenshot). If a click landed somewhere
 odd, fix it manually with your own mouse before the countdown for that step
 runs out. To abort at any point, move your mouse into any corner of the
 screen (the same failsafe pyautogui itself uses).
+
+The league table screen (2 of 3) is fully manual - the script asks you to
+navigate there yourself rather than trying to click through to it, since
+that path varies too much between FM versions and save states to hardcode
+reliably. It gives you 15 seconds, then captures whatever's on screen.
 
 Every countdown is also spoken out loud (macOS `say`, or a Windows
 equivalent), not just printed to the terminal, since the terminal is

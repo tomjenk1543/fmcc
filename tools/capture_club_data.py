@@ -61,6 +61,12 @@ BEFORE YOU RUN THIS
    iTerm, etc). Without it, every screenshot fails with "could not create
    image from display". Fully quit and reopen that app after granting it -
    the toggle doesn't take effect until you do.
+6. Also on Mac: macOS Sequoia can still show a one-off "is requesting to
+   bypass the system private window picker" popup even after you've granted
+   Screen Recording above, and if it appears mid-run it'll get captured
+   instead of FM. Clear it out of the way before starting for real - run
+   `screencapture -x /tmp/test.png` once by hand, click Allow, then run this
+   script.
 
 WHAT TO EXPECT WHILE IT RUNS
 ------------------------------
@@ -226,18 +232,21 @@ def main():
             announce="Capturing club overview")
 
     # --- Screen 2: League Table --------------------------------------------
+    # This one is manual rather than click-chained: the path from Club
+    # Overview to the actual league standings varies too much between FM
+    # versions/UI revisions/save states to hardcode reliably (in some UIs the
+    # "1st in <League>..." headline opens Club Info instead of the league
+    # page). Simpler and more robust to just ask for the screen directly.
     print("--- Screen 2: League Table ---")
-    click(pt, 0.614, 0.215, settle=1.0)   # the "1st in <League>..." headline -> competition page
-    click(pt, 0.7275, 0.074)              # Stages tab
-    click(pt, 0.2587, 0.2587)             # stage picker dropdown
-    click(pt, 0.6605, 0.2587, settle=1.0)  # "League Stage" option
-    print('If your save is mid-playoffs, the table may default to a knockout')
-    print('bracket instead of the full standings - use the dropdowns at the')
-    print('top-left of the table panel to switch to "League Table" / "Overall"')
-    print('yourself before the countdown ends, if needed.')
+    print("This one is manual - navigate to it yourself:")
+    print('  Club > your league (or click the league badge/headline on the')
+    print('  Overview screen) > Stages tab > pick "League Stage" / "Overall"')
+    print("  from the dropdown if it's defaulting to a knockout bracket view.")
+    countdown(15, "Navigate to your league's full table screen yourself now.",
+              announce="Navigate to your league's full table screen manually. You have 15 seconds.")
     capture("league_table.png",
             "full standings (covers Season Stats + League Table)",
-            announce="Capturing league table. Switch it manually now if this is a playoff bracket.")
+            announce="Capturing league table")
 
     # --- Screen 3: Career History -------------------------------------------
     print("--- Screen 3: Career History ---")
