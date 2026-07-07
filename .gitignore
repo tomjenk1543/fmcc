@@ -1,3 +1,7 @@
 .DS_Store
 *.log
 /screenshots/
+__pycache__/
+*.pyc
+/FMCC TODO - Later.md
+/FM26 Ebook - Ideas for FMCC.docx
