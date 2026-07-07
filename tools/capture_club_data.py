@@ -27,16 +27,18 @@ position, and Mac or Windows alike.
 
 STAYING ON FM THE WHOLE TIME
 ------------------------------
-Every checkpoint (calibration points, screenshot confirmations) is confirmed
-with a HOTKEY - Ctrl+Option+C - rather than pressing Enter in the terminal.
-That's a global hotkey, so you never need to alt-tab back to this terminal
-window to continue - keep Football Manager focused the entire time. Press
-Ctrl+Option+X instead at any checkpoint to abort cleanly. (A single function
-key like F8 seems simpler, but on most Mac keyboards F-keys double as
-hardware media/brightness/volume controls, which macOS intercepts before
-any app - including this one - ever sees the keypress. A three-key modifier
-combo sidesteps that, and is unlikely to collide with any of FM's own
-single-key shortcuts.)
+Every checkpoint (calibration points, screenshot confirmations) is a short
+COUNTDOWN rather than a keypress - the script tells you what to do, counts
+down a few seconds, then acts. That's deliberate: earlier versions of this
+script used keyboard hotkeys to confirm each step, but Football Manager
+grabs raw keyboard input directly while it's the focused window (common for
+fullscreen games), so no key combo actually reached the script while FM had
+focus - it only ever reached FM itself. A countdown needs nothing from the
+keyboard at all, so it works no matter what FM does with key events.
+
+To ABORT at any point, move your mouse to any corner of the screen - this is
+checked throughout every countdown and click sequence, the same failsafe
+pyautogui itself uses.
 
 BEFORE YOU RUN THIS
 --------------------
@@ -47,26 +49,16 @@ BEFORE YOU RUN THIS
 3. If you want fmClubId/fmCompetitionId auto-loaded in FMCC, turn on
    Preferences > Your World > (Show Unique IDs) BEFORE running this - that's
    a one-off toggle this script doesn't touch.
-4. pip3 install pyautogui pynput pillow   (one-time)
-5. On Mac, the first run will prompt you to grant your terminal app
-   Accessibility AND Input Monitoring permissions (System Settings > Privacy
-   & Security). Both are needed - Accessibility for the clicks/screenshots,
-   Input Monitoring for the hotkey to work while FM has focus. If the hotkey
-   doesn't seem to register, check both of those lists, and make sure you
-   fully quit and reopened your terminal app after granting them.
+4. pip3 install pyautogui pillow   (one-time)
 
 WHAT TO EXPECT WHILE IT RUNS
 ------------------------------
 Football Manager's exact menu state can differ from save to save (mid-season
 vs. off-season, whether your league uses playoffs, how many competitions
-you're still in, etc.), so this script pauses before every screenshot and
-shows you what it's about to capture. If a click landed somewhere odd, fix
-it manually with your own mouse before pressing Ctrl+Option+C to continue -
-the screenshot only fires once you confirm.
-
-Move your mouse to any corner of the screen at any time to trigger
-pyautogui's built-in failsafe and abort immediately. Ctrl+Option+X at any
-checkpoint aborts too.
+you're still in, etc.), so this script counts down before every screenshot
+and shows you what it's about to capture. If a click landed somewhere odd,
+fix it manually with your own mouse before the countdown reaches zero - the
+screenshot only fires once the countdown finishes.
 """
 
 import subprocess
@@ -81,23 +73,10 @@ except ImportError:
     print("    pip3 install pyautogui")
     sys.exit(1)
 
-try:
-    from pynput import keyboard
-except ImportError:
-    print("This script needs the pynput package (for the F8 hotkey). Install it with:")
-    print("    pip3 install pynput")
-    sys.exit(1)
-
 pyautogui.FAILSAFE = True  # slam mouse into a screen corner to abort
 pyautogui.PAUSE = 0.15     # small delay after every pyautogui call
 
-# Modifier combo rather than a single function key - see the module docstring
-# ("STAYING ON FM THE WHOLE TIME") for why F8 alone doesn't reliably work on
-# Mac keyboards (media-key interception).
-CONFIRM_CHAR = "c"
-ABORT_CHAR = "x"
-_CTRL_KEYS = (keyboard.Key.ctrl, keyboard.Key.ctrl_l, keyboard.Key.ctrl_r)
-_ALT_KEYS = (keyboard.Key.alt, keyboard.Key.alt_l, keyboard.Key.alt_r)
+CORNER_MARGIN = 4  # pixels - how close to a corner counts as "hit it"
 
 # Lives inside the FMCC project itself (tools/../screenshots), right next to
 # FM_Command_Centre.html, rather than off on the Desktop somewhere - the idea
@@ -124,49 +103,32 @@ def open_in_file_manager(path):
         pass
 
 
-def wait_for_hotkey(prompt):
-    """Blocks until Ctrl+Option+C is pressed, WITHOUT needing this terminal
-    to be focused - a global hotkey listener, so Football Manager can stay
-    the frontmost window the entire time. Ctrl+Option+X aborts instead.
-    Tracks modifier state manually (rather than using a single key like F8)
-    since Mac keyboards route F-keys through the hardware media-key layer,
-    which never reaches a normal key listener."""
-    print(f"{prompt}\n>>> Press Ctrl+Option+C when ready (keep FM focused - no need to alt-tab). "
-          f"Ctrl+Option+X to abort.")
-    result = {"aborted": False}
-    held = {"ctrl": False, "alt": False}
+def _mouse_in_a_corner():
+    x, y = pyautogui.position()
+    w, h = pyautogui.size()
+    corners = [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)]
+    return any(abs(x - cx) <= CORNER_MARGIN and abs(y - cy) <= CORNER_MARGIN for cx, cy in corners)
 
-    def on_press(key):
-        if key in _CTRL_KEYS:
-            held["ctrl"] = True
-            return None
-        if key in _ALT_KEYS:
-            held["alt"] = True
-            return None
-        if held["ctrl"] and held["alt"]:
-            ch = getattr(key, "char", None)
-            if ch and ch.lower() == CONFIRM_CHAR:
-                return False
-            if ch and ch.lower() == ABORT_CHAR:
-                result["aborted"] = True
-                return False
-        return None
 
-    def on_release(key):
-        if key in _CTRL_KEYS:
-            held["ctrl"] = False
-        elif key in _ALT_KEYS:
-            held["alt"] = False
-
-    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
-        listener.join()
-
-    if result["aborted"]:
-        raise Aborted()
+def countdown(seconds, prompt):
+    """Doesn't need any keyboard input at all - see the module docstring
+    ("STAYING ON FM THE WHOLE TIME") for why. Checked against the same
+    screen-corner abort pyautogui's own FAILSAFE uses, every tenth of a
+    second, so aborting stays responsive even mid-countdown."""
+    print(prompt)
+    ticks = int(seconds * 10)
+    for i in range(ticks, 0, -1):
+        remaining = (i + 9) // 10
+        print(f"  ...{remaining} ", end="\r")
+        if _mouse_in_a_corner():
+            print()
+            raise Aborted()
+        time.sleep(0.1)
+    print(" " * 20, end="\r")
 
 
 def get_point(label):
-    wait_for_hotkey(f'Move your mouse to the exact center of "{label}" in FM\'s top navigation bar.')
+    countdown(5, f'Move your mouse to the exact center of "{label}" in FM\'s top navigation bar.')
     pos = pyautogui.position()
     print(f"  Got {label} at {pos}")
     return pos
@@ -205,8 +167,8 @@ def click(pt_fn, dx_ratio, dy_ratio, settle=0.6):
 def capture(filename, note):
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUTPUT_DIR / filename
-    wait_for_hotkey(f"About to save this screen as {filename} ({note}).\n"
-                     f"Check it's showing the right thing - fix it manually first if not.")
+    countdown(8, f"About to save this screen as {filename} ({note}).\n"
+                 f"Check it's showing the right thing - fix it manually first if not.")
     img = pyautogui.screenshot()
     img.save(path)
     print(f"  Saved {path}\n")
@@ -214,7 +176,7 @@ def capture(filename, note):
 
 def main():
     print(__doc__)
-    wait_for_hotkey("Ready to start? Make sure Football Manager is the frontmost window")
+    countdown(5, "Ready to start? Make sure Football Manager is the frontmost window.")
     anchor, scale = calibrate()
     pt = make_pt_fn(anchor, scale)
 
@@ -234,7 +196,7 @@ def main():
     print('If your save is mid-playoffs, the table may default to a knockout')
     print('bracket instead of the full standings - use the dropdowns at the')
     print('top-left of the table panel to switch to "League Table" / "Overall"')
-    print('yourself before continuing, if needed.')
+    print('yourself before the countdown ends, if needed.')
     capture("league_table.png",
             "full standings (covers Season Stats + League Table)")
 
@@ -260,6 +222,6 @@ if __name__ == "__main__":
     except pyautogui.FailSafeException:
         print("\nAborted (mouse hit a screen corner).")
     except Aborted:
-        print("\nAborted (Ctrl+Option+X pressed).")
+        print("\nAborted (mouse hit a screen corner).")
     except KeyboardInterrupt:
         print("\nAborted (Ctrl+C).")

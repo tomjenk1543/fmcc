@@ -11,33 +11,28 @@ copies - it's meant to hold one fresh set for whatever save you're
 currently working with.
 
 **Setup (one-time):**
-1. `pip3 install pyautogui pynput pillow`
+1. `pip3 install pyautogui pillow`
 2. In FM: Preferences > Interface > Screen Resolution -> set to 1920x1080.
 3. If you want fmClubId/fmCompetitionId auto-loaded in FMCC: Preferences >
    Your World > turn on "Show Unique IDs" before running the script.
-4. On Mac, the first run prompts you to grant your terminal app both
-   Accessibility and Input Monitoring permissions (System Settings > Privacy
-   & Security). Both are needed - Accessibility for the clicks/screenshots,
-   Input Monitoring for the hotkey below to register while FM has focus. If
-   it doesn't seem to register, fully quit and reopen your terminal app
-   after granting both.
 
 **Running it:**
 ```
 python3 capture_club_data.py
 ```
-Switch to Football Manager, then press Ctrl+Option+C at every checkpoint to
-confirm and move on (Ctrl+Option+X aborts). That's a global hotkey, so you
-never need to alt-tab back to the terminal - just keep FM focused the whole
-time. It's a three-key combo rather than something simpler like F8 because
-Mac keyboards route F-keys through hardware media/brightness/volume
-controls first, which never reach a script at all, and a modifier combo
-also won't collide with any of FM's own single-key shortcuts (like Space).
-The script pauses before every screenshot so you can double-check (and
-manually fix, if needed) what's on screen before it captures - Football
-Manager's exact menu state varies by save (mid-season vs. off-season,
-whether your league has playoffs, etc.), so this isn't fully blind
-automation, but it does the clicking for you.
+Switch to Football Manager and leave it focused - the whole run is driven by
+short countdowns rather than any keypress, so you never need to alt-tab back
+to the terminal. The script tells you what to do, counts down a few seconds,
+then acts (clicking, or taking a screenshot). If a click landed somewhere
+odd, fix it manually with your own mouse before the countdown for that step
+runs out. To abort at any point, move your mouse into any corner of the
+screen (the same failsafe pyautogui itself uses).
+
+Earlier versions of this script used a keyboard hotkey to confirm each step
+instead of a countdown, but Football Manager grabs raw keyboard input
+directly while it's the focused window (common for fullscreen games), so no
+key combo ever reached the script while FM had focus, only FM itself saw it.
+A countdown needs nothing from the keyboard, so it's not affected by that.
 
 Works on both Mac and Windows - it calibrates itself against your actual
 screen/window by asking you to point at two fixed landmarks (the words
