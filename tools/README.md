@@ -18,6 +18,9 @@ the screenshots, and converts them straight into the Step 1 JSON without any fil
 handoff. You'll get a one-time prompt to grant Claude access to Football Manager.
 
 This only needs to happen once per save, or whenever you want to refresh the numbers.
+The finished JSON gets saved to `exports/` in this project (e.g. `exports/club_data_step1.json`),
+so it's easy to find again later. That folder isn't tracked in git, since it holds your
+own save data rather than app code.
 
 ## Squad Data, Tactic Data, Scouting, Performance Data (Steps 2-5)
 
