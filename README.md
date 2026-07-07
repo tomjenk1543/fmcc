@@ -7,8 +7,8 @@ plain HTML/CSS/JS with no build step, no dependencies, and no server. Open
 ## Getting it
 
 If you only have the single `FM_Command_Centre.html` file, or you want the rest of the
-project (setup guide, sample data, screenshot tool) without cloning manually, download
-`setup.py` from this repo and run:
+project (setup guide, sample data) without cloning manually, download `setup.py` from
+this repo and run:
 
 ```
 python3 setup.py
@@ -45,10 +45,9 @@ fully separate program.
 - `sample-data/` — small, synthetic example JSON files used by the tests / for trying out
   the Setup Wizard's import feature without needing a real save export.
 - `docs/` — setup / data-collection guides.
-- `tools/` — optional helper scripts, e.g. `capture_club_data.py`, which automates the
-  screenshots for the Setup Guide's Club Data step. Only comes with the full project
-  (clone or download the whole repo, or run `setup.py`), not with a standalone copy of
-  just the HTML file.
+- `tools/` — notes on the Setup Guide's data-collection steps. Club Data (Step 1) is
+  captured live by asking Claude to take screen control rather than running a script;
+  see `tools/README.md`.
 
 ## Running the tests
 
