@@ -41,7 +41,9 @@ fully separate program.
 - `setup.py` — first-run installer for someone who only has the HTML file; sets up the
   full project under `~/Documents/FMCC/`. See "Getting it" above.
 - `tests/` — a regression test suite run against a small mock-DOM harness under plain
-  Node (no browser needed). Not part of the app itself.
+  Node (no browser needed). Not part of the app itself, and not tracked in git, so it
+  won't be there if you got FMCC via `setup.py` or a fresh clone — it's a dev-only
+  folder for anyone working on FMCC's own code.
 - `sample-data/` — small, synthetic example JSON files used by the tests / for trying out
   the Setup Wizard's import feature without needing a real save export.
 - `docs/` — setup / data-collection guides.
@@ -50,6 +52,9 @@ fully separate program.
   see `tools/README.md`.
 
 ## Running the tests
+
+Dev-only — `tests/` isn't tracked in git (see "Layout" above), so this only applies if
+you're working on FMCC's own code with that folder present locally.
 
 ```
 ./tests/run-all.sh

@@ -7,3 +7,6 @@ __pycache__/
 /FMCC TODO - Later.md
 /FM26 Ebook - Ideas for FMCC.docx
 /dev/
+
+# Regression test suite - only needed for development, not to run the app.
+/tests/

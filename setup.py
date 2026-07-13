@@ -93,8 +93,8 @@ def main():
     print(f"  1. Open {html_path.name} in your browser to start the app.")
     print('  2. Read docs/"FMCC Setup Guide.docx" for how to get your Football')
     print("     Manager save's data into it.")
-    print("  3. (Optional) tools/capture_club_data.py automates the Club Data")
-    print("     screenshots from that guide - see tools/README.md.")
+    print("  3. (Optional) Ask Claude to capture your Club Data screen-by-screen")
+    print("     instead of doing it by hand - see tools/README.md.")
 
     open_in_file_manager(TARGET)
     try:
