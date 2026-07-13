@@ -12,10 +12,29 @@ Instead, just ask Claude to do the Club Data capture directly: open Football Man
 have it on the Club Overview screen (or anywhere with the top nav visible), and ask
 something like "capture my club data for FMCC." Claude takes control of your screen
 for that one step, looks at what's actually on screen instead of guessing coordinates,
-navigates to Club Overview, the league table, and Career > My History (plus Club Site
-and Legends & Records if you want stadium capacity or all-time club records), takes
-the screenshots, and converts them straight into the Step 1 JSON without any file
-handoff. You'll get a one-time prompt to grant Claude access to Football Manager.
+navigates to the screens listed below, takes the screenshots, and converts them
+straight into the Step 1 JSON without any file handoff. You'll get a one-time prompt
+to grant Claude access to Football Manager.
+
+Where to find each field (so Claude doesn't have to hunt around FM's menus every
+time):
+
+- League table: `Portal > Stages` (change the dropdown if there's more than one phase,
+  e.g. a playoff round)
+- Club overview (name/manager/division/stadium/crest): `Club > Club Site`
+- Stadium capacity: `Club > Club Site > About Club (click the stadium name) > Facilities`
+- All-time club records: `Club > Club Site > Club History (tile) > Club History
+  Records (tile) > All Time Records tab > Players` sub-tab (Transfers sub-tab for
+  record transfer fee)
+- Manager career stats (years managed, win %, transfer spend): `Career > Managerial
+  Stats` (the "Current Club" column of the Overall popup)
+- Achievements/trophies won at this club: `Career > My History`
+- Save file name: `Club > Club Site > FM Menu` (gear icon, top-left header, e.g.
+  "Manager Name - Club Name")
+- League/competition unique ID (`fmCompetitionId`, powers the league logo lookup):
+  `Club > Club Site > Competitions (tile) > click the league's own name` (e.g.
+  SuperLiga) - the Competition Overview page that opens shows it directly in its own
+  header, e.g. "SuperLiga (ID: 7540024)", no separate preference toggle needed
 
 This only needs to happen once per save, or whenever you want to refresh the numbers.
 The finished JSON gets saved to `exports/` in this project (e.g. `exports/club_data_step1.json`),

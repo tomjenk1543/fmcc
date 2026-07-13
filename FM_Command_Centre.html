@@ -40,25 +40,29 @@
     --panel-border: #262626;
     --text: #f2f2f2;
     --text-dim: #9a9a9a;
-    /* Sidebar badge size only now (see .corner-stripe) - used to also be the horizontal
-       hotbar's own height before the redesign-explore sidebar conversion, back when the
-       badge was sized to exactly fill the bar it sat in. Originally shrunk to 44px from
-       64px because a badge that size was dominating a 232px-wide sidebar header back when
-       the layout was still a side-by-side row (badge + wordmark). That crowding was really
-       the row layout's problem, not the badge's own size — once .sidebar-header switched to
-       stacking the badge above the wordmark (see that rule's own comment), the wordmark got
-       the sidebar's full width regardless of badge size, so it's been free to grow again
-       since (60px, then this). Tied directly to --sidebar-w (minus .sidebar-header's own
-       16px side padding twice) rather than another flat px guess, so the badge actually
-       fills the header's available width — leaving just that same 16px of breathing room on
-       each side, not an arbitrarily smaller circle floating in a much wider header. */
-    --hotbar-h: calc(var(--sidebar-w) - 64px);
+    /* Sidebar badge size only now (see .corner-stripe). Used to be tied to --sidebar-w (the
+       badge grew/shrunk to fill however wide the wordmark-carrying header happened to be) -
+       now that --sidebar-w is a fixed slim icon rail with no wordmark to size around (see
+       that variable's own comment), the badge doesn't need to track it at all, so this is
+       just a flat value again: big enough to read clearly at rail width, small enough to
+       leave real padding on both sides of a 60px column. */
+    --hotbar-h: 34px;
     /* A lightened version of club-primary used specifically for text (see --club-text below,
        used in place of --club-primary anywhere text is coloured) — plain club-primary can
        be nearly unreadable against the near-black background when a club's colour is
        naturally dark (navy, dark green, etc). Backgrounds, borders and the corner box keep
        using --club-primary unchanged; only text gets lightened. */
     --club-text: color-mix(in srgb, var(--club-primary) 75%, white 25%);
+    /* Icon/text colour for content sitting ON TOP of a solid --club-primary fill (e.g. the
+       active nav rail icon's pill background) — a different problem from --club-text above,
+       which lightens club-primary for use as text on the dark app background. Here the
+       background itself IS club-primary, so a fixed colour can't work: a bright club colour
+       (yellow, cyan) needs a dark icon, a dark club colour (navy, maroon) needs a light one.
+       CSS can't compute that on its own, so applyClubColours() works out the contrast colour
+       from the actual club-primary hex (WCAG relative luminance) and overwrites this via
+       style.setProperty() every time the club colours change. This default only shows before
+       that JS runs, and matches the black/green neutral shell default above.  */
+    --club-primary-contrast: #0a1a02;
     /* The whole app is authored at this fixed "design" size, then #app-scale-root is scaled
        by ONE factor on both axes (see the applyScaleToFit() script near the end of the
        file) to fit inside whatever the real browser window turns out to be, on every load
@@ -106,16 +110,25 @@
     --positive: #22c55e;
     --negative: #ef4444;
     /* Sidebar width (redesign-explore's replacement for the old horizontal .hotbar) - see
-       .hotbar's own comment further down for why the class name itself stayed the same. */
-    --sidebar-w: 232px;
+       .hotbar's own comment further down for why the class name itself stayed the same.
+       Shrunk from 232px to a slim icon-only rail (nav-rail redesign) - individual
+       destinations no longer carry a text label in the sidebar itself (see .rail-btn's own
+       comment), so the column only needs to be wide enough for one centered 40px icon
+       button plus breathing room, not a whole wordmark-width column. The Squad/Tactics
+       groups that used to expand inline as extra rows now live in #nav-flyout instead, a
+       floating panel that overlays main rather than taking a permanent width tax on every
+       page (see that element's own comment) - this --sidebar-w value is the ONLY width any
+       page ever loses now, on every page, not just the two that used to hold the expanded
+       group rows. */
+    --sidebar-w: 60px;
   }
 
   * { box-sizing: border-box; }
 
   /* Global keyboard-focus indicator. Mouse/touch clicks never trigger :focus-visible, so this
      stays invisible during normal pointer use and only appears for keyboard navigation —
-     added because several interactive elements below (e.g. .nav-links button) explicitly
-     zero out the default outline without supplying their own replacement. */
+     added because several interactive elements below (e.g. .rail-btn) explicitly zero out
+     the default outline without supplying their own replacement. */
   a:focus-visible,
   button:focus-visible,
   input:focus-visible,
@@ -211,8 +224,8 @@
     background: transparent;
   }
 
-  /* Was a bottom-edge horizontal fade; now a right-edge vertical one, same idea (fades out
-     at both ends rather than a flat border, matching .hero-divider's own gradient trick). */
+  /* Right-edge divider separating the rail from main content - flat solid line rather than
+     the old fade-at-both-ends gradient. */
   .hotbar::after {
     content: '';
     position: absolute;
@@ -220,27 +233,22 @@
     bottom: 0;
     right: 0;
     width: 2px;
-    background: linear-gradient(180deg, transparent 0%, var(--club-primary) 20%, var(--club-primary) 80%, transparent 100%);
+    background: var(--club-primary);
     opacity: 0.6;
   }
 
-  /* redesign-explore v2: badge stacked above the wordmark, both centered, rather than a
-     side-by-side row. The row layout was the actual cause of the "crammed" look flagged
-     after the first sidebar pass - at 232px wide, a 64px badge + 16px padding on both sides
-     + a 10px gap left only ~126px for "FM Command Centre" plus the club name underneath,
-     which wrapped onto 2-3 cramped lines. Stacking gives the wordmark the sidebar's full
-     width to lay out in instead of a squeezed leftover column, which is the more common
-     pattern for a narrow sidebar's own branding header anyway (icon mark on top, wordmark
-     below), and also shrinks the badge itself (see --hotbar-h's own comment below) so it
-     doesn't dominate a header this narrow. */
+  /* nav-rail redesign: badge alone, no wordmark underneath - a 60px column has no room for
+     "FM Command Centre" plus a club name without wrapping badly, so that text moved into
+     .rail-badge-tooltip (see further down) instead, revealed on hover/focus of the badge
+     rather than sitting permanently on screen. */
   .sidebar-header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 20px 16px 16px;
+    padding: 16px 0 12px;
     text-align: center;
     flex: 0 0 auto;
+    position: relative;
   }
 
   /* Crest/initials now float directly on the sidebar's transparent background — no more
@@ -281,23 +289,75 @@
     height: 86%;
   }
 
-  /* Column instead of a row (was side-by-side next to the badge - see .sidebar-header's
-     own comment for why that got squeezed) - centered under the badge, full sidebar width
-     to work with instead of a leftover sliver next to a 64px circle. */
+  /* The badge button itself - plain, borderless, just a hit target + hover affordance
+     wrapping .corner-stripe so the badge reads as interactive (it reveals the tooltip below,
+     and still doubles as a way back to Dashboard - see the click handler in the script). */
+  .rail-badge-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 50%;
+    position: relative;
+    /* Buttons get a UA-stylesheet default of color:buttontext (effectively black) that
+       normal CSS inheritance can't see past - without this, "FM" and the date inside
+       .rail-badge-tooltip (neither of which sets its own colour - see .club-name and the
+       plain .hotbar-right div below) would render in that default black instead of picking
+       up the app's own light text colour from body, even though nothing here looks like it
+       should be overriding them. */
+    color: inherit;
+  }
+
+  .rail-badge-btn:focus-visible {
+    outline: 2px solid var(--club-text, #f2f2f2);
+    outline-offset: 2px;
+  }
+
+  /* Floating tooltip revealing the branding text a 60px rail has no permanent room for -
+     the exact same .brand/.club-name/.brand-team-name/.hotbar-right elements the old
+     wordmark header used, just repositioned from "always visible under the badge" to
+     "revealed on hover/focus of the badge, floating to its right". Kept those classes and
+     the #hotbar-team-name id completely unchanged so every existing JS call that sets this
+     text (loadSaveData_MetaluBuzau, applyClubColours, resetToBlankSlate, etc.) still works
+     with zero changes - only the CSS presentation moved. Hidden via visibility (not just
+     opacity) so it's also removed from tab order while closed, matching #nav-flyout's own
+     visibility-based open/close pattern below. */
+  .rail-badge-tooltip {
+    position: absolute;
+    top: 0;
+    left: calc(100% + 10px);
+    min-width: 170px;
+    background: #1c1c1c;
+    border: 1px solid #2c2c2c;
+    border-radius: var(--radius-sm, 8px);
+    padding: 10px 14px;
+    text-align: left;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 210;
+    box-shadow: var(--shadow-card);
+  }
+
+  .rail-badge-btn:hover .rail-badge-tooltip,
+  .rail-badge-btn:focus-visible .rail-badge-tooltip {
+    visibility: visible;
+    opacity: 1;
+  }
+
   .brand {
     display: flex;
     flex-direction: column;
-    align-items: center;
     min-width: 0;
-    width: 100%;
   }
 
   .brand .club-name {
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13px;
     letter-spacing: 0.4px;
     line-height: 1.3;
     text-transform: uppercase;
+    white-space: nowrap;
   }
 
   .brand .club-name span {
@@ -314,109 +374,214 @@
     font-weight: 500;
     letter-spacing: 0.3px;
     color: var(--text-dim);
-    margin-top: 1px;
+    margin-top: 3px;
     text-transform: none;
+    white-space: nowrap;
   }
 
-  /* redesign-explore: vertical stack instead of a horizontal scrolling row - a sidebar has
-     the height to spare that a 64px top bar didn't, so every destination (including the
-     three Players sub-items just below) can just be its own row instead of competing for
-     horizontal space. Every .nav-btn keeps the exact same class/data-view contract the
-     original horizontal version used (see switchToView()/the click-listener loop further
-     down in the script), so nothing there needed to change - only the container's own
-     layout and the button's own visual treatment (left accent bar instead of bottom
-     underline, text-align:left instead of centered) changed. */
-  .nav-links {
+  /* In-game date line, shown under the club name in the badge tooltip - same treatment as
+     .brand-team-name just above (dim, small, no caps) rather than leaving it to inherit
+     .rail-badge-btn's colour (see that rule's own comment on why an unstyled button's text
+     needed an explicit fix in the first place). */
+  .brand .hotbar-right {
+    font-size: 10.5px;
+    color: var(--text-dim);
+    margin-top: 1px;
+    white-space: nowrap;
+  }
+
+  /* nav-rail redesign: a slim, icon-only vertical rail replaces the old full-width nav-links
+     list. Every top-level destination (Dashboard, Performance Data, Scouting, Settings) is
+     still exactly one .nav-btn with a data-view, wired up by the same switchToView() click
+     loop as before (see the script further down) - only the container's layout and each
+     button's own visual treatment (centered square icon, no visible label) changed. Squad
+     and Tactics are no longer .nav-btn rows at all - they're .rail-group-btn buttons with a
+     data-group instead of a data-view, opening #nav-flyout rather than navigating directly
+     (see that element's own comment, and the flyout-wiring script further down). */
+  /* overflow left as the visible default on purpose: the six rail buttons never come close
+     to needing to scroll, and each button's hover tooltip (see [data-tooltip]::after below)
+     is a ::after pseudo-element positioned to the RIGHT of its button, outside this column's
+     own 60px width - overflow-x:hidden here would clip every one of those tooltips, which is
+     exactly what was happening (only the footer's Report a Bug / Suggest an Improvement links
+     showed hover text, because they sit in .rail-footer, a separate box with no overflow
+     restriction of its own). */
+  .nav-rail {
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-    margin-top: 8px;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
     min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
     flex: 1;
-    scrollbar-width: none;
+    padding: 0 10px;
   }
 
-  .nav-links::-webkit-scrollbar {
-    display: none;
+  /* Pushes Settings down to sit just above the footer icons rather than immediately under
+     Scouting, the same "primary items up top, account/config-style items pinned toward the
+     bottom" convention the old sidebar's footer already implied - flex:1 on this empty
+     spacer eats whatever leftover height .nav-rail's own flex:1 leaves once every button
+     above it has taken its natural size. */
+  .rail-spacer {
+    flex: 1;
+    min-height: 8px;
   }
 
-  /* Small uppercase label grouping a handful of nav-links buttons under one heading —
-     reused twice (once for "Squad": Squad List/Squad Breakdown, once for "Tactics":
-     Tactical Analysis/Tactic Builder) - see the redesign-explore comment on the nav-links
-     markup itself for the reasoning this started from. Not a .nav-btn, so it's invisible to
-     querySelectorAll('.nav-btn')/switchToView() - still purely a visual heading, not a page
-     of its own.
-     v2: lower opacity + tighter padding than the first pass - it read as a stray floating
-     caption rather than a real grouping, which is also why the sub-items below now get a
-     connecting guide line (see .nav-btn-sub::before) tying the label to its items as one
-     visible unit instead of just indentation on its own.
-     v3: now clickable to collapse/expand its own group (see the ::after chevron below and
-     applyNavGroupCollapse() in the script) - added after user feedback wanted a way to hide
-     a group's pages from the sidebar, once there were two groups instead of one and the
-     list started feeling long. Collapse state persists per-label-text via localStorage
-     (NAV_GROUP_COLLAPSE_STORAGE_KEY), same pattern as gapThreshold/positionOverrides
-     elsewhere in the app. */
-  /* v4: matches the same size/weight/colour as every other top-level item in the hotbar
-     (Dashboard/Scouting/Settings — see .nav-links button below) instead of a small dimmed
-     uppercase caption — it reads as a real section of the nav now, just one that happens to
-     be expandable, rather than looking like a different, lesser kind of label.
-     v5: border-left:3px solid transparent added to match .nav-links button's own reserved
-     accent-bar space — without it this label's text sat 3px further left than every button's
-     text (buttons reserve 3px + 20px padding = 23px to their text; this had just the 20px
-     padding and no border, so it was left-offset from everything around it). Transparent
-     since a group label is never itself "active" — this is purely about matching the text's
-     starting position, not adding a visible accent. */
-  .nav-group-label {
+  /* Shared square icon-button look for every rail control - top-level pages, the two group
+     triggers, and the footer's outbound links all use this (see .rail-footer-btn below,
+     which only adds margin/anchor-specific resets on top of this). 40px keeps the tappable
+     area comfortably above the 44px touch-target guideline once the button's own padding is
+     counted in, inside a 60px column with 10px of side padding reserved above. */
+  .rail-btn {
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    outline: none;
+    border-radius: 10px;
     color: var(--text-dim);
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    padding: 13px 20px;
-    margin-top: 10px;
-    border-left: 3px solid transparent;
     cursor: pointer;
-    user-select: none;
+    flex-shrink: 0;
     transition: color 0.15s ease, background 0.15s ease;
   }
 
-  /* Wraps the icon+text together as one flex item so justify-content:space-between on
-     .nav-group-label still splits cleanly into exactly two items - this span, and the
-     chevron ::after - the same way it did back when the label was a single text node. */
-  .nav-group-label-inner {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .nav-group-label:hover {
+  .rail-btn:hover {
     color: var(--text);
-    background: color-mix(in srgb, var(--club-primary) 8%, transparent);
+    background: color-mix(in srgb, var(--club-primary) 10%, transparent);
   }
 
-  /* Small chevron indicating the group can be collapsed — rotates to point sideways rather
-     than swapping glyphs, so the collapse/expand state reads as one continuous rotation
-     instead of two unrelated icons. */
-  .nav-group-label::after {
-    content: '\25BE';
-    font-size: 10px;
-    opacity: 0.6;
+  .rail-btn:focus-visible {
+    outline: 2px solid var(--club-text, #f2f2f2);
+    outline-offset: 1px;
+  }
+
+  /* Active state doubles as "you're on this page" (top-level items) and "you're somewhere
+     inside this group" (Squad/Tactics group triggers - see updateRailGroupActiveState() in
+     the script, which adds this same class to a .rail-group-btn whenever the current view
+     belongs to it, even while its flyout is closed). Filled pill instead of the old vertical
+     accent bar - there's no long text label left for a side bar to sit next to, so a filled
+     rounded-square reads more clearly at icon-only size. */
+  .rail-btn.active {
+    color: var(--club-primary-contrast, #0a1a02);
+    background: var(--club-primary);
+  }
+
+  /* Icon-only nav loses the built-in discoverability a visible text label gave every button
+     before - this tooltip is what keeps every destination nameable without permanently
+     spending sidebar width on it. content:attr() pulls straight from data-tooltip on each
+     button, so the label only ever needs to be written once, in the HTML, not duplicated
+     into a second CSS-only copy that could quietly drift out of sync with it. */
+  .rail-btn[data-tooltip]::after,
+  .rail-footer-btn[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: #1c1c1c;
+    border: 1px solid #2c2c2c;
+    border-radius: var(--radius-sm, 6px);
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    z-index: 210;
+    pointer-events: none;
+    box-shadow: var(--shadow-card);
+  }
+
+  .rail-btn[data-tooltip]:hover::after,
+  .rail-btn[data-tooltip]:focus-visible::after,
+  .rail-footer-btn[data-tooltip]:hover::after,
+  .rail-footer-btn[data-tooltip]:focus-visible::after {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  /* Small chevron on the two group triggers only, hinting there's a flyout behind them
+     rather than a direct navigation (every other rail-btn has no ::before at all) - rotates
+     open the same way the old .nav-group-label chevron did, driven by aria-expanded rather
+     than a bespoke class so the visual state and the accessibility state can't drift apart. */
+  .rail-group-btn::before {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 5px;
+    height: 5px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    opacity: 0.7;
+    transform: rotate(-45deg);
     transition: transform 0.15s ease;
   }
 
-  .nav-group-label.nav-group-collapsed::after {
-    transform: rotate(-90deg);
+  .rail-group-btn[aria-expanded="true"]::before {
+    transform: rotate(45deg) translate(-1px, -1px);
   }
 
-  .nav-links button.nav-btn-sub.nav-hidden {
+  /* The floating panel a Squad/Tactics rail icon opens - deliberately NOT a flex sibling
+     that pushes main over (a reflowing sidebar would tax exactly the two pages that need
+     width most, Squad List's wide table and Tactic Builder's pitch, every time their own
+     group was open). Sits fixed at a constant spot just right of the rail instead, on top
+     of whatever page is showing underneath, so every page keeps the exact same content
+     width regardless of which group (if any) happens to be open - the full-height reflowing
+     sidebar this replaced cost every page 232px; the rail alone only ever costs 60px, on
+     every page, all the time, which is already a net width win everywhere without needing
+     the flyout to add a second variable tax on top.
+     Same visibility-based open/close as .rail-badge-tooltip (see that rule's own comment)
+     so its buttons drop out of tab order while closed instead of leaving them reachable but
+     invisible. openNavFlyout()/closeNavFlyout() in the script toggle both this and the
+     triggering button's aria-expanded together. */
+  #nav-flyout {
+    position: fixed;
+    top: 70px;
+    left: 70px;
+    width: 180px;
+    background: #111214;
+    border: 1px solid #262626;
+    border-radius: var(--radius-md, 10px);
+    padding: 8px;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    z-index: 200;
+    box-shadow: var(--shadow-card);
+  }
+
+  #nav-flyout.open {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .nav-flyout-group {
     display: none;
+    flex-direction: column;
+    gap: 2px;
   }
 
-  .nav-links button {
+  .nav-flyout-group.active {
+    display: flex;
+  }
+
+  .nav-flyout-title {
+    font-size: 10px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 4px 10px 8px;
+  }
+
+  .nav-flyout-item.nav-btn {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -424,143 +589,97 @@
     border: none;
     outline: none;
     color: var(--text-dim);
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    padding: 13px 20px;
-    text-align: left;
-    cursor: pointer;
-    border-left: 3px solid transparent;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-  }
-
-  /* Every top-level section (Dashboard, each group label, Performance Data, Scouting,
-     Settings) gets the same margin-top break above it - without this only the two
-     .nav-group-label rows had breathing space above them (see that rule's own margin-top),
-     which read as uneven once the taller 13px padding made the gap-vs-no-gap contrast much
-     more obvious than it was at the old cramped 9px padding. Dashboard (:first-child) is
-     excluded so the nav doesn't start with a needless gap under the sidebar header. */
-  .nav-links > button.nav-btn:not(.nav-btn-sub):not(:first-child) {
-    margin-top: 10px;
-  }
-
-  /* Indented, slightly smaller sub-items for the three consolidated Players destinations
-     (Squad / Squad Breakdown / Scouting) - visually subordinate to the primary
-     Dashboard/Tactical Analysis/Tactic Builder/Settings items, per the "primary vs
-     secondary nav should be clearly separated" guidance rather than seven flat equal-weight
-     tabs. position:relative so the ::before guide line below can anchor to this button's
-     own box rather than the shared .nav-links container. */
-  .nav-links button.nav-btn-sub {
-    position: relative;
-    padding-left: 30px;
     font-size: 13px;
     font-weight: 500;
+    letter-spacing: 0.2px;
+    padding: 9px 10px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 8px;
+    white-space: nowrap;
+    transition: color 0.15s ease, background 0.15s ease;
   }
 
-  /* A single thin vertical line running through all three sub-items (each one draws its
-     own segment, top-to-bottom of its own row, so together they read as one continuous
-     line rather than three disconnected dashes) - visually ties "Players" to its three
-     items as one nested group, rather than leaving the indentation to imply that on its
-     own, which is what read as "just floating" before this pass. */
-  .nav-links button.nav-btn-sub::before {
-    content: '';
-    position: absolute;
-    left: 20px;
-    top: 0;
-    bottom: 0;
-    width: 1px;
-    background: var(--panel-border);
-  }
-
-  /* This rule's own "outline: none" above (same specificity as the global :focus-visible
-     rule near the top of the file, but later in source order) would otherwise win and leave
-     keyboard users with no visible focus indicator when tabbing through the nav — restore it
-     explicitly here, using the tab's own underline colour so it reads as part of the design. */
-  .nav-links button:focus-visible {
-    outline: 2px solid var(--club-text, #f2f2f2);
-    outline-offset: -3px;
-  }
-
-  .nav-links button:hover {
+  .nav-flyout-item.nav-btn:hover {
     color: var(--text);
     background: color-mix(in srgb, var(--club-primary) 8%, transparent);
   }
 
-  .nav-links button.active {
-    color: var(--text);
-    border-left: 3px solid var(--club-primary);
-    background: color-mix(in srgb, var(--club-primary) 14%, transparent);
+  .nav-flyout-item.nav-btn:focus-visible {
+    outline: 2px solid var(--club-text, #f2f2f2);
+    outline-offset: -2px;
   }
 
-  /* One shared outline-icon style, reused by every nav button, every .nav-group-label, and
-     the two .sidebar-footer-link rows below - stroke="currentColor" on the <svg> itself (see
-     the markup) means each icon just inherits whatever colour its own button/label/link is
-     already using (dim grey at rest, brighter on hover, brightest of all once .active), so
-     hover/active states apply to the icon and its label text together with no extra JS or
-     per-state icon colour rules needed. */
+  .nav-flyout-item.nav-btn.active {
+    color: var(--text);
+    background: color-mix(in srgb, var(--club-primary) 16%, transparent);
+  }
+
+  .nav-flyout-item.nav-btn.active .nav-icon {
+    color: var(--club-text);
+  }
+
+  /* One shared outline-icon style, reused by every rail button, flyout item, and footer
+     link - stroke="currentColor" on the <svg> itself (see the markup) means each icon just
+     inherits whatever colour its own button is already using (dim grey at rest, brighter on
+     hover, brightest of all once .active), so hover/active states apply to the icon with no
+     extra JS or per-state icon colour rules needed. Rail-level icons render a touch larger
+     than flyout-level ones (see .rail-btn .nav-icon below) - at icon-only size on the rail,
+     the icon IS the whole button, so it can afford (and benefits from) a bit more presence
+     than one sitting next to its own text label in the flyout. */
   .nav-icon {
     width: 17px;
     height: 17px;
     flex-shrink: 0;
   }
 
-  /* Used to sit pinned to the bottom of the sidebar (margin-top: auto) as its own separate
-     line, disconnected from the save name above it. Moved to sit directly under
-     .brand-team-name instead (see the HTML further down) — same small subtitle treatment as
-     that element (font-size/weight/letter-spacing/color) so the two read as one connected
-     "save name, then save data" block rather than two unrelated pieces of sidebar text. Kept
-     the class name itself unchanged — see .hotbar's own comment for why (several JS
-     querySelector('.hotbar-right') call sites elsewhere would otherwise need updating too). */
-  .hotbar-right {
-    font-size: 10.5px;
-    font-weight: 500;
-    letter-spacing: 0.3px;
-    color: var(--text-dim);
-    margin-top: 1px;
-    text-transform: none;
+  .rail-btn .nav-icon {
+    width: 19px;
+    height: 19px;
   }
 
-  /* Sits directly under <nav class="nav-links"> as its own flex:0 0 auto block - nav-links'
-     flex:1 already stretches to fill the sidebar's leftover height, so this footer lands
-     right at the bottom edge rather than needing margin-top:auto of its own. Two outbound
-     links straight to the repo's GitHub Issues (one pre-labelled "bug", one "enhancement"),
-     same target="_blank" rel="noopener" pattern Settings > Data Sources' .reference-list
-     already uses for outbound links. Plain <a> tags, not .nav-btn - they're outbound links,
-     not app views, so switchToView()/the .nav-btn click-listener loop should never see them. */
-  .sidebar-footer {
+  /* Was a permanent two-row block pinned to the sidebar's bottom edge with full text labels
+     - now two icon-only rail buttons directly under the main rail list, same tooltip
+     treatment as every other rail control (see [data-tooltip]::after above) rather than a
+     visible "Report a Bug"/"Suggest an Improvement" label. Still plain <a> tags, not
+     .nav-btn - they're outbound GitHub Issues links, not app views, so
+     switchToView()/the .nav-btn click-listener loop should never see them. */
+  .rail-footer {
     flex: 0 0 auto;
     display: flex;
     flex-direction: column;
-    margin-top: 10px;
-    padding-top: 12px;
-    border-top: 1px solid var(--panel-border);
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px 4px;
   }
 
-  .sidebar-footer-link {
+  .rail-footer-btn {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 9px;
-    padding: 10px 20px;
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.3px;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     color: var(--text-dim);
     text-decoration: none;
-    border-left: 3px solid transparent;
     transition: color 0.15s ease, background 0.15s ease;
   }
 
-  .sidebar-footer-link:hover,
-  .sidebar-footer-link:focus-visible {
+  .rail-footer-btn:hover,
+  .rail-footer-btn:focus-visible {
     color: var(--text);
     background: color-mix(in srgb, var(--club-primary) 8%, transparent);
   }
 
-  .sidebar-footer-link:focus-visible {
+  .rail-footer-btn:focus-visible {
     outline: 2px solid var(--club-text, #f2f2f2);
-    outline-offset: -3px;
+    outline-offset: 1px;
+  }
+
+  .rail-footer-btn .nav-icon {
+    width: 16px;
+    height: 16px;
   }
 
   /* ---------- MAIN ---------- */
@@ -1369,57 +1488,11 @@
     flex: 0 0 auto;
   }
 
-  /* Kit images on the hero card (Home/Away/Third, next to Manager+Division) — see
-     setKitImage() for the show/hide logic that makes a missing kit (most commonly Third)
-     collapse the row instead of leaving a gap or broken image.
-     v2: used to be flex-wrap:wrap with .hero-kit-img sized off a clamp() against
-     --design-width directly — that guessed at how much room the column actually had, and at
-     the narrow end of --design-width's 1400-2400px clamp range the guess came up short, so
-     images still wrapped onto their own line and overlapped the Manager/Division/Stadium
-     text next to them. nowrap (never wrap) + each .hero-kit-item taking an equal flex share
-     of the row (below) makes the images size off the column's REAL available width instead
-     of a guess, so 1, 2 or 3 kits always sit on one line and shrink exactly as much as
-     needed, however narrow the column gets. */
-  .hero-kits-row {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 12px;
-  }
-
-  .hero-kit-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  /* width:100% of this item's flex share (so it shrinks along with the row instead of
-     overflowing it — see .hero-kit-item's flex:1 1 0/min-width:0 above), capped at 90px so a
-     lone kit (or just two) doesn't blow up oversized when there's plenty of spare width.
-     height:auto preserves the image's own aspect ratio; max-height is just a backstop for an
-     unusually tall kit image, since width is what's actually doing the constraining here. */
-  .hero-kit-img {
-    width: 100%;
-    max-width: 90px;
-    height: auto;
-    max-height: 104px;
-    border-radius: var(--radius-xs);
-  }
-
-  .hero-kit-label {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-dim);
-  }
-
-  /* Shown only when none of the three kit slots above have an image yet — hidden the moment
-     at least one does (see setKitImage()). */
-  .hero-kits-empty {
-    margin-top: 6px;
-  }
+  /* Kit images used to show here on the hero card (Home/Away/Third, next to Manager/
+     Division/Stadium) - replaced with Years at Club/Win % (see the hero-meta-col markup)
+     plus the current-season stats row. setKitImage() and the kit lookup/upload logic in
+     Settings still exist (a kit-found status line still lives there), just with nothing left
+     to render into on the hero card - see setKitImage()'s own comment. */
 
   .hero-meta .val.placeholder {
     font-weight: 400;
@@ -1483,13 +1556,30 @@
     justify-content: center;
   }
 
-  /* Confirmed end-of-season league status, shown next to the position circle — future-proofed
-     for whenever a fresh save-data capture happens to land after the title's been won or
-     relegation's been confirmed. Not wired to any live game state (this app only ever
-     snapshots what's on screen at capture time), so setLeagueStatus() just needs calling with
-     'champion'/'relegated'/null from loadSaveData_MetaluBuzau() once that's true. The game's
-     own league table marks these with a plain "C"/"R" letter; a crown reads a bit more like
-     a trophy moment for the title, while relegation keeps the game's own red "R" convention. */
+  /* Confirmed end-of-season league status - the circle itself swaps from the plain position
+     digit to a crown (champion) or red "R" (relegated) rather than showing a separate badge
+     next to it (see setLeagueStatus()'s own comment for why: the badge cost real width once
+     this row moved into the hero card's narrower column). Future-proofed for whenever a fresh
+     save-data capture happens to land after the title's been won or relegation's confirmed -
+     not wired to any live game state (this app only ever snapshots what's on screen at capture
+     time), so setLeagueStatus() just needs calling with 'champion'/'relegated'/null once
+     that's true. The game's own league table marks both with a plain "C"/"R" letter; a crown
+     reads a bit more like a trophy moment for the title, while relegation keeps the game's own
+     red "R" convention. */
+  .league-slot-pos.is-champion {
+    font-size: 14px;
+    background: color-mix(in srgb, gold 30%, var(--bg));
+    border-color: gold;
+  }
+
+  .league-slot-pos.is-relegated {
+    color: #ff4d4d;
+    border-color: #ff4d4d;
+  }
+
+  /* Dormant now that the indicator lives on the position circle itself (see above) - kept in
+     the DOM (always hidden, see setLeagueStatus()) rather than removed, in case a future
+     layout wants the two split apart again. */
   .league-status-badge {
     flex: 0 0 auto;
     font-size: 13px;
@@ -1699,7 +1789,7 @@
   .dashboard-empty-import-btn {
     background: var(--club-primary);
     border-color: var(--club-primary);
-    color: #000;
+    color: var(--club-primary-contrast, #0a1a02);
     font-size: 14px;
     font-weight: 700;
     padding: 10px 24px;
@@ -1761,9 +1851,8 @@
     }
   }
 
-  /* Top row: Save Overview + Best Players + Tactical Analysis share the width evenly
-     (3-up, was 2-up before the Tactical Analysis summary tile was added), and (via
-     .dashboard-tile-rows above) the height 50/50 with the bottom row. */
+  /* Top row: Best Players + Tactics + Performance Data share the width evenly (3-up), and
+     (via .dashboard-tile-rows above) the height 50/50 with the bottom row. */
   .dashboard-top-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1910,19 +1999,6 @@
     background: color-mix(in srgb, var(--club-primary) 26%, var(--panel));
   }
 
-  /* Thin vertical rule separating the Season stat from the position circle, echoing the
-     column dividers FM itself uses in league table rows. align-self:stretch makes it span
-     the full height of the (taller) league-slot row rather than sitting at a fixed height.
-     Sits close to both neighbours — the parent's 6px gap keeps Season/divider/position as one
-     tight cluster on the left. */
-  .league-slot-divider {
-    align-self: stretch;
-    width: 1px;
-    flex: 0 0 auto;
-    background: var(--panel-border);
-    margin: 0 8px;
-  }
-
   /* Stat line living inside the now-stretched .league-slot box — flex:1 (rather than the
      content-sized flex:0 0 auto used elsewhere) so P/W/D/L/F/A/GD/Pts spread out to use the
      remaining width, and justify-content:space-between spaces them evenly edge to edge.
@@ -1935,6 +2011,40 @@
     flex: 1;
     min-width: 0;
     margin-left: 14px;
+  }
+
+  /* Hero card placement (this box now sits inside the narrower Years at Club/Win % column,
+     not spanning the tile's full width the way the old Save Overview tile did) - the divider
+     that used to separate it from the career-stat columns above doesn't apply here (Win %
+     reads fine as its own line right above), and the P/W/D/L/F/A/GD/Pts row needs to be
+     allowed to wrap onto a second line and run tighter, or it overflows this column's actual
+     width and crowds into Club Records next door. */
+  .hero-season-stats {
+    margin-top: 8px;
+    padding-top: 0;
+    border-top: none;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .hero-season-stats .league-slot {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  .hero-season-stats .league-slot-stats {
+    flex-wrap: wrap;
+    row-gap: 4px;
+    gap: 8px;
+    margin-left: 10px;
+  }
+
+  .hero-season-stats .slot-stat-label {
+    font-size: 8px;
+  }
+
+  .hero-season-stats .slot-stat-value {
+    font-size: 12px;
   }
 
   /* Shared dashboard panel (Save Overview, Best Players, etc.) — sits inside
@@ -2284,7 +2394,7 @@
     background: color-mix(in srgb, var(--club-primary) 8%, transparent);
   }
 
-  /* Status badges — loaned out / loaned in / injured / fit */
+  /* Status badges — loaned out / loaned in / fit */
   .status-badge {
     display: inline-block;
     padding: 3px 9px;
@@ -2308,12 +2418,6 @@
     background: rgba(40, 110, 200, 0.18);
     border: 1px solid #3273c8;
     color: #7cb3ff;
-  }
-
-  .status-badge.injured {
-    background: rgba(200, 40, 40, 0.18);
-    border: 1px solid #c83232;
-    color: #ff8080;
   }
 
   /* Player-name colour for loan players — red for loaned out, blue for loaned in, matching
@@ -3456,7 +3560,7 @@
     background: var(--club-primary);
     border: 1px solid var(--club-primary);
     border-radius: var(--radius-sm);
-    color: #fff;
+    color: var(--club-primary-contrast, #0a1a02);
     font-size: 12.5px;
     font-weight: 700;
     padding: 7px 14px;
@@ -4003,6 +4107,31 @@
   #squad-table-panel .panel-title-row,
   #performance-table-panel .panel-title-row {
     padding-right: 20px;
+  }
+
+  /* Scouted Players search box — filters the shortlist table client-side by name/club/nation
+     as you type (see filterScoutShortlist() in JS), for pulling up a specific player you
+     already know is on the list rather than scrolling/sorting to find them. Grouped with the
+     "+ Add to Shortlist" button in its own flex row so the panel-title-row's h3/actions
+     space-between split stays a clean two-item layout instead of three items drifting apart. */
+  .scout-table-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .scout-search-input {
+    width: 180px;
+    background: var(--bg);
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    font-size: 11px;
+    padding: 5px 8px;
+    border-radius: var(--radius-xs);
+  }
+
+  .scout-search-input::placeholder {
+    color: var(--text-dim);
   }
 
   /* The Scouting table carries far more columns than the Squad table (FM's own shortlist
@@ -4601,6 +4730,56 @@
     color: var(--text);
   }
 
+  /* Dashboard's compact Performance Data tile (replaces the old Save Overview tile) - the
+     Assumptions list from EVERY category (Attacking, Goalkeeping, Discipline, General Play,
+     Goal Attempts), not just whichever one the Performance Data page's own dropdown happens to
+     have selected - see renderDashboardPerformanceSummary(). Each category gets its own small
+     label (.performance-summary-category-label) above its assumption(s), styled to match
+     .perf-insight-section's p/strong rules since it's the same kind of text. Scrolls internally
+     rather than growing the tile, since five categories' worth of assumptions is routinely
+     more than the fixed-height tile can show at once. */
+  .performance-summary-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .performance-summary-category {
+    margin-bottom: 10px;
+  }
+
+  .performance-summary-category:last-child {
+    margin-bottom: 0;
+  }
+
+  .performance-summary-category-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--club-text);
+    margin-bottom: 3px;
+  }
+
+  .performance-summary-list p {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin: 0 0 8px 0;
+  }
+
+  .performance-summary-list p:last-child {
+    margin-bottom: 0;
+  }
+
+  .performance-summary-list p.placeholder {
+    font-style: italic;
+  }
+
+  .performance-summary-list strong {
+    color: var(--text);
+  }
+
   /* One "Recommendation N" label above the scouted-player suggestion line(s) for a given
      Areas for Improvement entry — see buildImprovementScoutSuggestionsHtml(). All of these
      now render together AFTER the full numbered improvements list (not each one directly
@@ -4751,6 +4930,7 @@
 
   <div class="hotbar">
     <div class="sidebar-header">
+    <button class="rail-badge-btn" id="rail-badge-btn" type="button" aria-label="FM Command Centre, hover for the loaded save's club and date">
     <div class="corner-stripe">
       <svg class="fmcc-badge" viewBox="0 0 100 100" role="img" aria-label="FM Command Centre">
         <defs>
@@ -4794,43 +4974,58 @@
         <text x="50" y="50" dy="0.35em" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="16" fill="#fff" stroke="#000" stroke-width="2.2" stroke-linejoin="round" paint-order="stroke">FMCC</text>
       </svg>
     </div>
-    <div class="brand">
-      <div class="club-name">
-        FM <span>Command Centre</span>
+    <div class="rail-badge-tooltip">
+      <div class="brand">
+        <div class="club-name">
+          FM <span>Command Centre</span>
+        </div>
         <div class="brand-team-name" id="hotbar-team-name"></div>
         <div class="hotbar-right">Save not loaded</div>
       </div>
     </div>
+    </button>
     </div>
-    <!-- redesign-explore: Squad List / Squad Breakdown consolidated under one "Squad"
-         grouping label, and Tactical Analysis / Tactic Builder under a second "Tactics"
-         grouping label, instead of everything sitting flat alongside Dashboard/Scouting/
-         Settings - see .nav-group-label's own CSS comment for why this is a visual
-         grouping rather than a collapsible parent (the rule is generic, so a second group
-         just reuses it — each group draws its own connecting guide line independently).
-         Performance Data moved out of the Squad group to sit after the Tactics group —
-         it's a standalone stats-review page rather than a squad-management view, and
-         reads more naturally alongside Tactics/Scouting as its own top-level item.
-         Scouting sits top-level after Performance Data rather than nested under either
-         group — it's its own shortlist/recruitment workflow, not a view onto the current
-         squad or tactic. See switchToView() further down in the script for why every
-         button below still needed to keep its exact class="nav-btn" + data-view value
-         unchanged regardless of which group it sits in. -->
-    <nav class="nav-links">
-      <button class="nav-btn active" data-view="dashboard"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg><span>Dashboard</span></button>
-      <div class="nav-group-label"><span class="nav-group-label-inner"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M4 20c0-3 2-5 5-5s5 2 5 5"/><circle cx="17" cy="9" r="2.3"/><path d="M14.8 20c.2-2.2 1.6-3.8 3.4-3.8 2 0 3.6 1.7 3.8 4"/></svg>Squad</span></div>
-      <button class="nav-btn nav-btn-sub" data-view="squad"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg><span>Squad List</span></button>
-      <button class="nav-btn nav-btn-sub" data-view="scouting"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v8l6 4"/></svg><span>Squad Breakdown</span></button>
-      <div class="nav-group-label"><span class="nav-group-label-inner"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><line x1="12" y1="4" x2="12" y2="20"/><circle cx="12" cy="12" r="3"/></svg>Tactics</span></div>
-      <button class="nav-btn nav-btn-sub" data-view="tactics"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg><span>Tactical Analysis</span></button>
-      <button class="nav-btn nav-btn-sub" data-view="tacticbuilder"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><line x1="3" y1="12" x2="21" y2="12"/><circle cx="12" cy="12" r="2.6"/></svg><span>Tactic Builder</span></button>
-      <button class="nav-btn" data-view="performance"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,11 13,14 20,6"/><polyline points="14,6 20,6 20,12"/></svg><span>Performance Data</span></button>
-      <button class="nav-btn" data-view="scout"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg><span>Scouting</span></button>
-      <button class="nav-btn" data-view="settings"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="4" x2="6" y2="20"/><circle cx="6" cy="9" r="2"/><line x1="12" y1="4" x2="12" y2="20"/><circle cx="12" cy="15" r="2"/><line x1="18" y1="4" x2="18" y2="20"/><circle cx="18" cy="7" r="2"/></svg><span>Settings</span></button>
+    <!-- nav-rail redesign: Squad and Tactics are no longer rows in the main list at all -
+         they're .rail-group-btn triggers (data-group, no data-view) that open #nav-flyout
+         instead of navigating directly, keeping the four pages that used to live under
+         them (Squad List/Squad Breakdown/Tactical Analysis/Tactic Builder) reachable
+         through exactly two rail icons rather than four. Performance Data and Scouting stay
+         top-level rail icons after the two group triggers, same ordering as the old
+         sidebar; Settings sits below .rail-spacer so it lands just above the footer icons.
+         See switchToView() further down in the script for why every destination button
+         still needed to keep its exact class="nav-btn" + data-view value unchanged
+         regardless of whether it's a rail icon or a flyout item now. -->
+    <nav class="nav-rail" id="nav-rail">
+      <button class="rail-btn nav-btn active" data-view="dashboard" data-tooltip="Dashboard" aria-label="Dashboard"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg></button>
+      <button class="rail-btn rail-group-btn" data-group="squad" data-tooltip="Squad" aria-label="Squad, opens Squad List and Squad Breakdown" aria-haspopup="true" aria-expanded="false" aria-controls="nav-flyout"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M4 20c0-3 2-5 5-5s5 2 5 5"/><circle cx="17" cy="9" r="2.3"/><path d="M14.8 20c.2-2.2 1.6-3.8 3.4-3.8 2 0 3.6 1.7 3.8 4"/></svg></button>
+      <button class="rail-btn rail-group-btn" data-group="tactics" data-tooltip="Tactics" aria-label="Tactics, opens Tactical Analysis and Tactic Builder" aria-haspopup="true" aria-expanded="false" aria-controls="nav-flyout"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><line x1="12" y1="4" x2="12" y2="20"/><circle cx="12" cy="12" r="3"/></svg></button>
+      <button class="rail-btn nav-btn" data-view="performance" data-tooltip="Performance Data" aria-label="Performance Data"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,11 13,14 20,6"/><polyline points="14,6 20,6 20,12"/></svg></button>
+      <button class="rail-btn nav-btn" data-view="scout" data-tooltip="Scouting" aria-label="Scouting"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg></button>
+      <div class="rail-spacer" aria-hidden="true"></div>
+      <button class="rail-btn nav-btn" data-view="settings" data-tooltip="Settings" aria-label="Settings"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" y1="4" x2="6" y2="20"/><circle cx="6" cy="9" r="2"/><line x1="12" y1="4" x2="12" y2="20"/><circle cx="12" cy="15" r="2"/><line x1="18" y1="4" x2="18" y2="20"/><circle cx="18" cy="7" r="2"/></svg></button>
     </nav>
-    <div class="sidebar-footer">
-      <a class="sidebar-footer-link" href="https://github.com/tomjenk1543/fmcc/issues/new?labels=bug" target="_blank" rel="noopener"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="13" rx="5" ry="6"/><line x1="12" y1="7" x2="12" y2="19"/><line x1="7" y1="10" x2="3" y2="8"/><line x1="7" y1="13" x2="2" y2="13"/><line x1="7" y1="16" x2="3" y2="18"/><line x1="17" y1="10" x2="21" y2="8"/><line x1="17" y1="13" x2="22" y2="13"/><line x1="17" y1="16" x2="21" y2="18"/><path d="M9 7c0-1.5 1.3-3 3-3s3 1.5 3 3"/></svg><span>Report a Bug</span></a>
-      <a class="sidebar-footer-link" href="https://github.com/tomjenk1543/fmcc/issues/new?labels=enhancement" target="_blank" rel="noopener"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1.1 2.1h4.8c.1-.9.5-1.6 1.1-2.1A6 6 0 0 0 12 3z"/><path d="M9 18h6"/><path d="M10 21h4"/></svg><span>Suggest an Improvement</span></a>
+    <div class="rail-footer">
+      <a class="rail-footer-btn" href="https://github.com/tomjenk1543/fmcc/issues/new?labels=bug" target="_blank" rel="noopener" data-tooltip="Report a Bug" aria-label="Report a Bug"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="13" rx="5" ry="6"/><line x1="12" y1="7" x2="12" y2="19"/><line x1="7" y1="10" x2="3" y2="8"/><line x1="7" y1="13" x2="2" y2="13"/><line x1="7" y1="16" x2="3" y2="18"/><line x1="17" y1="10" x2="21" y2="8"/><line x1="17" y1="13" x2="22" y2="13"/><line x1="17" y1="16" x2="21" y2="18"/><path d="M9 7c0-1.5 1.3-3 3-3s3 1.5 3 3"/></svg></a>
+      <a class="rail-footer-btn" href="https://github.com/tomjenk1543/fmcc/issues/new?labels=enhancement" target="_blank" rel="noopener" data-tooltip="Suggest an Improvement" aria-label="Suggest an Improvement"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1.1 2.1h4.8c.1-.9.5-1.6 1.1-2.1A6 6 0 0 0 12 3z"/><path d="M9 18h6"/><path d="M10 21h4"/></svg></a>
+    </div>
+  </div>
+
+  <!-- Floating flyout the Squad/Tactics rail icons open (see #nav-flyout's own CSS comment
+       for why it overlays rather than reflows main). Two groups share one panel, only one
+       visible at a time (see openNavFlyout() in the script) rather than two separate fixed
+       elements, so there's a single place to reason about position/z-index/focus for. Every
+       item is still a plain .nav-btn with its original data-view - switchToView() finds and
+       activates these exactly the way it found the old sidebar rows. -->
+  <div class="nav-flyout" id="nav-flyout" role="menu">
+    <div class="nav-flyout-group" data-flyout-group="squad">
+      <div class="nav-flyout-title">Squad</div>
+      <button class="nav-flyout-item nav-btn" data-view="squad" role="menuitem"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg><span>Squad List</span></button>
+      <button class="nav-flyout-item nav-btn" data-view="scouting" role="menuitem"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v8l6 4"/></svg><span>Squad Breakdown</span></button>
+    </div>
+    <div class="nav-flyout-group" data-flyout-group="tactics">
+      <div class="nav-flyout-title">Tactics</div>
+      <button class="nav-flyout-item nav-btn" data-view="tactics" role="menuitem"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg><span>Tactical Analysis</span></button>
+      <button class="nav-flyout-item nav-btn" data-view="tacticbuilder" role="menuitem"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="1.5"/><line x1="3" y1="12" x2="21" y2="12"/><circle cx="12" cy="12" r="2.6"/></svg><span>Tactic Builder</span></button>
     </div>
   </div>
 
@@ -4940,26 +5135,47 @@
                 <span class="val-sub" id="hero-stadium-built"></span>
               </div>
             </div>
-            <div class="hero-meta-col hero-kits-col">
-              <div class="hero-kits-row" id="hero-kits-row">
-                <div class="hero-kit-item" id="hero-kit-home-item" style="display:none;">
-                  <img id="hero-kit-home-img" class="hero-kit-img" alt="Home kit">
-                  <span class="hero-kit-label">Home</span>
-                </div>
-                <div class="hero-kit-item" id="hero-kit-away-item" style="display:none;">
-                  <img id="hero-kit-away-img" class="hero-kit-img" alt="Away kit">
-                  <span class="hero-kit-label">Away</span>
-                </div>
-                <!-- Third kit item is only ever shown once a third-kit image is actually
-                     found (see setKitImage()) — plenty of clubs/packs don't have one, so this
-                     naturally collapses to a 2-kit (or 1-kit, or empty) row instead of leaving
-                     a broken image or empty gap where the third kit would be. -->
-                <div class="hero-kit-item" id="hero-kit-third-item" style="display:none;">
-                  <img id="hero-kit-third-img" class="hero-kit-img" alt="Third kit">
-                  <span class="hero-kit-label">Third</span>
+            <div class="hero-meta-col">
+              <div>
+                <span class="label">Years at Club</span>
+                <span class="val placeholder" id="save-years-managed">Not set</span>
+              </div>
+              <div>
+                <span class="label">Win %</span>
+                <span class="val placeholder" id="save-win-pct">Not set</span>
+              </div>
+              <!-- This season's year + position/status/P-W-D-L-F-A-GD-Pts, sitting directly
+                   under Win % in the same right-hand column rather than spanning the full
+                   width below both columns. Same #hero-season-year/#hero-position/
+                   #hero-league-status-badge/#stat-p... ids and click-through to
+                   openLeagueTableModal(), so no JS changes were needed, just relocated markup.
+                   Class names keep their old "save-overview-season-stats"/"league-slot" naming
+                   rather than being renamed, since it's the same CSS rules doing the same job
+                   in a new spot. -->
+              <div class="save-overview-season-stats hero-season-stats" id="hero-league-stats">
+                <div class="league-slot placeholder" id="league-slot" title="Click to view full league table">
+                  <!-- The Season stat (e.g. "36/37") used to sit here as its own box - dropped
+                       to save width now this row lives in the hero card's narrower column (see
+                       Task #316's overlap fix). The full year isn't lost, just moved: it now
+                       shows in the League Table popup's title instead (see
+                       openLeagueTableModal()). #hero-season-year itself stays in the DOM
+                       (display:none, see CSS) since it's still where the year is stored and
+                       read from, both here and by buildCurrentSaveDataSnapshot(). -->
+                  <span class="slot-stat-value placeholder" id="hero-season-year" style="display:none;">Not set</span>
+                  <span class="league-slot-pos" id="hero-position">&mdash;</span>
+                  <span class="league-status-badge" id="hero-league-status-badge" style="display:none;"></span>
+                  <div class="league-slot-stats">
+                    <div class="slot-stat"><span class="slot-stat-label">P</span><span class="slot-stat-value" id="stat-p">&mdash;</span></div>
+                    <div class="slot-stat"><span class="slot-stat-label">W</span><span class="slot-stat-value" id="stat-w">&mdash;</span></div>
+                    <div class="slot-stat"><span class="slot-stat-label">D</span><span class="slot-stat-value" id="stat-d">&mdash;</span></div>
+                    <div class="slot-stat"><span class="slot-stat-label">L</span><span class="slot-stat-value" id="stat-l">&mdash;</span></div>
+                    <div class="slot-stat"><span class="slot-stat-label">F</span><span class="slot-stat-value" id="stat-f">&mdash;</span></div>
+                    <div class="slot-stat"><span class="slot-stat-label">A</span><span class="slot-stat-value" id="stat-a">&mdash;</span></div>
+                    <div class="slot-stat"><span class="slot-stat-label">GD</span><span class="slot-stat-value" id="stat-gd">&mdash;</span></div>
+                    <div class="slot-stat"><span class="slot-stat-label">Pts</span><span class="slot-stat-value" id="stat-pts">&mdash;</span></div>
+                  </div>
                 </div>
               </div>
-              <span class="val placeholder hero-kits-empty" id="hero-kits-empty">Not loaded yet</span>
             </div>
           </div>
         </div>
@@ -4977,74 +5193,30 @@
         </div>
       </div>
 
+      <!-- Trophies Won / Transfers Spent / Players Signed used to live in the Save Overview
+           dashboard tile, now removed (see the Performance Data tile that replaced it). Kept
+           alive here, off-screen, rather than deleted outright, because setStat/setPlaceholder/
+           setText (the bundled-example, empty-state and real-import code paths) all write to
+           these ids without checking the element exists first — removing the elements would
+           throw on every one of those paths. Nothing is lost by hiding them: they were never
+           part of this rework's brief either way, and the underlying JSON fields/backup restore
+           round-trip are untouched. -->
+      <div class="hero-hidden-stats" id="hero-hidden-stats" style="display:none;" aria-hidden="true">
+        <span class="stat-value placeholder" id="save-trophies-won">Not set</span>
+        <span class="stat-label" id="save-transfer-spent-label">Transfers Spent</span>
+        <span class="stat-value placeholder" id="save-transfer-spent">Not set</span>
+        <span class="stat-label" id="save-players-signed-label">Players Signed</span>
+        <span class="stat-value placeholder" id="save-players-signed">Not set</span>
+      </div>
+
       <div class="hero-divider"></div>
 
       <!-- Wraps both tile rows so they can split the remaining vertical space evenly —
            see .dashboard-tile-rows in the stylesheet for why this is what actually keeps
-           the top row (Save Overview/Best Players) and bottom row (Squad Breakdown Focus/
-           IP Gaps/OOP Gaps) the same height as each other. -->
+           the top row (Best Players/Tactics/Performance Data) and bottom row (Squad Breakdown
+           Focus/IP Gaps/OOP Gaps) the same height as each other. -->
       <div class="dashboard-tile-rows">
       <div class="dashboard-top-row">
-        <div class="dashboard-panel" id="save-overview-panel">
-          <div class="panel-title-row">
-            <h3>Save Overview</h3>
-          </div>
-          <div class="save-overview-columns">
-            <div class="save-overview-col">
-              <div class="stat-row">
-                <span class="stat-label">Years at Club</span>
-                <span class="stat-value placeholder" id="save-years-managed">Not set</span>
-              </div>
-              <div class="stat-row">
-                <span class="stat-label">Trophies Won</span>
-                <span class="stat-value placeholder" id="save-trophies-won">Not set</span>
-              </div>
-              <div class="stat-row">
-                <span class="stat-label">Win %</span>
-                <span class="stat-value placeholder" id="save-win-pct">Not set</span>
-              </div>
-            </div>
-            <div class="save-overview-col">
-              <div class="stat-row">
-                <span class="stat-label" id="save-transfer-spent-label">Transfers Spent</span>
-                <span class="stat-value placeholder" id="save-transfer-spent">Not set</span>
-              </div>
-              <div class="stat-row">
-                <span class="stat-label" id="save-players-signed-label">Players Signed</span>
-                <span class="stat-value placeholder" id="save-players-signed">Not set</span>
-              </div>
-            </div>
-          </div>
-          <!-- This season's year + position/status/P-W-D-L-F-A-GD-Pts — moved down here from
-               the hero card's "Current Season" row entirely, so Save Overview covers career
-               totals (above) and the current season's form (below) in one tile. The
-               position+stats sit together in one .league-slot box, same as the original
-               hero-card layout, rather than as separate standalone stats. Same
-               #hero-season-year/#hero-position/#hero-league-status-badge/#stat-p... ids, so
-               no JS changes were needed — just relocated markup. -->
-          <div class="save-overview-season-stats" id="hero-league-stats">
-            <div class="league-slot placeholder" id="league-slot" title="Click to view full league table">
-              <div class="slot-stat">
-                <span class="slot-stat-label">Season</span>
-                <span class="slot-stat-value placeholder" id="hero-season-year">Not set</span>
-              </div>
-              <span class="league-slot-divider"></span>
-              <span class="league-slot-pos" id="hero-position">&mdash;</span>
-              <span class="league-status-badge" id="hero-league-status-badge" style="display:none;"></span>
-              <div class="league-slot-stats">
-                <div class="slot-stat"><span class="slot-stat-label">P</span><span class="slot-stat-value" id="stat-p">&mdash;</span></div>
-                <div class="slot-stat"><span class="slot-stat-label">W</span><span class="slot-stat-value" id="stat-w">&mdash;</span></div>
-                <div class="slot-stat"><span class="slot-stat-label">D</span><span class="slot-stat-value" id="stat-d">&mdash;</span></div>
-                <div class="slot-stat"><span class="slot-stat-label">L</span><span class="slot-stat-value" id="stat-l">&mdash;</span></div>
-                <div class="slot-stat"><span class="slot-stat-label">F</span><span class="slot-stat-value" id="stat-f">&mdash;</span></div>
-                <div class="slot-stat"><span class="slot-stat-label">A</span><span class="slot-stat-value" id="stat-a">&mdash;</span></div>
-                <div class="slot-stat"><span class="slot-stat-label">GD</span><span class="slot-stat-value" id="stat-gd">&mdash;</span></div>
-                <div class="slot-stat"><span class="slot-stat-label">Pts</span><span class="slot-stat-value" id="stat-pts">&mdash;</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div class="dashboard-panel best-players-panel" id="best-players-panel" title="Click to view full squad">
           <div class="panel-title-row">
             <h3>Best Players</h3>
@@ -5098,6 +5270,22 @@
               <div class="tactic-pitch" id="tactic-summary-pitch-oop"></div>
               <span class="tactic-summary-pitch-label">Out of Possession</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Replaces the old Save Overview tile (career totals now live nowhere visible except
+             the hero card's Years at Club/Win % pair and the hidden-but-alive stat ids, see
+             #hero-hidden-stats above). Reuses computePerformanceInsights()/its Assumptions list,
+             the same compact view the Performance Data page's own inline Analysis tile shows,
+             but run once per category rather than scoped to just whichever one the page's own
+             dropdown has selected - see renderDashboardPerformanceSummary(). -->
+        <div class="dashboard-panel best-players-panel" id="dashboard-performance-panel" title="Click to view full Performance Data">
+          <div class="panel-title-row">
+            <h3>Performance Data</h3>
+            <span class="view-squad-link">View performance data &rarr;</span>
+          </div>
+          <div class="performance-summary-list" id="dashboard-performance-content">
+            <p class="placeholder">No performance data captured yet.</p>
           </div>
         </div>
       </div>
@@ -5167,19 +5355,21 @@
                 <th data-sort-key="position">Position</th>
                 <th data-sort-key="bestRole">Best Role</th>
                 <th data-sort-key="age">Age</th>
-                <th data-sort-key="nation">Nationality</th>
+                <th data-sort-key="nation">Nation</th>
                 <th data-sort-key="height">Height</th>
                 <th data-sort-key="ability">Ability</th>
                 <th data-sort-key="potential">Potential</th>
-                <th data-sort-key="appearances">Appearances</th>
+                <th data-sort-key="appearances">App</th>
                 <th data-sort-key="goals">Goals</th>
                 <th data-sort-key="assists">Assists</th>
+                <th data-sort-key="wage">Wage</th>
+                <th data-sort-key="transferValue">Value</th>
                 <th data-sort-key="contract">Contract End</th>
                 <th data-sort-key="status">Status</th>
               </tr>
             </thead>
             <tbody id="squad-table-body">
-              <tr><td colspan="13">Awaiting data</td></tr>
+              <tr><td colspan="15">Awaiting data</td></tr>
             </tbody>
           </table>
         </div>
@@ -5237,7 +5427,10 @@
         <div class="dashboard-panel squad-table-panel scout-table-panel" id="scout-table-panel" style="display:none;">
           <div class="panel-title-row">
             <h3>Scouted Players</h3>
-            <button class="mini-btn" id="scout-add-toggle-btn">+ Add to Shortlist</button>
+            <div class="scout-table-actions">
+              <input type="text" id="scout-search-input" class="scout-search-input" placeholder="Search players..." aria-label="Search scouted players">
+              <button class="mini-btn" id="scout-add-toggle-btn">+ Add to Shortlist</button>
+            </div>
           </div>
           <div class="squad-table-scroll">
             <table class="squad-table scout-table-compact" id="scout-table">
@@ -6230,6 +6423,8 @@
       appearances: p => parseAppearancesSortValue(p.appearances),
       goals: p => p.goals ?? -1,
       assists: p => p.assists ?? -1,
+      wage: p => parseWageValue(p.wage),
+      transferValue: p => parseValueSortValue(p.transferValue),
       contract: p => parseContractSortValue(p.contract),
       status: p => p.status || ''
     };
@@ -6803,6 +6998,12 @@
 
     let scoutSortKey = null;
     let scoutSortDir = 1;
+    // Live text filter for the Scouted Players table (see filterScoutShortlist() and its
+    // wiring in renderScoutTable()) — kept as its own bit of state, separate from
+    // scoutShortlist itself, so searching never mutates or discards anything actually on the
+    // shortlist. Always lowercase so matching stays case-insensitive without re-lowering the
+    // stored term on every keystroke.
+    let scoutSearchTerm = '';
 
     // The Tactic Builder page's own working state — one mutable, per-slot-editable copy of
     // whichever formation preset is selected per phase ('ip'/'oop'), each independently
@@ -8127,7 +8328,58 @@
     function applyClubColours(primary, secondary) {
       document.documentElement.style.setProperty('--club-primary', primary);
       document.documentElement.style.setProperty('--club-secondary', secondary);
+      document.documentElement.style.setProperty('--club-primary-contrast', getContrastColour(primary));
+      document.documentElement.style.setProperty('--club-text', getReadableClubText(primary));
       updateFaviconColours(primary, secondary);
+    }
+
+    // Picks a near-black or near-white icon/text colour that stays legible on top of a solid
+    // fill of the given colour (see --club-primary-contrast above) — used for the active nav
+    // rail icon, which sits directly on a var(--club-primary) background. Standard WCAG
+    // relative-luminance formula: light club colours (yellow, sky blue, white) get the dark
+    // option, dark club colours (navy, maroon, black) get the light option, so the icon reads
+    // clearly no matter which club's colours are loaded.
+    function getContrastColour(hex) {
+      const clean = hex.replace('#', '');
+      const r = parseInt(clean.substring(0, 2), 16) / 255;
+      const g = parseInt(clean.substring(2, 4), 16) / 255;
+      const b = parseInt(clean.substring(4, 6), 16) / 255;
+      const toLinear = v => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+      const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+      return luminance > 0.45 ? '#0a1a02' : '#f4fff0';
+    }
+
+    // Lightens club-primary into a colour readable as TEXT on the app's own near-black
+    // background (see --club-text's own comment in :root) — used all over the app for things
+    // like the "Command Centre" wordmark, panel highlights and section labels. The CSS
+    // default (a flat 75% primary / 25% white mix) reads fine for most club colours, but
+    // isn't enough for a genuinely dark one (navy, maroon, near-black) — a 75/25 mix of a
+    // dark navy is still a fairly dark, low-contrast blue-grey against a near-black panel.
+    // This walks the white mix up in 5% steps (starting from that same 25% baseline, so
+    // brighter club colours that already passed at 25% come back unchanged) using the WCAG
+    // relative-luminance contrast formula, stopping once the blend clears a readable 4.5:1
+    // ratio against the app's own darkest background (#050505) or maxes out at 90% white.
+    function getReadableClubText(hex) {
+      const clean = hex.replace('#', '');
+      const pr = parseInt(clean.substring(0, 2), 16);
+      const pg = parseInt(clean.substring(2, 4), 16);
+      const pb = parseInt(clean.substring(4, 6), 16);
+      const toLinear = v255 => {
+        const v = v255 / 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      };
+      const luminanceOf = (r, g, b) => 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+      const bgLuminance = luminanceOf(5, 5, 5); // #050505, the app's own darkest background
+      let r = pr, g = pg, b = pb;
+      for (let whiteMix = 0.25; whiteMix <= 0.9; whiteMix += 0.05) {
+        r = pr * (1 - whiteMix) + 255 * whiteMix;
+        g = pg * (1 - whiteMix) + 255 * whiteMix;
+        b = pb * (1 - whiteMix) + 255 * whiteMix;
+        const contrast = (luminanceOf(r, g, b) + 0.05) / (bgLuminance + 0.05);
+        if (contrast >= 4.5) break;
+      }
+      const toHex = v => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, '0');
+      return '#' + toHex(r) + toHex(g) + toHex(b);
     }
 
     // Rebuilds the browser tab icon (see the static #fmcc-favicon <link> in <head>) with the
@@ -8842,32 +9094,59 @@
     });
     // ---- END FM graphics folder auto-lookup ----
 
-    // Sets (or clears) the confirmed end-of-season league status badge next to the position
-    // circle on the dashboard hero card. Pass 'champion' once the title's actually been won,
-    // 'relegated' once relegation's been confirmed, or null/omit for the ongoing-season
-    // default (no badge at all — just the raw position). The in-game league table marks both
-    // of these with a plain "C"/"R" letter; a crown reads a bit more like a trophy moment for
-    // the title, while relegation keeps the game's own red "R".
+    // Sets (or clears) the confirmed end-of-season league status for the position circle on
+    // the dashboard hero card. Pass 'champion' once the title's actually been won, 'relegated'
+    // once relegation's been confirmed, or null/omit for the ongoing-season default (just the
+    // raw position). The in-game league table marks both of these with a plain "C"/"R" letter;
+    // a crown reads a bit more like a trophy moment for the title, while relegation keeps the
+    // game's own red "R".
+    // v2: used to show a separate badge alongside the circle (still "1st 👑"), which cost the
+    // season stats row real width once it moved into the narrower hero card column (see Task
+    // #314/#316's overlap fix). Now the circle itself swaps to the indicator, replacing the
+    // digit rather than sitting next to it - the real digit isn't lost, it's kept on
+    // #hero-position's own dataset.position (set alongside .textContent at every call site
+    // that sets the position - see loadSaveData_MetaluBuzau/resetToBlankSlate/
+    // applyFullSaveData), which is what buildCurrentSaveDataSnapshot() reads for its position
+    // field so a backup taken mid-celebration still round-trips the real finishing position,
+    // not the crown glyph. #hero-league-status-badge is kept in the DOM (unused, always
+    // hidden) rather than removed, in case a future layout wants the two split apart again.
     // Cached the same way as lastRenderedAchievements/lastRenderedRecords above — recovers
     // club.leagueStatus for buildCurrentSaveDataSnapshot() when there's no imported save to
     // read it from directly.
     let lastLeagueStatus = null;
 
+    // Shortens a "2036/37"-style season year to "36/37" for the hero card's compact season
+    // stats box (dropping the century keeps this stat from being the widest thing in a row
+    // that's already tight - see Task #316's overlap fix). The full year is kept on
+    // #hero-season-year's own dataset.seasonYear (set alongside the shortened .textContent at
+    // every call site that sets this field), which is what buildCurrentSaveDataSnapshot()
+    // reads for its seasonYear field, so a backup still round-trips the real four-digit year.
+    // Falls back to returning the text unchanged if it isn't in the expected "YYYY/YY" shape.
+    function formatShortSeasonYear(text) {
+      const m = /^\d{2}(\d{2})\/(\d{2})$/.exec(text || '');
+      return m ? `${m[1]}/${m[2]}` : (text || '');
+    }
+
     function setLeagueStatus(status) {
       lastLeagueStatus = status || null;
       const badge = document.getElementById('hero-league-status-badge');
+      badge.textContent = '';
+      badge.className = 'league-status-badge';
+      badge.style.display = 'none';
+
+      const position = document.getElementById('hero-position');
       if (status === 'champion') {
-        badge.textContent = '👑';
-        badge.className = 'league-status-badge is-champion';
-        badge.style.display = 'inline';
+        position.textContent = '👑';
+        position.classList.add('is-champion');
+        position.classList.remove('is-relegated');
       } else if (status === 'relegated') {
-        badge.textContent = 'R';
-        badge.className = 'league-status-badge is-relegated';
-        badge.style.display = 'inline';
+        position.textContent = 'R';
+        position.classList.add('is-relegated');
+        position.classList.remove('is-champion');
       } else {
-        badge.textContent = '';
-        badge.className = 'league-status-badge';
-        badge.style.display = 'none';
+        // Ongoing season - whatever plain position digit the position-setting code already
+        // put in .textContent (always called right before this) stays showing untouched.
+        position.classList.remove('is-champion', 'is-relegated');
       }
     }
 
@@ -8899,14 +9178,19 @@
       division.classList.remove('placeholder');
 
       const seasonYear = document.getElementById('hero-season-year');
-      seasonYear.textContent = '2036/37';
+      seasonYear.dataset.seasonYear = '2036/37';
+      seasonYear.textContent = formatShortSeasonYear('2036/37');
       seasonYear.classList.remove('placeholder');
 
       const position = document.getElementById('hero-position');
       position.textContent = '1st';
+      // The real position digit, kept separately from textContent so setLeagueStatus() can
+      // swap the circle over to a champion/relegated indicator without losing it - see that
+      // function's own comment, and buildCurrentSaveDataSnapshot()'s position field below.
+      position.dataset.position = '1st';
       document.getElementById('league-slot').classList.remove('placeholder');
       // Season was still in progress at capture time (18 Feb 2037) — nothing's confirmed yet,
-      // so no badge. Change to setLeagueStatus('champion') or setLeagueStatus('relegated')
+      // so no indicator. Change to setLeagueStatus('champion') or setLeagueStatus('relegated')
       // once a future capture shows the title/relegation has actually been confirmed.
       setLeagueStatus(null);
 
@@ -9023,7 +9307,7 @@
         { name: 'Sergio Acosta', position: 'GK', bestPosition: 'GK', bestRole: 'GK', age: 19, nation: 'PAR', ability: '2★', potential: '5★', appearances: '5', goals: 0, assists: 0, wage: '£4.2K p/w', contract: '30/6/2040' },
         { name: 'Ilija Belić', position: 'D/WB (L)', bestPosition: 'WB (L)', bestRole: 'WB', age: 22, nation: 'SRB', ability: '3★', potential: '4★', appearances: '23 (10)', goals: 5, assists: 5, wage: '£6.75K p/w', contract: '30/6/2040' },
         { name: 'Rayan Gluić', position: 'M (R)/AM (RL)', bestPosition: 'AM (R)', bestRole: 'IF', age: 26, nation: 'CRO', ability: '3★', potential: '3★', appearances: '12 (8)', goals: 4, assists: 6, wage: '£17.25K p/w', contract: '30/6/2038' },
-        { name: 'Alexandru Neagu', position: 'ST (C)', bestPosition: 'ST (C)', bestRole: 'CHF', age: 19, nation: 'ROU', ability: '2.5★', potential: '5★', appearances: '10 (12)', goals: 8, assists: 3, wage: '£6K p/w', contract: '30/6/2039', status: 'injured' },
+        { name: 'Alexandru Neagu', position: 'ST (C)', bestPosition: 'ST (C)', bestRole: 'CHF', age: 19, nation: 'ROU', ability: '2.5★', potential: '5★', appearances: '10 (12)', goals: 8, assists: 3, wage: '£6K p/w', contract: '30/6/2039' },
         { name: 'Aurelio Eguia', position: 'D/WB/M/AM (R)', bestPosition: 'WB (R)', bestRole: 'AWB', age: 20, nation: 'MEX', ability: '2★', potential: '3.5★', appearances: '12 (12)', goals: 1, assists: 5, wage: '£12.75K p/w', contract: '30/6/2038' },
         { name: 'Steve Hughes', position: 'M (RC)/AM (R)', bestPosition: 'M (R)', bestRole: 'W', age: 22, nation: 'CAN', ability: '2★', potential: '3★', appearances: '6 (9)', goals: 3, assists: 1, wage: '£15K p/w', contract: '30/6/2039' },
         { name: 'Jhorman Corengia', position: 'AM (C)/ST (C)', bestPosition: 'ST (C)', bestRole: 'P', age: 21, nation: 'COL', ability: '2.5★', potential: '5★', appearances: '9 (17)', goals: 6, assists: 2, wage: '£3.6K p/w', contract: '30/6/2039' },
@@ -9032,7 +9316,7 @@
         { name: 'Lucas Ramirez', position: 'AM (R)/ST (C)', bestPosition: 'ST (C)', bestRole: 'CHF', age: 19, nation: 'ARG', ability: '2.5★', potential: '5★', appearances: '0 (8)', goals: 0, assists: 0, wage: '£3.8K p/w', contract: '30/6/2039' },
         { name: 'Andrei Maican', position: 'M (C)', bestPosition: 'M (C)', bestRole: 'MPM', age: 22, nation: 'ROU', ability: '2★', potential: '2.5★', appearances: '2 (4)', goals: 0, assists: 1, wage: '£1.7K p/w', contract: '30/6/2039' },
         { name: 'Rai', position: 'D (C)/DM', bestPosition: 'DM', bestRole: 'DM', age: 20, nation: 'ESP', ability: '2.5★', potential: '5★', appearances: '9 (13)', goals: 1, assists: 0, wage: '£6.5K p/w', contract: '30/6/2040' },
-        { name: 'Tayeb Hamidi', position: 'D (LC)', bestPosition: 'D (L)', bestRole: 'IFB', age: 21, nation: 'ALG', ability: '2.5★', potential: '4.5★', appearances: '14 (9)', goals: 0, assists: 2, wage: '£9.75K p/w', contract: '30/6/2038', status: 'injured' },
+        { name: 'Tayeb Hamidi', position: 'D (LC)', bestPosition: 'D (L)', bestRole: 'IFB', age: 21, nation: 'ALG', ability: '2.5★', potential: '4.5★', appearances: '14 (9)', goals: 0, assists: 2, wage: '£9.75K p/w', contract: '30/6/2038' },
         { name: 'Héctor Arribas', position: 'D (C)/DM', bestPosition: 'D (C)', bestRole: 'WCB', age: 25, nation: 'ARG', ability: '3★', potential: '4★', appearances: '1', goals: 0, assists: 0, wage: '£17K p/w', contract: '30/6/2040' },
         { name: 'Zeki Uzunoğlu', position: 'DM', bestPosition: 'DM', bestRole: 'DLP', age: 19, nation: 'TUR', ability: '2.5★', potential: '4★', appearances: '2', goals: 0, assists: 1, wage: '£21K p/w', contract: '30/6/2040', status: 'loan-out' },
         { name: 'Stefan Marjanović', position: 'M (C)', bestPosition: 'M (C)', bestRole: 'MPM', age: 27, nation: 'SRB', ability: '2.5★', potential: '2.5★', appearances: '4 (10)', goals: 0, assists: 0, wage: '£10.25K p/w', contract: '30/6/2038' },
@@ -9099,10 +9383,13 @@
       setPlaceholder('hero-manager', 'Not set');
       setPlaceholder('hero-division', 'Not set');
       setPlaceholder('hero-season-year', 'Not set');
+      document.getElementById('hero-season-year').dataset.seasonYear = '';
       setPlaceholder('hero-stadium', 'Not set');
       document.getElementById('hero-stadium-built').textContent = '';
 
-      document.getElementById('hero-position').textContent = '—';
+      const blankPosition = document.getElementById('hero-position');
+      blankPosition.textContent = '—';
+      blankPosition.dataset.position = '';
       document.getElementById('league-slot').classList.add('placeholder');
       setLeagueStatus(null);
 
@@ -9277,8 +9564,17 @@
       setText('hero-manager', club.manager);
       setText('hero-division', club.division);
       setText('hero-season-year', club.seasonYear);
+      // Overrides the plain setText() write above with the shortened "36/37" display text,
+      // plus stashes the real four-digit year on dataset.seasonYear - setText() itself is
+      // shared by fields that don't need this, so the season-specific formatting happens here
+      // instead. See formatShortSeasonYear()'s own comment for why the full year needs keeping.
+      const seasonYearEl = document.getElementById('hero-season-year');
+      seasonYearEl.dataset.seasonYear = club.seasonYear || '';
+      seasonYearEl.textContent = club.seasonYear ? formatShortSeasonYear(club.seasonYear) : '—';
 
-      document.getElementById('hero-position').textContent = club.position || '—';
+      const importPosition = document.getElementById('hero-position');
+      importPosition.textContent = club.position || '—';
+      importPosition.dataset.position = club.position || '';
       document.getElementById('league-slot').classList.remove('placeholder');
       setLeagueStatus(club.leagueStatus || null);
 
@@ -10053,8 +10349,15 @@
           saveFileName: textOf('hotbar-team-name'),
           manager: textOf('hero-manager'),
           division: textOf('hero-division'),
-          seasonYear: textOf('hero-season-year'),
-          position: textOf('hero-position'),
+          // dataset.seasonYear (not textOf) - the circle only ever shows the shortened "36/37"
+          // form (see formatShortSeasonYear()), so the live text is no longer the full year.
+          seasonYear: document.getElementById('hero-season-year').dataset.seasonYear || textOf('hero-season-year'),
+          // dataset.position (not textOf) - setLeagueStatus() swaps #hero-position's own
+          // .textContent to a crown/R indicator once the season's decided, so the live text
+          // itself is no longer reliably the actual finishing position - see that function's
+          // comment. Falls back to textOf() for older/test-built DOM that never set the
+          // dataset attribute.
+          position: document.getElementById('hero-position').dataset.position || textOf('hero-position'),
           leagueStatus: lastLeagueStatus,
           stadiumName: stadiumMatch ? stadiumMatch[1] : stadiumText,
           stadiumCapacity: stadiumCapacityRaw,
@@ -10210,14 +10513,15 @@
 
     // Renders the full squad table on the Squad tab.
     // players: array of { name, position, bestPosition?, bestRole?, age, nation, ability,
-    //   potential, appearances?, goals?, assists?, wage?, contract, status?, attributes? }
-    // status is optional: 'loan-out' | 'loan-in' | 'injured' | omitted (fit & at the club).
+    //   potential, appearances?, goals?, assists?, wage?, transferValue?, contract, status?,
+    //   attributes? }
+    // status is optional: 'loan-out' | 'loan-in' | omitted (fit & at the club).
     // 'loan-out' is one of ours out playing elsewhere (not available for selection);
     // 'loan-in' is someone else's player playing for us (IS available for selection) — kept
     // as distinct statuses, not a generic 'loan', since eligibility and squad-availability
-    // logic need to treat them oppositely. bestRole/appearances/goals/assists/wage are
-    // optional too — anything without them just shows an em dash, so older/partial player
-    // records don't break the table.
+    // logic need to treat them oppositely. bestRole/appearances/goals/assists/wage/
+    // transferValue are optional too — anything without them just shows an em dash, so
+    // older/partial player records don't break the table.
     function renderSquad(players) {
       const subtitle = document.getElementById('squad-subtitle');
       const emptyState = document.getElementById('squad-empty-state');
@@ -10378,7 +10682,7 @@
 
       body.innerHTML = indexed.map(({ p, i }) => `
         <tr data-index="${i}">
-          <td class="${loanNameClass(p.status)}" style="color: var(--text); font-style: normal; font-weight: 600;">${p.name}</td>
+          <td class="${loanNameClass(p.status)}" style="color: var(--text); font-style: normal; font-weight: 600; white-space: nowrap;">${p.name}</td>
           <td style="font-style: normal;">${p.position}</td>
           <td style="font-style: normal;">${p.bestRole ?? '&mdash;'}</td>
           <td style="font-style: normal;">${p.age}</td>
@@ -10389,6 +10693,8 @@
           <td style="font-style: normal;">${p.appearances ?? '&mdash;'}</td>
           <td style="font-style: normal;">${p.goals ?? '&mdash;'}</td>
           <td style="font-style: normal;">${p.assists ?? '&mdash;'}</td>
+          <td style="font-style: normal;">${p.wage ?? '&mdash;'}</td>
+          <td style="font-style: normal;">${p.transferValue ?? '&mdash;'}</td>
           <td style="font-style: normal;">${p.contract}</td>
           <td style="font-style: normal;">${statusBadgeHtml(p.status)}</td>
         </tr>
@@ -10475,7 +10781,6 @@
     function statusBadgeHtml(status) {
       if (status === 'loan-out') return '<span class="status-badge loan-out">Loaned Out</span>';
       if (status === 'loan-in') return '<span class="status-badge loan-in">Loaned In</span>';
-      if (status === 'injured') return '<span class="status-badge injured">Injured</span>';
       return '&mdash;';
     }
 
@@ -12200,11 +12505,21 @@
         const title = (division && division !== '—') ? division : 'League Table';
         openGapsModal(title, buildLeagueTableHtml());
         // openGapsModal() sets the title as plain text — swap in an HTML version with the
-        // league logo prepended, but only if one's actually loaded (see setLeagueLogo()).
+        // league logo prepended (only if one's actually loaded, see setLeagueLogo()) and the
+        // full "2036/37" season year appended as a subtitle - the season stats row itself only
+        // shows the position/P-W-D-L-F-A-GD-Pts now (the year got dropped there to save width,
+        // see the hero-season-stats markup comment), so this popup is where the full year
+        // actually lives on screen. dataset.seasonYear (not textContent) since
+        // formatShortSeasonYear() means the live text is the shortened "36/37" form.
         const logoImg = document.getElementById('hero-division-logo');
+        const fullSeasonYear = document.getElementById('hero-season-year').dataset.seasonYear;
+        const yearSuffix = (fullSeasonYear && fullSeasonYear !== '—')
+          ? ` <span class="scout-tile-subtitle">- ${fullSeasonYear}</span>` : '';
         if (logoImg && logoImg.src && logoImg.style.display !== 'none') {
           document.getElementById('gaps-modal-title').innerHTML =
-            `<img src="${logoImg.src}" class="modal-title-logo" alt="">${title}`;
+            `<img src="${logoImg.src}" class="modal-title-logo" alt="">${title}${yearSuffix}`;
+        } else if (yearSuffix) {
+          document.getElementById('gaps-modal-title').innerHTML = `${title}${yearSuffix}`;
         }
       } catch (err) {
         console.error('openLeagueTableModal failed:', err);
@@ -12310,10 +12625,10 @@
       document.getElementById('pm-potential').textContent = `Potential ${p.potential || '—'}`;
 
       const statusEl = document.getElementById('pm-status');
-      if (p.status === 'loan-out' || p.status === 'loan-in' || p.status === 'injured') {
+      if (p.status === 'loan-out' || p.status === 'loan-in') {
         statusEl.style.display = 'inline-block';
         statusEl.className = 'status-badge ' + p.status;
-        statusEl.textContent = p.status === 'loan-out' ? 'Loaned Out' : p.status === 'loan-in' ? 'Loaned In' : 'Injured';
+        statusEl.textContent = p.status === 'loan-out' ? 'Loaned Out' : 'Loaned In';
       } else {
         statusEl.style.display = 'none';
       }
@@ -12651,15 +12966,29 @@
       return best;
     }
 
+    // Matches the live search box against name/club/nation — the three fields most likely to
+    // be what someone actually types when trying to pull up a specific player they already
+    // know is shortlisted (as opposed to position/role, which the existing sortable columns
+    // already cover well enough by eye). Case-insensitive, substring match (not "starts
+    // with"), same permissive matching feel as most in-app search boxes.
+    function filterScoutShortlist(indexed) {
+      const term = scoutSearchTerm.trim().toLowerCase();
+      if (!term) return indexed;
+      return indexed.filter(({ p }) => {
+        return (p.name && p.name.toLowerCase().includes(term))
+          || (p.club && p.club.toLowerCase().includes(term))
+          || (p.nation && p.nation.toLowerCase().includes(term));
+      });
+    }
+
     function renderScoutTable() {
       const subtitle = document.getElementById('scout-subtitle');
       const emptyState = document.getElementById('scout-empty-state');
       const tablePanel = document.getElementById('scout-table-panel');
       const body = document.getElementById('scout-table-body');
 
-      subtitle.textContent = `${scoutShortlist.length} player${scoutShortlist.length === 1 ? '' : 's'} shortlisted`;
-
       if (scoutShortlist.length === 0) {
+        subtitle.textContent = '0 players shortlisted';
         emptyState.style.display = 'block';
         tablePanel.style.display = 'none';
         renderScoutTiles();
@@ -12668,7 +12997,11 @@
       emptyState.style.display = 'none';
       tablePanel.style.display = 'flex';
 
-      const indexed = scoutShortlist.map((p, i) => ({ p, i }));
+      const indexed = filterScoutShortlist(scoutShortlist.map((p, i) => ({ p, i })));
+
+      subtitle.textContent = scoutSearchTerm.trim()
+        ? `${indexed.length} of ${scoutShortlist.length} shortlisted match "${scoutSearchTerm.trim()}"`
+        : `${scoutShortlist.length} player${scoutShortlist.length === 1 ? '' : 's'} shortlisted`;
 
       if (scoutSortKey && SCOUT_TABLE_COLUMNS[scoutSortKey]) {
         const getValue = SCOUT_TABLE_COLUMNS[scoutSortKey];
@@ -12679,6 +13012,12 @@
           if (av > bv) return 1 * scoutSortDir;
           return 0;
         });
+      }
+
+      if (indexed.length === 0) {
+        body.innerHTML = `<tr><td colspan="18" style="text-align:center;">No shortlisted players match "${scoutSearchTerm.trim()}".</td></tr>`;
+        renderScoutTiles();
+        return;
       }
 
       body.innerHTML = indexed.map(({ p, i }) => {
@@ -13395,6 +13734,12 @@
     // show, since #scout-table-panel — and its title-row button — stays hidden until then).
     document.getElementById('scout-add-toggle-btn').addEventListener('click', openScoutAddModal);
     document.getElementById('scout-add-toggle-btn-empty').addEventListener('click', openScoutAddModal);
+    // Re-renders on every keystroke rather than debouncing — the shortlist tops out in the
+    // hundreds at most, so filtering it is cheap enough not to need one.
+    document.getElementById('scout-search-input').addEventListener('input', (e) => {
+      scoutSearchTerm = e.target.value;
+      renderScoutTable();
+    });
     document.getElementById('scout-add-modal-close').addEventListener('click', closeScoutAddModal);
     document.getElementById('scout-add-modal-backdrop').addEventListener('click', (e) => {
       if (e.target.id === 'scout-add-modal-backdrop') closeScoutAddModal();
@@ -14086,6 +14431,10 @@
       const players = latest.players.filter(p => !isPerformancePlayerLoanedOut(p.name));
       const assumptions = [];
       const improvements = [];
+      // Squad-wide numbers behind the Assumptions above, keyed by category — kept around (not
+      // just baked into the assumption strings) so computePerformanceTrends() can diff the
+      // same figures between two snapshots without recomputing them from scratch.
+      const aggregates = {};
 
       // ---- Attacking over/underperformers: Goals vs xG, for anyone with a meaningful
       // sample of shots (>=5) so one lucky/unlucky strike from a bit-part player doesn't
@@ -14126,6 +14475,7 @@
           : weightedPassPct >= 85 ? 'a fairly balanced mix of control and directness'
           : 'a more direct, higher-risk passing approach';
         assumptions.push(`Weighted average pass completion across the squad is <strong>${weightedPassPct.toFixed(1)}%</strong>, which suggests ${style}.`);
+        aggregates.weightedPassPct = weightedPassPct;
       }
 
       // ---- Assumptions: wide play / crossing reliance (General Play) ----
@@ -14140,6 +14490,35 @@
         }
       }
 
+      // ---- Assumptions: crossing accuracy / end product (General Play) ----
+      // A separate lens from the reliance check above (who/how much) - this looks at quality
+      // (how much of that volume actually finds a teammate), reusing the same "crossers" list.
+      if (categoryKey === 'generalplay' && crossers.length) {
+        const totalCrossCompleted = crossers.reduce((sum, p) => sum + (p.crossesCompleted || 0), 0);
+        const totalCrossAttempted = crossers.reduce((sum, p) => sum + p.crossesAttempted, 0);
+        const crossCompletionRate = totalCrossAttempted > 0 ? (totalCrossCompleted / totalCrossAttempted) * 100 : 0;
+        const tone = crossCompletionRate >= 30 ? 'good end product from wide areas'
+          : crossCompletionRate >= 18 ? 'moderate end product from wide areas'
+          : 'poor end product from wide areas, crosses are going to waste more often than not';
+        assumptions.push(`Of the crosses attempted, <strong>${crossCompletionRate.toFixed(0)}%</strong> are completed (${totalCrossCompleted} of ${totalCrossAttempted}), suggesting ${tone}.`);
+        aggregates.crossCompletionRate = crossCompletionRate;
+      }
+
+      // ---- Assumptions: aerial ability (General Play) ----
+      // Header win rate needs a real sample per player (10+ attempts) so a single early aerial
+      // duel doesn't skew the squad-wide picture.
+      const aerialPlayers = players.filter(p => typeof p.headersWon === 'number' && typeof p.headersAttempted === 'number' && p.headersAttempted >= 10);
+      if (categoryKey === 'generalplay' && aerialPlayers.length) {
+        const totalHeadersWon = aerialPlayers.reduce((sum, p) => sum + p.headersWon, 0);
+        const totalHeadersAttempted = aerialPlayers.reduce((sum, p) => sum + p.headersAttempted, 0);
+        const headerWinRate = totalHeadersAttempted > 0 ? (totalHeadersWon / totalHeadersAttempted) * 100 : 0;
+        const tone = headerWinRate >= 55 ? 'a genuine aerial threat, winning the majority of duels in the air'
+          : headerWinRate >= 40 ? 'roughly even in the air, neither a clear strength nor a weakness'
+          : 'losing more aerial duels than it wins, which could be worth addressing through recruitment or set-piece organisation';
+        assumptions.push(`Among players with a meaningful sample of headers, the squad wins <strong>${headerWinRate.toFixed(0)}%</strong> of aerial duels (${totalHeadersWon} of ${totalHeadersAttempted}), suggesting the team is ${tone}.`);
+        aggregates.headerWinRate = headerWinRate;
+      }
+
       // ---- Assumptions: goal-scoring concentration (Attacking) ----
       const scorers = players.filter(p => typeof p.goals === 'number' && p.goals > 0);
       if (categoryKey === 'attacking' && scorers.length) {
@@ -14148,6 +14527,39 @@
         const share = totalGoals > 0 ? (topScorer.goals / totalGoals) * 100 : 0;
         if (share >= 30) {
           assumptions.push(`<strong>${topScorer.name}</strong> accounts for <strong>${share.toFixed(0)}%</strong> of the squad's captured goals (${topScorer.goals} of ${totalGoals}). The team may be over-reliant on one source of goals.`);
+        }
+      }
+
+      // ---- Assumptions: squad-wide xG differential (Attacking) ----
+      // Reuses "withShots" (already built above for the over/underperformer ranking) to give
+      // one aggregate finishing read for the whole category, rather than only surfacing this
+      // as isolated per-player rows further down.
+      if (categoryKey === 'attacking' && withShots.length) {
+        const totalGoalsVsXg = withShots.reduce((sum, p) => sum + p.goals, 0);
+        const totalXg = withShots.reduce((sum, p) => sum + p.xG, 0);
+        const xgDiff = totalGoalsVsXg - totalXg;
+        const tone = xgDiff >= 3 ? 'a clinical group in front of goal, consistently outscoring the chances created'
+          : xgDiff <= -3 ? 'a wasteful group in front of goal, consistently scoring below what the chances created deserve'
+          : 'broadly in line with the chances created';
+        assumptions.push(`Across ${withShots.length} player${withShots.length === 1 ? '' : 's'} with a meaningful shot sample, the squad has scored <strong>${totalGoalsVsXg}</strong> goals from <strong>${totalXg.toFixed(1)}</strong> expected (${xgDiff >= 0 ? '+' : ''}${xgDiff.toFixed(1)}), suggesting ${tone}.`);
+        aggregates.xgDiff = xgDiff;
+        aggregates.totalGoalsVsXg = totalGoalsVsXg;
+        aggregates.totalXg = totalXg;
+      }
+
+      // ---- Assumptions: shot-volume concentration (Attacking) ----
+      // Compares the top shot-taker to the squad average rather than a fixed raw-count
+      // threshold, so this reads correctly regardless of squad size or how attack-heavy the
+      // captured category is.
+      const shooters = players.filter(p => typeof p.shots === 'number' && p.shots > 0);
+      if (categoryKey === 'attacking' && shooters.length) {
+        const topShooter = shooters.slice().sort((a, b) => b.shots - a.shots)[0];
+        const totalShotVolume = shooters.reduce((sum, p) => sum + p.shots, 0);
+        const avgShots = totalShotVolume / shooters.length;
+        if (topShooter.shots >= avgShots * 2 && topShooter.shots >= 60) {
+          assumptions.push(`<strong>${topShooter.name}</strong> has taken <strong>${topShooter.shots}</strong> shots, more than double the squad average (${avgShots.toFixed(0)}). Attacks look like they are being funnelled towards them specifically.`);
+        } else {
+          assumptions.push(`Shot volume is fairly well spread across the squad (top shooter <strong>${topShooter.name}</strong> with ${topShooter.shots}), suggesting chances are being created from multiple sources rather than relying on one outlet.`);
         }
       }
 
@@ -14161,6 +14573,22 @@
           : foulRate <= 20 ? 'a fairly clean, well-timed approach to tackling'
           : 'a moderately physical approach to winning the ball back';
         assumptions.push(`Fouls made are running at roughly <strong>${foulRate.toFixed(0)}%</strong> of tackles attempted, suggesting ${tone}.`);
+        aggregates.foulRate = foulRate;
+      }
+
+      // ---- Assumptions: tackle success rate (Discipline) ----
+      // A different lens on the same "disciplined" list to the foul-rate assumption above -
+      // that one measures fouls per tackle attempted (physicality), this measures how often a
+      // tackle attempt actually wins the ball (effectiveness).
+      if (categoryKey === 'discipline' && disciplined.length) {
+        const totalTacklesWon = disciplined.reduce((sum, p) => sum + (p.tacklesWon || 0), 0);
+        const totalTacklesAttempted = disciplined.reduce((sum, p) => sum + p.tacklesAttempted, 0);
+        const tackleSuccessRate = totalTacklesAttempted > 0 ? (totalTacklesWon / totalTacklesAttempted) * 100 : 0;
+        const tone = tackleSuccessRate >= 65 ? 'winning the ball back cleanly and efficiently most of the time'
+          : tackleSuccessRate >= 45 ? 'a moderate tackle success rate, neither a clear strength nor a weakness'
+          : 'struggling to win tackles cleanly, which points to timing or positioning issues in the press';
+        assumptions.push(`Squad-wide tackle success sits at <strong>${tackleSuccessRate.toFixed(0)}%</strong> (${totalTacklesWon} won from ${totalTacklesAttempted} attempted), suggesting the team is ${tone}.`);
+        aggregates.tackleSuccessRate = tackleSuccessRate;
       }
 
       // ---- Assumptions: squad-wide shot-stopping vs model (Goalkeeping) ----
@@ -14171,6 +14599,23 @@
           : weightedDiff <= -1.5 ? "goalkeeping is underperforming the model; shot-stopping is costing goals relative to expectation"
           : "goalkeeping is broadly in line with the model's expectation";
         assumptions.push(`Across ${keeperDiffs.length} keeper${keeperDiffs.length === 1 ? '' : 's'} with a meaningful sample, Sv% is running <strong>${weightedDiff >= 0 ? '+' : ''}${weightedDiff.toFixed(1)}pts</strong> vs expected, suggesting ${tone}.`);
+        aggregates.svDiff = weightedDiff;
+      }
+
+      // ---- Assumptions: clean sheet rate (Goalkeeping) ----
+      // Distinct signal from the Sv%-vs-xSv% assumption above - that one isolates shot-stopping
+      // quality specifically, this reflects overall defensive solidity (keeper + back line
+      // together), reusing the same 3+ appearance sample as keeperDiffs.
+      if (categoryKey === 'goalkeeping' && keeperDiffs.length) {
+        const cleanSheetKeepers = players.filter(p => isGoalkeeperRecord(p) && parseAppsTotal(p.apps) >= 3);
+        const totalKeeperApps = cleanSheetKeepers.reduce((sum, p) => sum + parseAppsTotal(p.apps), 0);
+        const totalCleanSheets = cleanSheetKeepers.reduce((sum, p) => sum + (p.cleanSheets || 0), 0);
+        const cleanSheetRate = totalKeeperApps > 0 ? (totalCleanSheets / totalKeeperApps) * 100 : 0;
+        const tone = cleanSheetRate >= 40 ? 'defensively solid, keeping a clean sheet in a large share of matches'
+          : cleanSheetRate >= 25 ? 'reasonably secure defensively, with clean sheets a regular but not dominant feature'
+          : 'leaking goals too often to keep clean sheets consistently, which points to a defensive issue beyond just the keeper';
+        assumptions.push(`The squad has kept a clean sheet in <strong>${cleanSheetRate.toFixed(0)}%</strong> of appearances (${totalCleanSheets} of ${totalKeeperApps}) among keepers with a meaningful sample, suggesting the team is ${tone}.`);
+        aggregates.cleanSheetRate = cleanSheetRate;
       }
 
       // ---- Assumptions: squad-wide shot conversion (Goal Attempts) ----
@@ -14181,6 +14626,23 @@
           : squadConversion >= 10 ? 'a fairly average conversion rate for the level'
           : "a below-par conversion rate; chances are going down more often than they're being taken";
         assumptions.push(`The squad is converting <strong>${squadConversion.toFixed(1)}%</strong> of shots (${totalGoals} goals from ${totalShots} shots, among players with 5+ shots), suggesting ${tone}.`);
+        aggregates.squadConversion = squadConversion;
+      }
+
+      // ---- Assumptions: squad-wide penalty reliability (Goal Attempts) ----
+      // A squad-wide read distinct from the per-player "worst penalty taker" improvement
+      // further down - this covers everyone who has taken at least one penalty, not just
+      // those with a 3+ sample, so it produces a picture even for a squad with few takers.
+      const aggPenTakers = players.filter(p => typeof p.pensScored === 'number' && typeof p.pensTaken === 'number' && p.pensTaken > 0);
+      if (categoryKey === 'goalattempts' && aggPenTakers.length) {
+        const totalPensScored = aggPenTakers.reduce((sum, p) => sum + p.pensScored, 0);
+        const totalPensTaken = aggPenTakers.reduce((sum, p) => sum + p.pensTaken, 0);
+        const penConversionRate = totalPensTaken > 0 ? (totalPensScored / totalPensTaken) * 100 : 0;
+        const tone = penConversionRate >= 80 ? 'reliable from the spot'
+          : penConversionRate >= 60 ? 'fairly average from the spot'
+          : 'unreliable from the spot, worth revisiting who takes penalties';
+        assumptions.push(`The squad has scored <strong>${totalPensScored}</strong> of <strong>${totalPensTaken}</strong> penalties (${penConversionRate.toFixed(0)}%), suggesting the team is ${tone}.`);
+        aggregates.penConversionRate = penConversionRate;
       }
 
       if (!assumptions.length) {
@@ -14244,6 +14706,20 @@
             players: [worstPasser.name],
           });
         }
+      }
+
+      // ---- Areas for improvement: costly individual errors (General Play) ----
+      // Flags the single biggest contributor to mistakes leading directly to a goal - this is
+      // an individual/actionable concern (same style as the dirty-tackler and worst-passer
+      // entries above), which is why it lives here rather than as a squad-wide Assumption.
+      const mistakeMakers = players.filter(p => typeof p.mistakesLeadingToGoal === 'number' && p.mistakesLeadingToGoal > 0)
+        .sort((a, b) => b.mistakesLeadingToGoal - a.mistakesLeadingToGoal);
+      if (categoryKey === 'generalplay' && mistakeMakers.length) {
+        const worstMistakeMaker = mistakeMakers[0];
+        improvements.push({
+          text: `<strong>${worstMistakeMaker.name}</strong> has been directly responsible for ${worstMistakeMaker.mistakesLeadingToGoal} goal${worstMistakeMaker.mistakesLeadingToGoal === 1 ? '' : 's'} conceded through individual errors. Composure and decision-making in possession look like a training focus.`,
+          players: [worstMistakeMaker.name],
+        });
       }
 
       // ---- Areas for improvement: conversion, penalties, goal drought (Goal Attempts) ----
@@ -14315,6 +14791,106 @@
         assumptions, improvements,
         overUnderKind, overUnderOver, overUnderUnder, squadConversion,
         overUnderEmptyMessage: overUnderEmptyMessages[categoryKey] || 'Not enough data yet to rank over/underperformers for this category.',
+        aggregates,
+      };
+    }
+
+    // Squad-wide aggregate metrics worth tracking snapshot-to-snapshot, per category — reuses
+    // the exact field names computePerformanceInsights() stores on its own "aggregates" return
+    // value, so a trend statement here always lines up with what the Assumptions section says
+    // about the CURRENT snapshot. Deliberately purely descriptive (direction + magnitude, no
+    // "better/worse" spin) — the Assumptions section already gives the qualitative read for the
+    // latest value on its own; this section's job is just "which way is it moving".
+    const PERFORMANCE_TREND_AGGREGATES = {
+      attacking: [
+        { key: 'xgDiff', label: 'xG differential (goals minus expected)', decimals: 1, unit: '' },
+      ],
+      goalkeeping: [
+        { key: 'svDiff', label: 'Sv% vs xSv%', decimals: 1, unit: 'pts' },
+        { key: 'cleanSheetRate', label: 'clean sheet rate', decimals: 0, unit: '%' },
+      ],
+      discipline: [
+        { key: 'foulRate', label: 'fouls-per-tackle rate', decimals: 0, unit: '%' },
+        { key: 'tackleSuccessRate', label: 'tackle success rate', decimals: 0, unit: '%' },
+      ],
+      generalplay: [
+        { key: 'weightedPassPct', label: 'pass completion', decimals: 1, unit: '%' },
+        { key: 'crossCompletionRate', label: 'crossing accuracy', decimals: 0, unit: '%' },
+        { key: 'headerWinRate', label: 'aerial duel win rate', decimals: 0, unit: '%' },
+      ],
+      goalattempts: [
+        { key: 'squadConversion', label: 'shot conversion', decimals: 1, unit: '%' },
+        { key: 'penConversionRate', label: 'penalty conversion', decimals: 0, unit: '%' },
+      ],
+    };
+
+    function buildAggregateTrendSentence(label, prevVal, currentVal, decimals, unit) {
+      const diff = currentVal - prevVal;
+      const flatThreshold = Math.pow(10, -decimals) / 2;
+      const fmt = v => `${v.toFixed(decimals)}${unit}`;
+      if (Math.abs(diff) < flatThreshold) {
+        return `Squad-wide ${label} is holding steady at <strong>${fmt(currentVal)}</strong> since the last snapshot.`;
+      }
+      const dirWord = diff > 0 ? 'risen' : 'fallen';
+      const sign = diff > 0 ? '+' : '';
+      return `Squad-wide ${label} has ${dirWord} from <strong>${fmt(prevVal)}</strong> to <strong>${fmt(currentVal)}</strong> (${sign}${diff.toFixed(decimals)}${unit}) since the last snapshot.`;
+    }
+
+    // Compares "latest" against the previous snapshot (see performancePreviousSnapshot, already
+    // scoped to the current season so a season's first snapshot has nothing to compare against)
+    // for the given category: squad-wide aggregate movement, reusing computePerformanceInsights()'s
+    // own aggregate numbers for both points in time so this can never drift out of sync with what
+    // the Assumptions section claims about "now", plus the single biggest individual mover on the
+    // category's own headline stat (cat.trendKey — the same field the per-player trend cell in
+    // the table already uses, see renderPerformanceTrendCell). available:false (rather than
+    // throwing) is how callers know to show a "capture another snapshot" message instead.
+    function computePerformanceTrends(latest, prev, categoryKey) {
+      if (!prev) return { available: false, trends: [] };
+
+      const cat = PERFORMANCE_CATEGORIES[categoryKey];
+      const latestInsights = computePerformanceInsights(latest, categoryKey);
+      const prevInsights = computePerformanceInsights(prev, categoryKey);
+      const trends = [];
+
+      (PERFORMANCE_TREND_AGGREGATES[categoryKey] || []).forEach(metric => {
+        const currentVal = latestInsights.aggregates[metric.key];
+        const prevVal = prevInsights.aggregates[metric.key];
+        if (typeof currentVal !== 'number' || typeof prevVal !== 'number') return;
+        trends.push(buildAggregateTrendSentence(metric.label, prevVal, currentVal, metric.decimals, metric.unit));
+      });
+
+      // ---- Biggest individual mover on the category's own headline stat ----
+      const latestPlayers = latest.players.filter(p => !isPerformancePlayerLoanedOut(p.name));
+      const prevByName = new Map(prev.players.map(p => [normalizeNameForMatch(p.name), p]));
+      const movers = latestPlayers.map(p => {
+        const priorRecord = prevByName.get(normalizeNameForMatch(p.name));
+        if (!priorRecord) return null;
+        const current = getColumnValue({ key: cat.trendKey }, p, computeDerivedStats(p));
+        const prior = getColumnValue({ key: cat.trendKey }, priorRecord, computeDerivedStats(priorRecord));
+        if (typeof current !== 'number' || typeof prior !== 'number') return null;
+        return { name: p.name, diff: current - prior, current, prior };
+      }).filter(Boolean);
+
+      if (movers.length) {
+        const decimals = cat.trendDecimals != null ? cat.trendDecimals : 0;
+        const suffix = cat.trendSuffix || '';
+        const trendLabel = (cat.columns.find(c => c.key === cat.trendKey) || {}).label || cat.trendKey;
+        const fmtTrendVal = v => `${v.toFixed(decimals)}${suffix}`;
+        // Needs to clear more than a rounding blip to be worth calling out individually.
+        const moveThreshold = Math.pow(10, -decimals) / 2 * 3;
+        const biggestUp = movers.filter(m => m.diff > moveThreshold).sort((a, b) => b.diff - a.diff)[0];
+        const biggestDown = movers.filter(m => m.diff < -moveThreshold).sort((a, b) => a.diff - b.diff)[0];
+        if (biggestUp) {
+          trends.push(`<strong>${biggestUp.name}</strong> has the squad's biggest rise in ${trendLabel} since the last snapshot, from ${fmtTrendVal(biggestUp.prior)} to ${fmtTrendVal(biggestUp.current)}.`);
+        }
+        if (biggestDown) {
+          trends.push(`<strong>${biggestDown.name}</strong> has the squad's biggest fall in ${trendLabel} since the last snapshot, from ${fmtTrendVal(biggestDown.prior)} to ${fmtTrendVal(biggestDown.current)}.`);
+        }
+      }
+
+      return {
+        available: true,
+        trends: trends.length ? trends : [`No meaningful squad-wide or individual movement stood out for ${cat.label} between the last two snapshots.`],
       };
     }
 
@@ -14365,7 +14941,10 @@
     // and by the shared gaps-modal that the inline Analysis tile opens on click (see
     // openPerformanceInsightsModal below). Kept as its own function so neither caller can drift
     // out of sync on section order/labels.
-    function buildPerformanceInsightsHtml(insights) {
+    // "trends" is the computePerformanceTrends() result for the same category — optional
+    // (defaults to unavailable) so any caller that hasn't been updated to pass one still
+    // renders the other three sections exactly as before rather than throwing.
+    function buildPerformanceInsightsHtml(insights, trends) {
       const overUnderRows = [];
       if (insights.overUnderKind === 'attacking') {
         insights.overUnderOver.forEach(p => overUnderRows.push(buildPerformanceOverUnderRow(p.name, 'overperforming xG', p.diff, true)));
@@ -14378,10 +14957,19 @@
         insights.overUnderUnder.forEach(p => overUnderRows.push(buildPerformanceOverUnderRow(p.name, 'conversion below squad average', p.conversion - insights.squadConversion, false)));
       }
 
+      const t = trends || { available: false, trends: [] };
+      const trendsBody = t.available
+        ? t.trends.map(line => `<p>${line}</p>`).join('')
+        : `<p>Capture another snapshot this season to unlock trend insights (direction of travel needs at least two points to compare).</p>`;
+
       return `
         <div class="perf-insight-section">
           <div class="perf-insight-heading">Assumptions</div>
           ${insights.assumptions.map(a => `<p>${a}</p>`).join('')}
+        </div>
+        <div class="perf-insight-section">
+          <div class="perf-insight-heading">Trends</div>
+          ${trendsBody}
         </div>
         <div class="perf-insight-section">
           <div class="perf-insight-heading">Areas for Improvement</div>
@@ -14395,13 +14983,13 @@
       `;
     }
 
-    // targetId present (Full Overview modal) -> full three-section breakdown, same as before.
+    // targetId present (Full Overview modal) -> full four-section breakdown, same as before.
     // targetId absent (the small inline dashboard tile) -> Assumptions + Areas for Improvement,
-    // plus a "view full breakdown" cue for Over/Underperforming Players specifically — that
-    // section's player-by-player rows are the one part that can run long enough to make the
-    // inline tile scroll, so it's the one part that stays one click away in the shared
-    // gaps-modal (see openPerformanceInsightsModal, wired to the whole tile via the
-    // .gaps-clickable class already used for this exact pattern elsewhere in the app).
+    // plus a "view full breakdown" cue for Trends and Over/Underperforming Players specifically
+    // — those are the two sections that can run long (or need a second snapshot to say
+    // anything at all), so they're the ones that stay one click away in the shared gaps-modal
+    // (see openPerformanceInsightsModal, wired to the whole tile via the .gaps-clickable class
+    // already used for this exact pattern elsewhere in the app).
     function renderPerformanceInsights(latest, categoryKey, targetId) {
       const cat = PERFORMANCE_CATEGORIES[categoryKey];
       const insights = computePerformanceInsights(latest, categoryKey);
@@ -14420,26 +15008,28 @@
             ${insights.improvements.map((imp, i) => `<p>${i + 1}. ${imp.text}</p>`).join('')}
             ${insights.improvements.map((imp, i) => buildImprovementScoutSuggestionsHtml(imp, i + 1)).join('')}
           </div>
-          <button type="button" class="view-all-gaps-btn" id="performance-insights-view-all-btn">View full breakdown (Over/Underperforming Players)</button>
+          <button type="button" class="view-all-gaps-btn" id="performance-insights-view-all-btn">View full breakdown (Trends, Over/Underperforming Players)</button>
         `;
         attachScoutSuggestionHandlers(container);
         return;
       }
 
-      container.innerHTML = buildPerformanceInsightsHtml(insights);
+      const trends = computePerformanceTrends(latest, performancePreviousSnapshot, categoryKey);
+      container.innerHTML = buildPerformanceInsightsHtml(insights, trends);
       attachScoutSuggestionHandlers(container);
     }
 
-    // Opens the shared gaps-modal with the full Assumptions/Improvement/Over-Underperformers
-    // breakdown for whichever category the page is currently on — the click target is the
-    // whole tile (see .gaps-clickable on #performance-insights-panel) plus the visible "View
-    // full breakdown" button rendered inside it, same affordance pattern as the Tactics/Squad
-    // Breakdown gap tiles.
+    // Opens the shared gaps-modal with the full Assumptions/Improvement/Trends/Over-
+    // Underperformers breakdown for whichever category the page is currently on — the click
+    // target is the whole tile (see .gaps-clickable on #performance-insights-panel) plus the
+    // visible "View full breakdown" button rendered inside it, same affordance pattern as the
+    // Tactics/Squad Breakdown gap tiles.
     function openPerformanceInsightsModal() {
       if (!performanceLatestSnapshot) return;
       const cat = PERFORMANCE_CATEGORIES[performanceCategory];
       const insights = computePerformanceInsights(performanceLatestSnapshot, performanceCategory);
-      openGapsModal(`Analysis: ${cat.label}`, buildPerformanceInsightsHtml(insights));
+      const trends = computePerformanceTrends(performanceLatestSnapshot, performancePreviousSnapshot, performanceCategory);
+      openGapsModal(`Analysis: ${cat.label}`, buildPerformanceInsightsHtml(insights, trends));
       attachScoutSuggestionHandlers(document.getElementById('gaps-modal-body'));
     }
 
@@ -14533,6 +15123,7 @@
         performanceSeason = null;
         performanceLatestSnapshot = null;
         performancePreviousSnapshot = null;
+        renderDashboardPerformanceSummary();
         return;
       }
 
@@ -14566,6 +15157,36 @@
       ensurePerformanceCategorySelect();
       renderPerformanceCategoryView(); // also refreshes the Analysis tile, scoped to performanceCategory
       renderPerformanceHistory(snapshots);
+      renderDashboardPerformanceSummary();
+    }
+
+    // Dashboard's compact Performance Data tile — shares computePerformanceInsights() with
+    // the Performance Data page's own inline Analysis tile, showing just the Assumptions list
+    // (no Improvements/charts) so it stays a glance-sized summary. Unlike that page's own tile
+    // (which is scoped to whichever one category the dropdown currently has selected), this
+    // one runs computePerformanceInsights() once per category in PERFORMANCE_CATEGORIES and
+    // shows every category's assumptions together, each under its own small label - the
+    // dashboard is the one place in the app you're not already looking at a specific category,
+    // so showing only whichever one happened to be selected last would hide real assumptions
+    // sitting in the other four. Whole tile is clickable through to the full page (see the
+    // dashboard-performance-panel click listener below), same pattern as every other
+    // "View [page] ->" dashboard tile.
+    function renderDashboardPerformanceSummary() {
+      const content = document.getElementById('dashboard-performance-content');
+      if (!content) return;
+      if (!performanceLatestSnapshot) {
+        content.innerHTML = '<p class="placeholder">No performance data captured yet.</p>';
+        return;
+      }
+      content.innerHTML = Object.keys(PERFORMANCE_CATEGORIES).map(catKey => {
+        const cat = PERFORMANCE_CATEGORIES[catKey];
+        const insights = computePerformanceInsights(performanceLatestSnapshot, catKey);
+        const assumptionsHtml = insights.assumptions.map(a => `<p>${a}</p>`).join('');
+        return `<div class="performance-summary-category">
+          <div class="performance-summary-category-label">${cat.label}</div>
+          ${assumptionsHtml}
+        </div>`;
+      }).join('');
     }
 
     const performanceTextarea = document.getElementById('performance-json-textarea');
@@ -14741,12 +15362,24 @@
     const navButtons = document.querySelectorAll('.nav-btn');
     const views = document.querySelectorAll('.view');
 
+    // Declared up here, before switchToView() itself, rather than down near
+    // updateRailGroupActiveState()/closeNavFlyout() where they're actually used - those two
+    // functions are called from inside switchToView() below, and switchToView() can run as
+    // early as the "restore whichever page was active before the last refresh" block further
+    // down, which executes before the script would otherwise reach this point. A const
+    // referenced before its own declaration line throws, so these three need to exist by
+    // now, not just by the time the functions that use them are defined (function
+    // declarations hoist; const initializers don't).
+    const NAV_GROUPS = { squad: ['squad', 'scouting'], tactics: ['tactics', 'tacticbuilder'] };
+    const navFlyout = document.getElementById('nav-flyout');
+    const railGroupBtns = document.querySelectorAll('.rail-group-btn');
+
     // Remembers the last page you were on across a refresh, so reloading (or the browser
     // restoring the tab) doesn't dump you back on Dashboard every time — same
-    // read/write-with-try/catch pattern as gapThreshold/NAV_GROUP_COLLAPSE_STORAGE_KEY/etc
-    // elsewhere in the app. Only ever read once, right after boot (see further down, after
-    // the initial nav-button wiring) — switchToView() just needs to keep it up to date on
-    // every real navigation.
+    // read/write-with-try/catch pattern as gapThreshold/positionOverrides/etc elsewhere in
+    // the app. Only ever read once, right after boot (see further down, after the initial
+    // nav-button wiring) — switchToView() just needs to keep it up to date on every real
+    // navigation.
     const LAST_VIEW_STORAGE_KEY = 'fmcc_lastView';
 
     // Shared nav function so other elements (e.g. the Best Players tile) can
@@ -14759,6 +15392,16 @@
       document.getElementById(viewName).classList.add('active');
 
       try { localStorage.setItem(LAST_VIEW_STORAGE_KEY, viewName); } catch (e) { /* storage unavailable */ }
+
+      // nav-rail redesign: Squad/Tactics no longer have their own permanent row in the
+      // sidebar to carry an .active state - updateRailGroupActiveState() below highlights
+      // the right rail icon instead (or none, for a page outside both groups), and any
+      // navigation - whichever page it lands on, and regardless of whether it came from a
+      // flyout click, the Best Players tile, or restoring the last view on load - should
+      // always leave the flyout closed rather than lingering open over the page it just
+      // navigated to.
+      updateRailGroupActiveState(viewName);
+      closeNavFlyout();
 
       // Squad Breakdown's Recommended Focus panel and Tactical Analysis's IP/OOP gap
       // panels measure their own real rendered height (fitRowsToClip(), see
@@ -14808,56 +15451,73 @@
       }
     }
 
-    // Collapsible nav groups ("Squad", "Tactics") — click a .nav-group-label to hide/show
-    // its own .nav-btn-sub items, so the sidebar can be trimmed down to just the groups
-    // currently in use rather than always showing every page at once. State is keyed by
-    // the label's own text (there are only ever a couple of these, so no need for a more
-    // elaborate id scheme) and persisted to localStorage, same pattern as gapThreshold/
-    // positionOverrides/etc elsewhere in the app — survives a reload rather than resetting
-    // every time.
-    const NAV_GROUP_COLLAPSE_STORAGE_KEY = 'fmcc_navGroupCollapse';
+    // nav-rail redesign: Squad and Tactics no longer expand inline as extra sidebar rows -
+    // clicking their rail icon opens #nav-flyout instead (see that element's own CSS
+    // comment for why it floats over the page rather than reflowing it). Replaces the old
+    // collapsible-nav-groups feature entirely, so NAV_GROUP_COLLAPSE_STORAGE_KEY and its
+    // read/write/apply functions are gone too - there's nothing left to collapse once a
+    // group's pages only ever show up in a flyout that's already closed by default.
+    // (NAV_GROUPS/navFlyout/railGroupBtns themselves are declared earlier, right after
+    // `views` - see that declaration's own comment for why.)
 
-    function loadNavGroupCollapseState() {
-      try {
-        return JSON.parse(localStorage.getItem(NAV_GROUP_COLLAPSE_STORAGE_KEY)) || {};
-      } catch (e) {
-        return {};
-      }
-    }
-
-    function saveNavGroupCollapseState(state) {
-      try { localStorage.setItem(NAV_GROUP_COLLAPSE_STORAGE_KEY, JSON.stringify(state)); }
-      catch (e) { /* ignore — worst case the collapse choice doesn't survive a reload */ }
-    }
-
-    // Walks forward from a label to every .nav-btn-sub that belongs to it (i.e. until the
-    // next .nav-group-label or the end of the list), toggling .nav-hidden on each — this is
-    // what actually hides/shows the group's pages, the label's own .nav-group-collapsed
-    // class just drives the chevron rotation.
-    function applyNavGroupCollapse() {
-      const state = loadNavGroupCollapseState();
-      document.querySelectorAll('.nav-group-label').forEach(label => {
-        const collapsed = !!state[label.textContent.trim()];
-        label.classList.toggle('nav-group-collapsed', collapsed);
-        let el = label.nextElementSibling;
-        while (el && el.classList.contains('nav-btn-sub')) {
-          el.classList.toggle('nav-hidden', collapsed);
-          el = el.nextElementSibling;
-        }
+    // Highlights whichever rail group icon (if any) the current page belongs to, the same
+    // "you are here" job the old .nav-btn-sub rows used to do just by having their own
+    // .active class - Squad List and Squad Breakdown both light up the one Squad icon now
+    // instead of each having a separate row to individually mark active. Called from inside
+    // switchToView() itself, so it stays correct regardless of how the navigation happened.
+    function updateRailGroupActiveState(viewName) {
+      railGroupBtns.forEach(btn => {
+        const group = btn.dataset.group;
+        btn.classList.toggle('active', NAV_GROUPS[group] && NAV_GROUPS[group].includes(viewName));
       });
     }
 
-    document.querySelectorAll('.nav-group-label').forEach(label => {
-      label.addEventListener('click', () => {
-        const state = loadNavGroupCollapseState();
-        const key = label.textContent.trim();
-        state[key] = !state[key];
-        saveNavGroupCollapseState(state);
-        applyNavGroupCollapse();
+    function closeNavFlyout() {
+      navFlyout.classList.remove('open');
+      railGroupBtns.forEach(btn => btn.setAttribute('aria-expanded', 'false'));
+    }
+
+    function openNavFlyout(groupKey) {
+      navFlyout.querySelectorAll('.nav-flyout-group').forEach(g => {
+        g.classList.toggle('active', g.dataset.flyoutGroup === groupKey);
+      });
+      navFlyout.classList.add('open');
+      railGroupBtns.forEach(btn => btn.setAttribute('aria-expanded', String(btn.dataset.group === groupKey)));
+    }
+
+    railGroupBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const alreadyOpenForThisGroup = navFlyout.classList.contains('open') && btn.getAttribute('aria-expanded') === 'true';
+        if (alreadyOpenForThisGroup) {
+          closeNavFlyout();
+        } else {
+          openNavFlyout(btn.dataset.group);
+        }
       });
     });
 
-    applyNavGroupCollapse();
+    // Click anywhere outside the flyout (or its two trigger icons) closes it - without this
+    // it would only ever close via navigating somewhere or re-clicking the same trigger,
+    // which isn't how every other floating panel in the app (player/scout modals, mission
+    // candidates, etc.) behaves.
+    document.addEventListener('click', (e) => {
+      if (!navFlyout.classList.contains('open')) return;
+      if (navFlyout.contains(e.target) || e.target.closest('.rail-group-btn')) return;
+      closeNavFlyout();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && navFlyout.classList.contains('open')) closeNavFlyout();
+    });
+
+    // Logo-click-to-home - a lower-stakes, purely additive affordance on top of the
+    // tooltip .rail-badge-btn already reveals on hover, matching the common "click the mark
+    // to go to the main page" convention every top-level rail icon here otherwise covers
+    // already except this one.
+    document.getElementById('rail-badge-btn').addEventListener('click', () => {
+      switchToView('dashboard');
+    });
 
     document.getElementById('best-players-panel').addEventListener('click', () => {
       switchToView('squad');
@@ -14869,6 +15529,10 @@
 
     document.getElementById('dashboard-tactic-summary-panel').addEventListener('click', () => {
       switchToView('tactics');
+    });
+
+    document.getElementById('dashboard-performance-panel').addEventListener('click', () => {
+      switchToView('performance');
     });
 
     document.getElementById('dashboard-scouting-focus-panel').addEventListener('click', () => {

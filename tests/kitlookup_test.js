@@ -71,15 +71,11 @@ function runLoadKitImagesTest() {
 
     check('loadKitImages reports 2 of 3 found', /2 of 3/.test(statusEl.textContent));
 
-    // No settings-page thumbnail row any more — a found kit shows on the hero card instead
-    // (see setKitImage()/herokits_test.js), so check those elements got updated here too.
-    const homeHeroItem = document.getElementById('hero-kit-home-item');
-    const awayHeroItem = document.getElementById('hero-kit-away-item');
-    const thirdHeroItem = document.getElementById('hero-kit-third-item');
-    check('hero home kit item shown', homeHeroItem.style.display === 'flex' && !!document.getElementById('hero-kit-home-img').src);
-    check('hero away kit item hidden (not found)', awayHeroItem.style.display === 'none');
-    check('hero third kit item shown', thirdHeroItem.style.display === 'flex' && !!document.getElementById('hero-kit-third-img').src);
-
+    // The hero card no longer displays kit images (Task #314 replaced them with Years at
+    // Club/Win %/season row), so setKitImage() has nothing left to show/hide - it stays
+    // null-safe about that and just skips the DOM update (see setKitImage()'s own comment).
+    // What still matters here is that the lookup itself keeps working and still persists to
+    // localStorage, which the checks below cover.
     check('home kit persisted to localStorage', !!localStorage.getItem(KIT_STORAGE_KEYS.home));
     check('away kit NOT persisted (never found)', localStorage.getItem(KIT_STORAGE_KEYS.away) === null);
     check('third kit persisted to localStorage', !!localStorage.getItem(KIT_STORAGE_KEYS.third));
