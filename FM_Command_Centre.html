@@ -727,8 +727,46 @@
     to { opacity: 1; }
   }
 
+  /* Individual tiles flow in on top of the page-level fade above, instead of the whole page
+     arriving as one flat block - every .dashboard-panel (the shared tile/card wrapper used
+     app-wide, see that class's own comment further down) plus Dashboard's .hero-tile gets
+     its own short fade-and-rise entrance. The actual per-tile stagger delay is set inline
+     by applyTileStagger() in the script (called from switchToView() right after a view goes
+     active) rather than via CSS :nth-of-type - tiles on a page are often split across
+     several separate row/grid containers (Dashboard's hero row, its two tile rows, etc.),
+     and :nth-of-type only counts a tile's position among its OWN direct siblings, so it
+     restarts at 1 in every container instead of reflecting the tile's real position on the
+     page. That let a tile low on the page share a delay with one much higher up, so they
+     visibly popped in at the same moment out of order - reading real screen position
+     (offsetTop) in JS and assigning delays off that instead guarantees top-to-bottom order
+     regardless of how many containers a page's tiles are split across.
+     No page-by-page exclusions here - Scouting/Tactics/the Scouting Shortlist page's row-
+     fitting measurements (fitRowsToClip()/getScoutTilesRowBudget()/getTacticsGapsRowBudget())
+     all read offsetHeight/offsetTop/clientHeight, which are layout-box properties a
+     transform never changes (transform is paint/composite-only) - so every page gets the
+     same treatment. backwards fill-mode matters here: without it, a tile with
+     animation-delay would render at its FINAL (opacity:1) state during its own delay
+     window, then visibly jump back to the `from` keyframe once the animation actually
+     starts - backwards holds it at `from` for the whole delay instead. */
+  .view.active .dashboard-panel {
+    animation: panelFlowIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  #dashboard.view.active .hero-tile {
+    animation: panelFlowIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  @keyframes panelFlowIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .view.active { animation: none; }
+    .view.active .dashboard-panel,
+    #dashboard.view.active .hero-tile {
+      animation: none;
+    }
   }
 
   /* Squad view stretches to fill all of main's height so its table tile can flex-grow
@@ -3455,6 +3493,40 @@
     cursor: pointer;
   }
 
+  /* Manual Transfer/Wage Budget entry on the Settings page — same label+control row layout
+     as .gap-threshold-control above, just with a free-text input instead of a <select>, since
+     budget figures are typed straight off FM's Finances screen as FM-style strings (e.g.
+     "£25M", "£45K p/w") rather than picked from a fixed range. */
+  .budget-settings-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .budget-settings-control:last-child {
+    margin-bottom: 0;
+  }
+
+  .budget-settings-control label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    flex: 1;
+  }
+
+  .budget-settings-control input {
+    width: 110px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-sm);
+    padding: 3px 8px;
+    font-size: 12.5px;
+    font-weight: 700;
+  }
+
   /* Wraps .tactic-source-toggle (the FM/Custom pill switch) and the "Import Tactic Data"
      button on one row — same space-between alignment .panel-title-row uses on every other
      page's title bar (Squad List's "Import Squad Data", Performance Data's action row), kept
@@ -4216,7 +4288,6 @@
 
   .scout-tile-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     gap: 10px;
     padding: 8px 2px;
@@ -4240,10 +4311,28 @@
   }
 
   .scout-tile-row .scout-tile-name {
+    flex: 1 1 auto;
+    min-width: 0;
     color: var(--text);
     font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The position a player is listed for (e.g. "AM (RL)") — a small dim chip between the name
+     and the fit metric, so a Fit-tile row answers "who" AND "where they play" without needing
+     to open the profile. Reuses the same colour-mix chip treatment as elsewhere in the app
+     rather than inventing a new one. */
+  .scout-tile-row .scout-tile-position {
+    flex-shrink: 0;
+    color: var(--text-dim);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--text-dim) 12%, transparent);
     white-space: nowrap;
   }
 
@@ -4435,6 +4524,150 @@
     color: var(--text-dim);
     font-size: 12px;
   }
+
+  /* Flags a Wage/Value cell that breaches the club's own Recruitment Budget (Settings page) —
+     same red used for a weak tactic fit elsewhere in Scouting (scout-tactic-fit-highlight.weak),
+     kept bold so it reads as a real warning rather than just dimmer text. */
+  .mission-candidate-over-budget {
+    color: #ff8080;
+    font-weight: 700;
+  }
+
+  /* Compare Players — picker state (checkbox list + search, shown inside the shared
+     gaps-modal, see openComparePickerModal). */
+  .compare-picker-search {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 10px 0;
+  }
+
+  .compare-picker-list {
+    max-height: min(360px, calc(var(--design-height) * 0.4));
+    overflow-y: auto;
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-sm);
+  }
+
+  .compare-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--panel-border);
+    cursor: pointer;
+    font-size: 12.5px;
+  }
+
+  .compare-picker-row:last-child {
+    border-bottom: none;
+  }
+
+  .compare-picker-row:hover {
+    background: color-mix(in srgb, var(--club-primary) 10%, transparent);
+  }
+
+  .compare-picker-name {
+    color: var(--text);
+    font-weight: 600;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .compare-picker-meta {
+    color: var(--text-dim);
+    font-size: 11px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .compare-picker-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+  }
+
+  .compare-picker-count {
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+
+  /* Compare Players gets its own wider modal variant (see openGapsModal's reset + this
+     feature's own open/render functions) — 2-3 player columns plus a label column read as
+     cramped at the shared modal's normal 640px width, and widening is the more direct fix
+     for a comparison that felt "incredibly vertical" than trying to squeeze the same content
+     into the same narrow column. */
+  .player-modal.gaps-modal-wide {
+    width: min(900px, calc(var(--design-width) * 0.92));
+  }
+
+  /* Compare Players — comparison table state (see buildCompareTableHtml). A CSS grid rather
+     than a real <table> since the column count varies with how many players are selected
+     (2 or 3) — grid-template-columns is set inline per render, everything else here is fixed. */
+  .compare-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .compare-table {
+    display: grid;
+    align-items: center;
+    row-gap: 6px;
+    column-gap: 14px;
+    font-size: 12px;
+  }
+
+  .compare-header-cell {
+    text-align: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  .compare-header-name {
+    color: var(--text);
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .compare-header-meta {
+    color: var(--text-dim);
+    font-size: 11px;
+    margin-top: 2px;
+  }
+
+  .compare-row-label {
+    color: var(--text-dim);
+    font-size: 11.5px;
+  }
+
+  .compare-row-value {
+    color: var(--text);
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .compare-group-title {
+    color: var(--text);
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--panel-border);
+  }
+
+  /* Same 4-tier colour scale as .attribute-row .attr-value (player profile modals) — reused
+     here under its own class since these cells aren't nested inside a .attribute-row. */
+  .compare-attr-value.strong { color: #7bdc7b; }
+  .compare-attr-value.mid { color: #f0d666; }
+  .compare-attr-value.weak { color: #ff8080; }
+  .compare-attr-value.very-weak { color: var(--text-dim); }
 
   /* Short "- meets X" description sitting right after each triage tile's name (see
      scout-tile-perfect/-nearly/-potential h3 content) — replaces the old empty-state
@@ -4866,6 +5099,24 @@
   .scout-tactic-fit-weak {
     margin-top: 4px;
     color: var(--text-dim);
+  }
+
+  /* Budget-fit line — same dashed-divider treatment as .scout-tactic-fit-line above (its own
+     separate concern, so its own separator rather than folding into that line's sentence).
+     Colour reuses the app's existing "positive"/"negative" hex values (scout-addresses-gap's
+     green, scout-tactic-fit-highlight.weak's red) rather than introducing a third pair. */
+  .scout-budget-fit {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--panel-border);
+  }
+
+  .scout-budget-ok {
+    color: #7bdc7b;
+  }
+
+  .scout-budget-over {
+    color: #ff8080;
   }
 
   .scout-tier-line {
@@ -5429,6 +5680,7 @@
             <h3>Scouted Players</h3>
             <div class="scout-table-actions">
               <input type="text" id="scout-search-input" class="scout-search-input" placeholder="Search players..." aria-label="Search scouted players">
+              <button class="mini-btn" id="scout-compare-btn">Compare Players</button>
               <button class="mini-btn" id="scout-add-toggle-btn">+ Add to Shortlist</button>
             </div>
           </div>
@@ -5976,7 +6228,8 @@
           <p class="settings-help">
             Downloads everything currently stored locally: the imported save, scouted
             shortlist, position group overrides, Tactic Builder's tactic, the uploaded
-            crest, and your Attribute Threshold setting, as one JSON file. Load it back
+            crest, and your Attribute Threshold and Recruitment Budget settings, as one
+            JSON file. Load it back
             in any time (after clearing, importing a different save, or on a different
             computer) to restore this exact state, without re-capturing screenshots or
             re-pasting JSON.
@@ -6039,6 +6292,29 @@
           <div class="gap-threshold-control">
             <label for="settings-gap-threshold-input">Attribute Threshold</label>
             <select id="settings-gap-threshold-input"></select>
+          </div>
+        </div>
+
+        <!-- Manual Transfer/Wage Budget entry — typed in from FM's Finances screen rather than
+             captured, since it changes often and isn't part of the JSON import schema. Used to
+             flag shortlisted players your budget can't actually stretch to (see
+             isWithinTransferBudget()/isWithinWageBudget() and where they're used). -->
+        <div class="dashboard-panel" id="budget-settings-panel">
+          <div class="panel-title-row">
+            <h3>Recruitment Budget</h3>
+          </div>
+          <p class="settings-help">
+            Your club's remaining transfer and wage budget, typed in from FM's Finances
+            screen. Flags shortlisted players your budget can't actually stretch to. Leave
+            either blank to skip that check.
+          </p>
+          <div class="budget-settings-control">
+            <label for="settings-transfer-budget-input">Transfer Budget</label>
+            <input type="text" id="settings-transfer-budget-input" placeholder="e.g. £25M">
+          </div>
+          <div class="budget-settings-control">
+            <label for="settings-wage-budget-input">Wage Budget</label>
+            <input type="text" id="settings-wage-budget-input" placeholder="e.g. £45K p/w">
           </div>
         </div>
 
@@ -6521,6 +6797,82 @@
     }
 
     let gapThreshold = loadSavedGapThreshold();
+
+    // Manual Transfer/Wage Budget (Settings page) — free-text FM-style strings (e.g. "£25M",
+    // "£45K p/w"), same convention as everywhere else money is stored in this app, so the
+    // existing parseValueSortValue()/parseWageValue() parsers can be reused for numeric
+    // comparisons rather than inventing a second money format just for budgets. Kept as their
+    // own standalone localStorage keys (not part of the imported-save-data club object) since
+    // a budget changes far more often than the rest of a club's data and isn't something
+    // that's ever captured via screenshot or JSON import.
+    const TRANSFER_BUDGET_STORAGE_KEY = 'fmCommandCentre.clubTransferBudget';
+    const WAGE_BUDGET_STORAGE_KEY = 'fmCommandCentre.clubWageBudget';
+
+    function loadClubTransferBudget() {
+      try { return localStorage.getItem(TRANSFER_BUDGET_STORAGE_KEY) || ''; }
+      catch (e) { return ''; }
+    }
+
+    function saveClubTransferBudget(value) {
+      try { localStorage.setItem(TRANSFER_BUDGET_STORAGE_KEY, value || ''); }
+      catch (e) { /* storage unavailable — value just won't persist across reloads */ }
+    }
+
+    function loadClubWageBudget() {
+      try { return localStorage.getItem(WAGE_BUDGET_STORAGE_KEY) || ''; }
+      catch (e) { return ''; }
+    }
+
+    function saveClubWageBudget(value) {
+      try { localStorage.setItem(WAGE_BUDGET_STORAGE_KEY, value || ''); }
+      catch (e) { /* storage unavailable — value just won't persist across reloads */ }
+    }
+
+    let clubTransferBudget = loadClubTransferBudget();
+    let clubWageBudget = loadClubWageBudget();
+
+    // Whether a shortlisted player's transfer value/wage fits inside the club's own remaining
+    // budget (as distinct from a Recruitment Mission's own per-mission maxWageK/maxValueM
+    // ceiling, which is about what THAT role should cost, not what the club can actually
+    // afford overall). Same fail-open philosophy as every other ceiling check in this app: no
+    // budget set, or the player's own figure hasn't been captured, means it passes rather than
+    // getting excluded — only a confirmed breach of a budget the user actually typed in counts.
+    function isWithinTransferBudget(player) {
+      const budgetRaw = parseValueSortValue(clubTransferBudget);
+      if (budgetRaw < 0) return true; // no transfer budget set
+      const rawValue = parseValueSortValue(player.value);
+      if (rawValue < 0) return true; // player's value hasn't been captured
+      return rawValue <= budgetRaw;
+    }
+
+    function isWithinWageBudget(player) {
+      const budgetK = parseWageValue(clubWageBudget);
+      if (budgetK == null) return true; // no wage budget set
+      const wageK = parseWageValue(player.wage);
+      if (wageK == null) return true; // player's wage hasn't been captured
+      return wageK <= budgetK;
+    }
+
+    // Builds the scouted-player modal's budget-fit line (see openScoutProfile below) — only
+    // rendered at all once at least one budget figure is actually set, and only calls out a
+    // breach when one is confirmed (isWithinTransferBudget/isWithinWageBudget both fail open
+    // on missing data, same as everywhere else). A player within budget on both counts still
+    // gets a short reassuring line rather than silence, so "nothing shown" never has to be
+    // read as "presumably fine" versus "budget not set at all".
+    function buildBudgetFitLineHtml(p) {
+      if (!clubTransferBudget && !clubWageBudget) return '';
+      const issues = [];
+      if (clubTransferBudget && !isWithinTransferBudget(p)) {
+        issues.push(`transfer value (${p.value || 'unknown'}) exceeds your ${clubTransferBudget} transfer budget`);
+      }
+      if (clubWageBudget && !isWithinWageBudget(p)) {
+        issues.push(`wage (${formatWage(p.wage)}) exceeds your ${clubWageBudget} wage budget`);
+      }
+      if (issues.length) {
+        return `<div class="scout-budget-fit scout-budget-over">Budget: ${issues.join('; ')}.</div>`;
+      }
+      return `<div class="scout-budget-fit scout-budget-ok">Budget: within your recruitment budget.</div>`;
+    }
 
     // Shared by renderScoutingGaps() (Squad Breakdown's Recommended Focus panel) and
     // renderTacticsGapsList() (Tactical Analysis's IP/OOP gap panels): given a
@@ -10408,6 +10760,8 @@
         kitAwayDataUrl: localStorage.getItem(KIT_STORAGE_KEYS.away),
         kitThirdDataUrl: localStorage.getItem(KIT_STORAGE_KEYS.third),
         gapThreshold: localStorage.getItem(GAP_THRESHOLD_STORAGE_KEY),
+        clubTransferBudget: localStorage.getItem(TRANSFER_BUDGET_STORAGE_KEY),
+        clubWageBudget: localStorage.getItem(WAGE_BUDGET_STORAGE_KEY),
       };
     }
 
@@ -10430,6 +10784,8 @@
       if (backup.kitAwayDataUrl != null) localStorage.setItem(KIT_STORAGE_KEYS.away, backup.kitAwayDataUrl);
       if (backup.kitThirdDataUrl != null) localStorage.setItem(KIT_STORAGE_KEYS.third, backup.kitThirdDataUrl);
       if (backup.gapThreshold != null) localStorage.setItem(GAP_THRESHOLD_STORAGE_KEY, String(backup.gapThreshold));
+      if (backup.clubTransferBudget != null) localStorage.setItem(TRANSFER_BUDGET_STORAGE_KEY, backup.clubTransferBudget);
+      if (backup.clubWageBudget != null) localStorage.setItem(WAGE_BUDGET_STORAGE_KEY, backup.clubWageBudget);
     }
 
     // Turns free text into a safe filename fragment — lowercase, alphanumerics and hyphens
@@ -12449,6 +12805,11 @@
     function openGapsModal(title, bodyHtml) {
       document.getElementById('gaps-modal-title').textContent = title;
       document.getElementById('gaps-modal-body').innerHTML = bodyHtml;
+      // Reset to the shared modal's normal width every time — only Compare Players' own
+      // open/render functions ever add gaps-modal-wide back, so every OTHER caller of this
+      // widely-reused modal (mission candidates, league table, any gap "view all" list) can't
+      // accidentally inherit a leftover wide state from whatever used the modal last.
+      document.querySelector('#gaps-modal-backdrop .player-modal').classList.remove('gaps-modal-wide');
       document.getElementById('gaps-modal-backdrop').classList.add('open');
     }
 
@@ -12556,6 +12917,26 @@
       renderScoutingGaps(currentSquad);
       renderDashboardScoutingFocus(currentSquad);
       renderScoutTiles();
+    });
+
+    // Manual Transfer/Wage Budget inputs — prefilled from storage, saved on change (fires on
+    // blur/Enter for a text input, same as picking a new value in a <select>), and re-render
+    // whatever already reads budget-fit so a changed figure shows up immediately rather than
+    // only after the next unrelated re-render.
+    const transferBudgetInput = document.getElementById('settings-transfer-budget-input');
+    transferBudgetInput.value = clubTransferBudget;
+    transferBudgetInput.addEventListener('change', (e) => {
+      clubTransferBudget = e.target.value.trim();
+      saveClubTransferBudget(clubTransferBudget);
+      renderRecruitmentMissions();
+    });
+
+    const wageBudgetInput = document.getElementById('settings-wage-budget-input');
+    wageBudgetInput.value = clubWageBudget;
+    wageBudgetInput.addEventListener('change', (e) => {
+      clubWageBudget = e.target.value.trim();
+      saveClubWageBudget(clubWageBudget);
+      renderRecruitmentMissions();
     });
 
     // Standard FM-style attribute categories, built straight off the same name lists used
@@ -13063,12 +13444,16 @@
       renderScoutTiles();
     }
 
-    // Builds one row for a triage tile — deliberately minimal (name + one metric relevant to
-    // why they're in that tile) since the full breakdown is a click away via openScoutProfile.
+    // Builds one row for a triage tile — name, listed position, and one metric relevant to why
+    // they're in that tile (the full breakdown is a click away via openScoutProfile). Position
+    // is included because these Fit tiles are meant to help narrow down recruitment decisions,
+    // and "who" without "plays where" isn't enough to act on at a glance.
     function buildScoutTileRowHtml(p, index, metaText) {
+      const positionText = p.bestPosition || p.position || '';
       return `
         <div class="scout-tile-row" data-index="${index}">
           <span class="scout-tile-name">${p.name}</span>
+          ${positionText ? `<span class="scout-tile-position">${positionText}</span>` : ''}
           <span class="scout-tile-meta">${metaText}</span>
         </div>
       `;
@@ -13081,6 +13466,43 @@
     // 'critical' (red: nobody shortlisted is even a reasonable fit for the role) — reusing the
     // exact same .depth-badge colour classes/labels as the Squad Breakdown headcount badges,
     // rather than inventing a second green/amber/red scale.
+    // Maps each ROLE_CATEGORIES label onto the matching POSITION_GROUPS key, so a mission's
+    // role name (e.g. "Advanced Playmaker") can be checked against classifyPositions() output
+    // (e.g. from a player's "M (C)" position string) via the same group vocabulary the Squad
+    // Breakdown gap analysis and the Fit tiles already use, rather than a fourth parallel system.
+    const ROLE_CATEGORY_LABEL_TO_POSITION_GROUP = {
+      'Goalkeeper': 'Goalkeeper',
+      'Centre-Back': 'Centre Back',
+      'Full-Back': 'Full Back / Wing Back',
+      'Wing-Back': 'Full Back / Wing Back',
+      'Defensive Midfielder': 'Defensive Mid',
+      'Central Midfielder': 'Central Mid',
+      'Wide Midfielder': 'Winger',
+      'Winger': 'Winger',
+      'Attacking Midfielder': 'Attacking Mid',
+      'Striker': 'Striker'
+    };
+    const ROLE_NAME_TO_POSITION_GROUP = {};
+    ROLE_CATEGORIES.forEach(cat => {
+      const group = ROLE_CATEGORY_LABEL_TO_POSITION_GROUP[cat.label];
+      if (!group) return;
+      cat.roles.forEach(roleName => { ROLE_NAME_TO_POSITION_GROUP[roleName] = group; });
+    });
+
+    // Whether a shortlisted player can actually play the position a mission role calls for.
+    // Follows the same "fail open" philosophy as the age/wage/value ceiling checks nearby: a
+    // role this app doesn't have a group mapping for, or a player with no position captured
+    // yet, still passes rather than getting silently excluded — only a confirmed position
+    // mismatch (e.g. a striker being matched against a Ball-Playing Goalkeeper mission) rules
+    // someone out.
+    function isPlayerEligibleForRolePosition(player, roleName) {
+      const group = ROLE_NAME_TO_POSITION_GROUP[roleName];
+      if (!group) return true;
+      const positionStr = player.bestPosition || player.position;
+      if (!positionStr) return true;
+      return classifyPositions(positionStr).includes(group);
+    }
+
     function evaluateMission(mission) {
       const profile = ROLE_ATTRIBUTES[mission.role];
       if (!profile) return { status: 'critical', label: 'No Candidate', best: null };
@@ -13088,6 +13510,7 @@
       let best = null;
       scoutShortlist.forEach(p => {
         if (!p.attributes) return;
+        if (!isPlayerEligibleForRolePosition(p, mission.role)) return;
         const score = roleFitScore(p, profile);
         if (!best || score > best.score) best = { player: p, score };
       });
@@ -13142,6 +13565,7 @@
       const candidates = [];
       scoutShortlist.forEach((p, i) => {
         if (!p.attributes) return;
+        if (!isPlayerEligibleForRolePosition(p, mission.role)) return;
         const score = roleFitScore(p, profile);
         if (score < 10) return; // below "Suited" — not a real candidate for this role
 
@@ -13178,17 +13602,24 @@
         </div>
       `;
 
+      // Wage/Value cells also flag a breach of the CLUB's own recruitment budget (Settings
+      // page), distinct from the age/wage/value ceilings the mission itself was given above —
+      // a candidate can be a perfectly reasonable target for the role and still be something
+      // this club specifically can't currently afford. Only marked when a budget is actually
+      // set (see isWithinTransferBudget/isWithinWageBudget's own fail-open comments).
       const rows = candidates.map(({ p, i, score }) => {
         const label = fitScoreLabel(score);
         const wageText = formatWage(p.wage);
         const valueText = p.value ?? '&mdash;';
+        const wageOverBudget = clubWageBudget && !isWithinWageBudget(p);
+        const valueOverBudget = clubTransferBudget && !isWithinTransferBudget(p);
         return `
           <div class="scout-tile-row mission-candidate-row" data-index="${i}">
             <span class="scout-tile-name" title="${p.name}">${p.name}</span>
             <span class="mission-candidate-fit scout-tactic-fit-highlight ${label.cls}">${label.text}</span>
             <span class="mission-candidate-cell" title="${p.age ?? ''}">${p.age ?? '&mdash;'}</span>
-            <span class="mission-candidate-cell" title="${wageText}">${wageText}</span>
-            <span class="mission-candidate-cell" title="${valueText}">${valueText}</span>
+            <span class="mission-candidate-cell${wageOverBudget ? ' mission-candidate-over-budget' : ''}" title="${wageOverBudget ? 'Exceeds your ' + clubWageBudget + ' wage budget' : wageText}">${wageText}</span>
+            <span class="mission-candidate-cell${valueOverBudget ? ' mission-candidate-over-budget' : ''}" title="${valueOverBudget ? 'Exceeds your ' + clubTransferBudget + ' transfer budget' : valueText}">${valueText}</span>
           </div>
         `;
       }).join('');
@@ -13635,14 +14066,15 @@
         tacticFitInner = `<div>Best role in <strong>${formationLabel}</strong>: <strong>${tacticFit.best.roleName}</strong> (${tacticFit.best.position}): <span class="scout-tactic-fit-highlight ${label.cls}">${label.text}</span>.</div>${weakAttrsHtml}`;
       }
       const tacticFitLineHtml = `<div class="scout-tactic-fit-line" id="sm-tactic-fit">${tacticFitInner}</div>`;
+      const budgetFitLineHtml = buildBudgetFitLineHtml(p);
 
       const fitSummary = document.getElementById('sm-fit-summary');
       if (!e.groupName) {
         fitSummary.className = 'scout-fit-summary';
-        fitSummary.innerHTML = `Position "${p.position}" didn't match a known scouting group, so no fit assessment is available.${tacticFitLineHtml}`;
+        fitSummary.innerHTML = `Position "${p.position}" didn't match a known scouting group, so no fit assessment is available.${tacticFitLineHtml}${budgetFitLineHtml}`;
       } else if (e.score === null) {
         fitSummary.className = 'scout-fit-summary';
-        fitSummary.innerHTML = `${tierLine}<strong>${e.groupName}</strong>: no attributes captured yet, so no fit score is available. Squad status: <strong>${e.status.label}</strong>.${tacticFitLineHtml}`;
+        fitSummary.innerHTML = `${tierLine}<strong>${e.groupName}</strong>: no attributes captured yet, so no fit score is available. Squad status: <strong>${e.status.label}</strong>.${tacticFitLineHtml}${budgetFitLineHtml}`;
       } else {
         fitSummary.className = 'scout-fit-summary' + (e.addressesGap ? ' addresses-gap' : '');
         // The fit-score sentence (score + "Key×2 + Preferred" formula explanation) was dropped
@@ -13667,7 +14099,7 @@
         } else {
           needLine = `Squad status in <strong>${e.groupName}</strong>: <strong>${e.status.label}</strong>.`;
         }
-        fitSummary.innerHTML = `${tierLine}<div>${needLine}</div>${tacticFitLineHtml}`;
+        fitSummary.innerHTML = `${tierLine}<div>${needLine}</div>${tacticFitLineHtml}${budgetFitLineHtml}`;
       }
 
       document.getElementById('sm-mental').innerHTML = attributeRowsHtml(ATTRIBUTE_GROUPS.Mental, p.attributes);
@@ -13744,6 +14176,252 @@
     document.getElementById('scout-add-modal-backdrop').addEventListener('click', (e) => {
       if (e.target.id === 'scout-add-modal-backdrop') closeScoutAddModal();
     });
+
+    // ---- Compare Players ----
+    // Side-by-side comparison of 2-3 shortlisted players — part of making the Scouting page a
+    // more comprehensive tool for actually narrowing down a recruitment decision, rather than
+    // eyeballing rows in the table or reopening each player's own profile one at a time.
+    // Reuses the shared gaps-modal (see openGapsModal) same as every other "view all"/list
+    // popup in the app, with two swappable body states: a checkbox picker, then the actual
+    // comparison table once 2+ players are selected. compareSelectedIndexes lives outside
+    // either render function so the selection survives switching between the two states (e.g.
+    // going back to add or swap a player without losing who's already picked).
+    const COMPARE_MAX_PLAYERS = 3;
+    let compareSelectedIndexes = [];
+
+    function buildComparePickerHtml() {
+      if (!scoutShortlist.length) {
+        return '<div class="scout-tile-empty">Add players to your scouting shortlist first.</div>';
+      }
+      const rows = scoutShortlist.map((p, i) => {
+        const checked = compareSelectedIndexes.includes(i) ? 'checked' : '';
+        const nameForSearch = (p.name || '').toLowerCase();
+        return `
+          <label class="compare-picker-row" data-name="${nameForSearch}">
+            <input type="checkbox" class="compare-picker-checkbox" value="${i}" ${checked}>
+            <span class="compare-picker-name">${p.name}</span>
+            <span class="compare-picker-meta">${p.position || '&mdash;'} &middot; ${p.club || '&mdash;'}</span>
+          </label>
+        `;
+      }).join('');
+      return `
+        <div class="compare-picker">
+          <p class="settings-help">Pick 2-${COMPARE_MAX_PLAYERS} shortlisted players to compare side by side.</p>
+          <input type="text" class="scout-search-input compare-picker-search" id="compare-picker-search" placeholder="Search players...">
+          <div class="compare-picker-list" id="compare-picker-list">${rows}</div>
+          <div class="compare-picker-actions">
+            <span class="compare-picker-count" id="compare-picker-count"></span>
+            <button class="mini-btn" id="compare-picker-go">Compare Selected</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // Keeps the picker's own controls in sync with compareSelectedIndexes: the live count,
+    // the Compare button's enabled state (needs 2+), and capping further selection at
+    // COMPARE_MAX_PLAYERS by disabling the remaining unchecked boxes once that cap is hit
+    // (rather than silently ignoring a 4th click, which reads as broken).
+    function updateComparePickerState() {
+      const countEl = document.getElementById('compare-picker-count');
+      const goBtn = document.getElementById('compare-picker-go');
+      if (!countEl || !goBtn) return;
+      const n = compareSelectedIndexes.length;
+      countEl.textContent = `${n} of ${COMPARE_MAX_PLAYERS} selected`;
+      goBtn.disabled = n < 2;
+      document.querySelectorAll('.compare-picker-checkbox').forEach(cb => {
+        const idx = parseInt(cb.value, 10);
+        cb.disabled = !compareSelectedIndexes.includes(idx) && n >= COMPARE_MAX_PLAYERS;
+      });
+    }
+
+    function wireComparePicker() {
+      updateComparePickerState();
+      document.querySelectorAll('.compare-picker-checkbox').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          const idx = parseInt(e.target.value, 10);
+          if (e.target.checked) {
+            if (!compareSelectedIndexes.includes(idx) && compareSelectedIndexes.length < COMPARE_MAX_PLAYERS) {
+              compareSelectedIndexes.push(idx);
+            }
+          } else {
+            compareSelectedIndexes = compareSelectedIndexes.filter(i => i !== idx);
+          }
+          updateComparePickerState();
+        });
+      });
+      const searchInput = document.getElementById('compare-picker-search');
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          const term = e.target.value.trim().toLowerCase();
+          document.querySelectorAll('.compare-picker-row').forEach(row => {
+            row.style.display = row.dataset.name.includes(term) ? '' : 'none';
+          });
+        });
+      }
+      const goBtn = document.getElementById('compare-picker-go');
+      if (goBtn) {
+        goBtn.addEventListener('click', () => {
+          if (compareSelectedIndexes.length >= 2) {
+            compareShowAllAttrs = false;
+            renderCompareTableModal();
+          }
+        });
+      }
+    }
+
+    function openComparePickerModal() {
+      openGapsModal('Compare Players', buildComparePickerHtml());
+      wireComparePicker();
+    }
+
+    // A player's own primary position group (Striker, Centre Back, etc) — same
+    // classifyPositions()[0] convention evaluateScoutTarget already uses elsewhere, so "which
+    // group does this player belong to" means the same thing everywhere in the app. Used to
+    // pick a curated, position-relevant attribute list for the compact comparison view below.
+    function compareGroupFor(p) {
+      return classifyPositions(p.position || '')[0] || null;
+    }
+
+    // Tom found the original comparison view (every Technical/Mental/Physical/Goalkeeping
+    // attribute, ~40-50 rows stacked vertically inside a narrow modal) "incredibly vertical"
+    // and hard to actually read. Two changes fix that: the modal itself gets a wide variant
+    // (gaps-modal-wide, see CSS) just for this feature, and the attribute list defaults to
+    // only the Key/Preferred attributes for whichever position group(s) the compared players
+    // actually belong to (POSITION_GROUPS — the same curated set already driving Squad
+    // Breakdown's gap analysis and the Fit tiles), which is usually 6-16 rows instead of 40+.
+    // showAllAttrs (toggled by the button in the rendered header) escapes back to the full
+    // breakdown for anyone who wants it — the compact view is the better default, not the
+    // only option.
+    function buildCompareTableHtml(indexes, showAllAttrs) {
+      const players = indexes.map(i => scoutShortlist[i]).filter(Boolean);
+      if (players.length < 2) return '<div class="scout-tile-empty">Pick at least 2 players to compare.</div>';
+
+      const gridStyle = `grid-template-columns: 130px repeat(${players.length}, 1fr);`;
+      const nameCells = players.map(p => `
+        <div class="compare-header-cell">
+          <div class="compare-header-name">${p.name}</div>
+          <div class="compare-header-meta">${p.position || '&mdash;'}</div>
+        </div>
+      `).join('');
+
+      function overviewRow(label, valueFn) {
+        return `<div class="compare-row-label">${label}</div>` + players.map(p => `<div class="compare-row-value">${valueFn(p)}</div>`).join('');
+      }
+
+      const tierLabel = p => {
+        const tier = scoutFitTier(p);
+        if (tier === 'perfect') return 'Perfect Fit';
+        if (tier === 'nearly') return 'Nearly There';
+        if (tier === 'potential') return 'Development Prospect';
+        return '&mdash;';
+      };
+
+      const tacticFitCell = p => {
+        const fit = computeScoutPlayerActiveTacticFit(p);
+        if (fit.noTactic || fit.noAttributes || !fit.best) return '&mdash;';
+        const label = fitScoreLabel(fit.best.score);
+        return `<span class="scout-tactic-fit-highlight ${label.cls}">${label.text}</span>`;
+      };
+
+      const budgetCell = p => {
+        if (!clubTransferBudget && !clubWageBudget) return '&mdash;';
+        const overBudget = (clubTransferBudget && !isWithinTransferBudget(p)) || (clubWageBudget && !isWithinWageBudget(p));
+        return overBudget ? '<span class="scout-budget-over">Over budget</span>' : '<span class="scout-budget-ok">Within budget</span>';
+      };
+
+      // Merged pairs (Age/Club, Ability/Potential, Wage/Value) instead of one row each — half
+      // as many overview rows for the same information, which matters just as much toward
+      // "incredibly vertical" as the attribute list did.
+      const overviewHtml = [
+        overviewRow('Position', p => p.position || '&mdash;'),
+        overviewRow('Age / Club', p => `${p.age ?? '&mdash;'} &middot; ${p.club || '&mdash;'}`),
+        overviewRow('Ability / Potential', p => `${p.ability || '&mdash;'} / ${p.potential || '&mdash;'}`),
+        overviewRow('Wage / Value', p => `${formatWage(p.wage)} / ${p.value || '&mdash;'}`),
+        overviewRow('Fit Tier', tierLabel),
+        overviewRow('Active Tactic Fit', tacticFitCell),
+        overviewRow('Budget', budgetCell),
+      ].join('');
+
+      function attrGroupHtml(title, attrNames) {
+        if (!attrNames.length) return '';
+        const rows = attrNames.map(name => {
+          const label = ATTR_DISPLAY_LABELS[name] || name;
+          const cells = players.map(p => {
+            const value = p.attributes && p.attributes[name];
+            const hasValue = value !== undefined && value !== null;
+            return `<div class="compare-row-value compare-attr-value ${hasValue ? keyAttrClass(value) : ''}">${hasValue ? value : '&mdash;'}</div>`;
+          }).join('');
+          return `<div class="compare-row-label">${label}</div>${cells}`;
+        }).join('');
+        return `<div class="compare-group-title" style="grid-column: 1 / -1;">${title}</div>${rows}`;
+      }
+
+      const hasGoalkeeping = players.some(p => p.attributes && ATTRIBUTE_GROUPS.Goalkeeping.some(name => p.attributes[name] !== undefined));
+
+      const compareGroups = players.map(compareGroupFor).filter(Boolean);
+      const canGoCompact = compareGroups.length === players.length; // every player matched a known group
+
+      let attrHtml;
+      let attrToggleLabel;
+      if (!showAllAttrs && canGoCompact) {
+        const keySet = new Set();
+        const prefSet = new Set();
+        compareGroups.forEach(group => {
+          const profile = POSITION_GROUPS[group];
+          if (!profile) return;
+          profile.keyAttributes.forEach(a => keySet.add(a));
+          profile.preferredAttributes.forEach(a => { if (!keySet.has(a)) prefSet.add(a); });
+        });
+        attrHtml = attrGroupHtml('Key Attributes', Array.from(keySet)) + attrGroupHtml('Preferred Attributes', Array.from(prefSet));
+        attrToggleLabel = 'Show all attributes';
+      } else {
+        attrHtml = attrGroupHtml('Technical', ATTRIBUTE_GROUPS.Technical)
+          + attrGroupHtml('Mental', ATTRIBUTE_GROUPS.Mental)
+          + attrGroupHtml('Physical', ATTRIBUTE_GROUPS.Physical)
+          + (hasGoalkeeping ? attrGroupHtml('Goalkeeping', ATTRIBUTE_GROUPS.Goalkeeping) : '');
+        // No toggle back to the compact view when nobody compared has a matched position
+        // group — there'd be nothing to show in it.
+        attrToggleLabel = canGoCompact ? 'Show key attributes only' : null;
+      }
+
+      const toggleBtnHtml = attrToggleLabel
+        ? `<button class="mini-btn-link compare-toggle-attrs-btn" id="compare-toggle-attrs-btn">${attrToggleLabel}</button>`
+        : '';
+
+      return `
+        <div class="compare-toolbar">
+          <button class="mini-btn-link compare-back-btn" id="compare-back-btn">&larr; Back to picker</button>
+          ${toggleBtnHtml}
+        </div>
+        <div class="compare-table" style="${gridStyle}">
+          <div class="compare-row-label"></div>${nameCells}
+          ${overviewHtml}
+          ${attrHtml}
+        </div>
+      `;
+    }
+
+    let compareShowAllAttrs = false;
+
+    function renderCompareTableModal() {
+      openGapsModal('Compare Players', buildCompareTableHtml(compareSelectedIndexes, compareShowAllAttrs));
+      document.querySelector('#gaps-modal-backdrop .player-modal').classList.add('gaps-modal-wide');
+      const backBtn = document.getElementById('compare-back-btn');
+      if (backBtn) backBtn.addEventListener('click', openComparePickerModal);
+      const toggleBtn = document.getElementById('compare-toggle-attrs-btn');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+          compareShowAllAttrs = !compareShowAllAttrs;
+          renderCompareTableModal();
+        });
+      }
+    }
+
+    document.getElementById('scout-compare-btn').addEventListener('click', () => {
+      compareSelectedIndexes = [];
+      openComparePickerModal();
+    });
+    // ---- END Compare Players ----
 
     renderScoutTable();
     // ---- END Scouting Shortlist ----
@@ -15382,14 +16060,35 @@
     // navigation.
     const LAST_VIEW_STORAGE_KEY = 'fmcc_lastView';
 
+    // Sets each tile's flow-in delay from its real top-to-bottom position on screen (see
+    // panelFlowIn's own CSS comment for the full reasoning) rather than CSS :nth-of-type,
+    // which only counts a tile's position among its own direct siblings and so restarts at
+    // 1 in every separate row/grid container a page's tiles are split across - reading
+    // offsetTop instead guarantees the tile nearest the top of the page always animates in
+    // first, however many containers its page happens to use. Capped at four steps so a
+    // tile-heavy page doesn't take forever to finish arriving; the 5th tile down and every
+    // one after it share that same final delay.
+    function applyTileStagger(viewEl) {
+      if (!viewEl) return;
+      const tiles = Array.from(viewEl.querySelectorAll('.dashboard-panel, .hero-tile'));
+      tiles.sort((a, b) => a.offsetTop - b.offsetTop);
+      const STEP_MS = 55;
+      const MAX_STEPS = 4;
+      tiles.forEach((tile, i) => {
+        tile.style.animationDelay = (Math.min(i, MAX_STEPS) * STEP_MS) + 'ms';
+      });
+    }
+
     // Shared nav function so other elements (e.g. the Best Players tile) can
     // jump to a view the same way the hotbar buttons do.
     function switchToView(viewName) {
       navButtons.forEach(b => b.classList.remove('active'));
       views.forEach(v => v.classList.remove('active'));
 
+      const viewEl = document.getElementById(viewName);
       document.querySelector(`.nav-btn[data-view="${viewName}"]`).classList.add('active');
-      document.getElementById(viewName).classList.add('active');
+      viewEl.classList.add('active');
+      applyTileStagger(viewEl);
 
       try { localStorage.setItem(LAST_VIEW_STORAGE_KEY, viewName); } catch (e) { /* storage unavailable */ }
 
